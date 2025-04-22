@@ -44,7 +44,7 @@ import {
   TelegramIcon,
   WidgetIcon,
 } from "@/components/ui/icons";
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, ShieldIcon } from "lucide-react";
 
 // Interfaces para definir a estrutura dos itens da barra lateral
 export interface SidebarItem {
@@ -73,7 +73,7 @@ function hasCategoryActiveItem(category: SidebarCategory, currentPath: string): 
   return category.items.some(item => 
     item.active || 
     currentPath === item.href || 
-    (currentPath && currentPath.includes(item.href) && item.href !== '/admin/dashboard')
+    (Boolean(currentPath) && currentPath.includes(item.href) && item.href !== '/admin/dashboard')
   );
 }
 
@@ -89,13 +89,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       icon: <DashboardIcon />, 
       href: "/admin/dashboard",
       active: currentPath === "/admin/dashboard"
-    },
-    {
-      name: "Financeiro Empresarial",
-      icon: <CircleDollarSign />,
-      href: "/admin/financeiro-empresarial",
-      active: currentPath === "/admin/financeiro-empresarial" || 
-              (currentPath && currentPath.includes("/admin/financeiro-empresarial"))
     },
   ];
 
@@ -187,7 +180,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
-  // Categoria: Pessoas
+  // Categoria: Pessoas (reorganizada sem funcionalidades administrativas)
   const peopleCategory: SidebarCategory = {
     name: "Pessoas",
     icon: <UsersIcon />,
@@ -202,16 +195,22 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           active: currentPath === "/admin/pessoas/usuarios" || (currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
         },
         { 
-          name: "Papéis & Permissões", 
-          icon: <SecurityIcon />, 
-          href: "/admin/pessoas/roles",
-          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+          name: "Alunos", 
+          icon: <UserPlusIcon />, 
+          href: "/admin/pessoas/alunos",
+          active: currentPath === "/admin/pessoas/alunos" || (currentPath && currentPath.includes("/admin/pessoas/alunos"))
         },
         { 
-          name: "Permissões Contextuais", 
+          name: "Professores", 
           icon: <BadgeCheckIcon />, 
-          href: "/admin/pessoas/abac-permissions",
-          active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+          href: "/admin/pessoas/professores",
+          active: currentPath === "/admin/pessoas/professores" || (currentPath && currentPath.includes("/admin/pessoas/professores"))
+        },
+        { 
+          name: "Colaboradores", 
+          icon: <GroupIcon />, 
+          href: "/admin/pessoas/colaboradores",
+          active: currentPath === "/admin/pessoas/colaboradores" || (currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
         },
       ]
     }, currentPath),
@@ -223,16 +222,22 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         active: currentPath === "/admin/pessoas/usuarios" || (currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
       },
       { 
-        name: "Papéis & Permissões", 
-        icon: <SecurityIcon />, 
-        href: "/admin/pessoas/roles",
-        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+        name: "Alunos", 
+        icon: <UserPlusIcon />, 
+        href: "/admin/pessoas/alunos",
+        active: currentPath === "/admin/pessoas/alunos" || (currentPath && currentPath.includes("/admin/pessoas/alunos"))
       },
       { 
-        name: "Permissões Contextuais", 
+        name: "Professores", 
         icon: <BadgeCheckIcon />, 
-        href: "/admin/pessoas/abac-permissions",
-        active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+        href: "/admin/pessoas/professores",
+        active: currentPath === "/admin/pessoas/professores" || (currentPath && currentPath.includes("/admin/pessoas/professores"))
+      },
+      { 
+        name: "Colaboradores", 
+        icon: <GroupIcon />, 
+        href: "/admin/pessoas/colaboradores",
+        active: currentPath === "/admin/pessoas/colaboradores" || (currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
       },
     ]
   };
@@ -450,8 +455,9 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
-  // Categoria: Sistema
-  const systemCategory: SidebarCategory = {
+  // NOVA SEÇÃO: ADMINISTRAÇÃO
+  // Categoria: Administração - Sistema
+  const adminSystemCategory: SidebarCategory = {
     name: "Sistema",
     icon: <BuildIcon />,
     expanded: hasCategoryActiveItem({
@@ -524,16 +530,243 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
+  // Categoria: Administração - Permissões
+  const adminPermissionsCategory: SidebarCategory = {
+    name: "Permissões",
+    icon: <SecurityIcon />,
+    expanded: hasCategoryActiveItem({
+      name: "Permissões",
+      icon: <SecurityIcon />,
+      items: [
+        { 
+          name: "Papéis & Permissões", 
+          icon: <SecurityIcon />, 
+          href: "/admin/pessoas/roles",
+          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+        },
+        { 
+          name: "Permissões Contextuais", 
+          icon: <BadgeCheckIcon />, 
+          href: "/admin/pessoas/abac-permissions",
+          active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+        },
+        { 
+          name: "Usuários Admin", 
+          icon: <GroupIcon />, 
+          href: "/admin/pessoas/admin-users",
+          active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+        },
+      ]
+    }, currentPath),
+    items: [
+      { 
+        name: "Papéis & Permissões", 
+        icon: <SecurityIcon />, 
+        href: "/admin/pessoas/roles",
+        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+      },
+      { 
+        name: "Permissões Contextuais", 
+        icon: <BadgeCheckIcon />, 
+        href: "/admin/pessoas/abac-permissions",
+        active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+      },
+      { 
+        name: "Usuários Admin", 
+        icon: <GroupIcon />, 
+        href: "/admin/pessoas/admin-users",
+        active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+      },
+    ]
+  };
+
+  // Categoria: Administração - Institucional (nível corporativo)
+  const adminInstitutionalCategory: SidebarCategory = {
+    name: "Institucional",
+    icon: <BuildingIcon />,
+    expanded: hasCategoryActiveItem({
+      name: "Institucional",
+      icon: <BuildingIcon />,
+      items: [
+        { 
+          name: "Instituições", 
+          icon: <BusinessIcon />, 
+          href: "/admin/institutions",
+          active: currentPath === "/admin/institutions"
+        },
+        { 
+          name: "Polos", 
+          icon: <StorefrontIcon />, 
+          href: "/admin/polos",
+          active: currentPath === "/admin/polos"
+        },
+        { 
+          name: "Parceiros", 
+          icon: <HandshakeIcon />, 
+          href: "/admin/partners",
+          active: currentPath === "/admin/partners"
+        },
+      ]
+    }, currentPath),
+    items: [
+      { 
+        name: "Instituições", 
+        icon: <BusinessIcon />, 
+        href: "/admin/institutions",
+        active: currentPath === "/admin/institutions"
+      },
+      { 
+        name: "Polos", 
+        icon: <StorefrontIcon />, 
+        href: "/admin/polos",
+        active: currentPath === "/admin/polos"
+      },
+      { 
+        name: "Parceiros", 
+        icon: <HandshakeIcon />, 
+        href: "/admin/partners",
+        active: currentPath === "/admin/partners"
+      },
+    ]
+  };
+  
+  // Categoria: Administração - Financeiro Empresarial
+  const adminFinanceCategory: SidebarCategory = {
+    name: "Financeiro Empresarial",
+    icon: <CircleDollarSign />,
+    expanded: hasCategoryActiveItem({
+      name: "Financeiro Empresarial",
+      icon: <CircleDollarSign />,
+      items: [
+        { 
+          name: "Antecipação de Recebíveis", 
+          icon: <CircleDollarSign />, 
+          href: "/admin/financeiro-empresarial/antecipacao",
+          active: currentPath === "/admin/financeiro-empresarial/antecipacao" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/antecipacao"))
+        },
+        { 
+          name: "Configurações Financeiras", 
+          icon: <SettingsIcon />, 
+          href: "/admin/financeiro-empresarial/configuracoes",
+          active: currentPath === "/admin/financeiro-empresarial/configuracoes" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/configuracoes"))
+        },
+        { 
+          name: "Relatórios Consolidados", 
+          icon: <BarChartAltIcon />, 
+          href: "/admin/financeiro-empresarial/relatorios",
+          active: currentPath === "/admin/financeiro-empresarial/relatorios" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/relatorios"))
+        },
+      ]
+    }, currentPath),
+    items: [
+      { 
+        name: "Antecipação de Recebíveis", 
+        icon: <CircleDollarSign />, 
+        href: "/admin/financeiro-empresarial/antecipacao",
+        active: currentPath === "/admin/financeiro-empresarial/antecipacao" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/antecipacao"))
+      },
+      { 
+        name: "Configurações Financeiras", 
+        icon: <SettingsIcon />, 
+        href: "/admin/financeiro-empresarial/configuracoes",
+        active: currentPath === "/admin/financeiro-empresarial/configuracoes" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/configuracoes"))
+      },
+      { 
+        name: "Relatórios Consolidados", 
+        icon: <BarChartAltIcon />, 
+        href: "/admin/financeiro-empresarial/relatorios",
+        active: currentPath === "/admin/financeiro-empresarial/relatorios" || (currentPath && currentPath.includes("/admin/financeiro-empresarial/relatorios"))
+      },
+    ]
+  };
+
+  // Categoria principal de Administração (contém todas as sub-categorias administrativas)
+  const administrationCategory: SidebarCategory = {
+    name: "Administração",
+    icon: <ShieldIcon />,
+    expanded: hasCategoryActiveItem({
+      name: "Administração",
+      icon: <ShieldIcon />,
+      items: [
+        // Representa os itens de todas as subcategorias
+        // Precisamos apenas verificar se alguma categoria filha está ativa
+        { 
+          name: "Sistema", 
+          icon: <BuildIcon />, 
+          href: "/admin/sistema/settings",
+          active: Boolean(currentPath) && (
+            currentPath.includes("/admin/sistema/") || 
+            currentPath.includes("/admin/integracoes/") ||
+            currentPath.includes("/admin/auditoria/")
+          )
+        },
+        { 
+          name: "Permissões", 
+          icon: <SecurityIcon />, 
+          href: "/admin/pessoas/roles",
+          active: Boolean(currentPath) && (
+            currentPath.includes("/admin/pessoas/roles") || 
+            currentPath.includes("/admin/pessoas/abac") || 
+            currentPath.includes("/admin/pessoas/admin-users")
+          )
+        },
+        { 
+          name: "Institucional", 
+          icon: <BuildingIcon />, 
+          href: "/admin/institutions",
+          active: Boolean(currentPath) && (
+            currentPath.includes("/admin/institutions") || 
+            currentPath.includes("/admin/polos") || 
+            currentPath.includes("/admin/partners")
+          )
+        },
+        { 
+          name: "Financeiro Empresarial", 
+          icon: <CircleDollarSign />, 
+          href: "/admin/financeiro-empresarial",
+          active: Boolean(currentPath) && (
+            currentPath.includes("/admin/financeiro-empresarial/")
+          )
+        },
+      ]
+    }, currentPath),
+    items: [
+      { 
+        name: "Sistema", 
+        icon: <BuildIcon />, 
+        href: "/admin/sistema/settings",
+        active: Boolean(currentPath) && currentPath.includes("/admin/sistema/")
+      },
+      { 
+        name: "Permissões", 
+        icon: <SecurityIcon />, 
+        href: "/admin/pessoas/roles",
+        active: Boolean(currentPath) && currentPath.includes("/admin/pessoas/roles")
+      },
+      { 
+        name: "Institucional", 
+        icon: <BuildingIcon />, 
+        href: "/admin/institutions",
+        active: Boolean(currentPath) && currentPath.includes("/admin/institutions")
+      },
+      { 
+        name: "Financeiro Empresarial", 
+        icon: <CircleDollarSign />, 
+        href: "/admin/financeiro-empresarial",
+        active: Boolean(currentPath) && currentPath.includes("/admin/financeiro-empresarial")
+      }
+    ]
+  };
+
   // Combinar todos os itens e categorias
   return [
     ...mainItems,
     academicCategory,
-    institutionalCategory,
     peopleCategory,
-    operationalCategory,
     crmCategory,
     communicationCategory,
     certificationCategory,
-    systemCategory,
+    operationalCategory,
+    administrationCategory, // Nova categoria no final do menu
   ];
 }
