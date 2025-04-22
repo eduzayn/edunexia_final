@@ -7,10 +7,11 @@
  * Exemplo de uso:
  * node create-new-admin.js username password "Nome Completo" email@exemplo.com
  */
-import { db } from './server/db';
-import { users } from './shared/schema';
+import pg from 'pg';
 import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
+
+const { Pool } = pg;
 
 const scryptAsync = promisify(scrypt);
 
@@ -34,40 +35,57 @@ async function createAdminUser() {
       process.exit(1);
     }
     
-    console.log('Verificando se o usuário já existe...');
+    // Criar conexão com o banco de dados
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
     
-    // Verificar se o username já existe
-    const existingUser = await db.select().from(users).where(users.username, '==', username);
+    try {
+      console.log('Verificando se o usuário já existe...');
+      
+      // Verificar se o username já existe
+      const checkUser = await pool.query(
+        `SELECT id, username FROM users WHERE username = $1`,
+        [username]
+      );
+      
+      if (checkUser.rows.length > 0) {
+        console.error(`Erro: Usuário '${username}' já existe no sistema.`);
+        await pool.end();
+        process.exit(1);
+      }
+      
+      // Criar hash da senha
+      const hashedPassword = await hashPassword(password);
+      
+      // Inserir o novo usuário
+      const result = await pool.query(
+        `INSERT INTO users 
+          (username, password, full_name, email, portal_type) 
+         VALUES 
+          ($1, $2, $3, $4, 'admin') 
+         RETURNING id, username, full_name, email, portal_type`,
+        [username, hashedPassword, fullName, email]
+      );
+      
+      const newUser = result.rows[0];
     
-    if (existingUser.length > 0) {
-      console.error(`Erro: Usuário '${username}' já existe no sistema.`);
+      console.log('✅ Usuário administrador criado com sucesso:');
+      console.log(`ID: ${newUser.id}`);
+      console.log(`Username: ${newUser.username}`);
+      console.log(`Nome: ${newUser.full_name}`);
+      console.log(`E-mail: ${newUser.email}`);
+      console.log(`Tipo: ${newUser.portal_type}`);
+      
+      await pool.end();
+      process.exit(0);
+    } catch (error) {
+      console.error('Erro ao criar usuário administrador:', error);
+      await pool.end();
       process.exit(1);
     }
-    
-    // Criar hash da senha
-    const hashedPassword = await hashPassword(password);
-    
-    // Inserir o novo usuário
-    const [newUser] = await db.insert(users).values({
-      username,
-      password: hashedPassword,
-      fullName,
-      email,
-      portalType: 'admin',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning();
-    
-    console.log('✅ Usuário administrador criado com sucesso:');
-    console.log(`ID: ${newUser.id}`);
-    console.log(`Username: ${newUser.username}`);
-    console.log(`Nome: ${newUser.fullName}`);
-    console.log(`E-mail: ${newUser.email}`);
-    console.log(`Tipo: ${newUser.portalType}`);
-    
-    process.exit(0);
   } catch (error) {
-    console.error('Erro ao criar usuário administrador:', error);
+    console.error('Erro geral:', error);
     process.exit(1);
   }
 }
