@@ -12,7 +12,14 @@ import { setupAuth } from './auth';
 import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
-import { NewSimplifiedEnrollmentController } from './controllers/new-simplified-enrollment-controller';
+import { 
+  listSimplifiedEnrollments,
+  getSimplifiedEnrollmentById,
+  createSimplifiedEnrollment, 
+  generatePaymentLink,
+  updatePaymentStatus,
+  cancelEnrollment
+} from './controllers/new-simplified-enrollment-controller';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
@@ -227,12 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/v2/crm/search-customer-by-cpf', requireAuth, searchAsaasCustomerByCpfCnpj);
 
   // Matrículas Simplificadas
-  app.post('/api/v2/simplified-enrollments', requireAuth, NewSimplifiedEnrollmentController.create);
-  app.get('/api/v2/simplified-enrollments', requireAuth, NewSimplifiedEnrollmentController.getAll);
-  app.get('/api/v2/simplified-enrollments/:id', requireAuth, NewSimplifiedEnrollmentController.getById);
-  app.post('/api/v2/simplified-enrollments/:id/generate-payment-link', requireAuth, NewSimplifiedEnrollmentController.generatePaymentLink);
-  app.post('/api/v2/simplified-enrollments/:id/update-payment-status', requireAuth, NewSimplifiedEnrollmentController.updatePaymentStatus);
-  app.post('/api/v2/simplified-enrollments/:id/cancel', requireAuth, NewSimplifiedEnrollmentController.cancel);
+  app.post('/api/v2/simplified-enrollments', requireAuth, createSimplifiedEnrollment);
+  app.get('/api/v2/simplified-enrollments', requireAuth, listSimplifiedEnrollments);
+  app.get('/api/v2/simplified-enrollments/:id', requireAuth, getSimplifiedEnrollmentById);
+  app.post('/api/v2/simplified-enrollments/:id/generate-payment-link', requireAuth, generatePaymentLink);
+  app.post('/api/v2/simplified-enrollments/:id/update-payment-status', requireAuth, updatePaymentStatus);
+  app.post('/api/v2/simplified-enrollments/:id/cancel', requireAuth, cancelEnrollment);
 
   return server;
 }

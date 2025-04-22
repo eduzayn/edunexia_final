@@ -1,589 +1,621 @@
 /**
- * Controlador para o módulo de Matrículas Simplificadas
- * Versão 2.0 - Refatorado e otimizado para utilizar a API do Asaas corretamente
+ * Controlador para o módulo de matrículas simplificadas
  */
 
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { sql } from 'drizzle-orm';
 import { 
   simplifiedEnrollments, 
   courses, 
-  polos,
-  institutions
+  polos, 
+  institutions, 
+  insertSimplifiedEnrollmentSchema 
 } from '../../shared/schema';
+import { eq, and, like, or, desc } from 'drizzle-orm';
 import { AsaasDirectPaymentService } from '../services/asaas-direct-payment-service';
-import { eq } from 'drizzle-orm';
-import { randomBytes } from 'crypto';
+import { ZodError } from 'zod';
+import { fromZodError } from 'zod-validation-error';
 
-// Tipos de status de matrícula simplificada
-export type EnrollmentStatus = 
-  | 'pending'           // Aguardando geração de link de pagamento
-  | 'waiting_payment'   // Link gerado, aguardando pagamento
-  | 'payment_confirmed' // Pagamento confirmado
-  | 'completed'         // Matrícula concluída
-  | 'cancelled'         // Matrícula cancelada
-  | 'failed';           // Falha no processamento
-
-// Interface para criação de matrícula simplificada
-interface CreateSimplifiedEnrollmentData {
-  studentName: string;
-  studentEmail: string;
-  studentCpf: string;
-  courseId: number;
-  institutionId: number;
-  sourceChannel: string;
-  poloId?: number | null;
-  amount?: number;
-  externalReference?: string;
-  createdById?: number;
+/**
+ * Lista todas as matrículas simplificadas com filtros e paginação
+ */
+export async function listSimplifiedEnrollments(req: Request, res: Response) {
+  try {
+    const { page = '1', limit = '10', search, status } = req.query;
+    const pageNumber = parseInt(page as string);
+    const pageSize = parseInt(limit as string);
+    const offset = (pageNumber - 1) * pageSize;
+    
+    // Construir query com filtros
+    let query = db.select({
+      simplifiedEnrollments,
+      courseName: courses.name,
+      institutionName: institutions.name,
+      poloName: polos.name,
+    })
+    .from(simplifiedEnrollments)
+    .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
+    .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
+    .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id))
+    .orderBy(desc(simplifiedEnrollments.createdAt));
+    
+    // Aplicar filtro de busca
+    if (search) {
+      const searchTerm = `%${search}%`;
+      query = query.where(
+        or(
+          like(simplifiedEnrollments.studentName, searchTerm),
+          like(simplifiedEnrollments.studentCpf, searchTerm),
+          like(simplifiedEnrollments.studentEmail, searchTerm),
+          like(courses.name, searchTerm)
+        )
+      );
+    }
+    
+    // Aplicar filtro de status
+    if (status) {
+      query = query.where(eq(simplifiedEnrollments.status, status as string));
+    }
+    
+    // Consulta para contar o total
+    const countQuery = db.select({ count: db.count() })
+      .from(simplifiedEnrollments)
+      .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
+      .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
+      .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id));
+    
+    // Aplicar os mesmos filtros à consulta de contagem
+    if (search) {
+      const searchTerm = `%${search}%`;
+      countQuery.where(
+        or(
+          like(simplifiedEnrollments.studentName, searchTerm),
+          like(simplifiedEnrollments.studentCpf, searchTerm),
+          like(simplifiedEnrollments.studentEmail, searchTerm),
+          like(courses.name, searchTerm)
+        )
+      );
+    }
+    
+    if (status) {
+      countQuery.where(eq(simplifiedEnrollments.status, status as string));
+    }
+    
+    // Executar consulta paginada
+    const [enrollmentsResults, countResults] = await Promise.all([
+      query.limit(pageSize).offset(offset),
+      countQuery
+    ]);
+    
+    const totalItems = countResults[0]?.count || 0;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    
+    // Processar resultados para o formato adequado
+    const formattedResults = enrollmentsResults.map(result => {
+      // Pegar os valores do objeto de matrícula simplificada
+      const enrollment = { 
+        ...result.simplifiedEnrollments,
+        // Adicionar os campos de join
+        courseName: result.courseName,
+        institutionName: result.institutionName,
+        poloName: result.poloName
+      };
+      
+      return enrollment;
+    });
+    
+    res.json({
+      success: true,
+      data: formattedResults,
+      page: pageNumber,
+      limit: pageSize,
+      pages: totalPages,
+      total: totalItems
+    });
+  } catch (error) {
+    console.error('[API] Erro ao listar matrículas simplificadas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao listar matrículas simplificadas',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
 }
 
-// Gerador de referência externa única
-function generateExternalReference(): string {
-  // Formato: EDX-{timestamp}-{random} (Edunexia)
-  const timestamp = Date.now();
-  const random = randomBytes(4).toString('hex');
-  return `EDX-${timestamp}-${random}`;
-}
-
-// Formatador de data para API (YYYY-MM-DD)
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-export const NewSimplifiedEnrollmentController = {
-  /**
-   * Lista todas as matrículas simplificadas
-   */
-  async getAll(req: Request, res: Response) {
-    try {
-      // Obter parâmetros de paginação e filtros
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = (page - 1) * limit;
-      
-      // Query base
-      let query = db
-        .select({
-          id: simplifiedEnrollments.id,
-          studentName: simplifiedEnrollments.studentName,
-          studentEmail: simplifiedEnrollments.studentEmail,
-          studentCpf: simplifiedEnrollments.studentCpf,
-          status: simplifiedEnrollments.status,
-          createdAt: simplifiedEnrollments.createdAt,
-          updatedAt: simplifiedEnrollments.updatedAt,
-          courseName: courses.name,
-          poloName: polos.name,
-          institutionName: institutions.name,
-          amount: simplifiedEnrollments.amount,
-          paymentLinkUrl: simplifiedEnrollments.paymentLinkUrl,
-          externalReference: simplifiedEnrollments.externalReference
-        })
-        .from(simplifiedEnrollments)
-        .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
-        .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id))
-        .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
-        .orderBy(sql`${simplifiedEnrollments.id} DESC`);
-      
-      // Executar a query
-      const enrollments = await query.limit(limit).offset(offset);
-      
-      // Contar total para paginação
-      const countResult = await db
-        .select({ count: sql`count(*)` })
-        .from(simplifiedEnrollments);
-      
-      const total = Number(countResult[0].count);
-      
-      res.status(200).json({
-        success: true,
-        data: enrollments,
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit)
-      });
-    } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao listar matrículas:', error);
-      res.status(500).json({
+/**
+ * Busca uma matrícula simplificada pelo ID
+ */
+export async function getSimplifiedEnrollmentById(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const enrollmentId = parseInt(id);
+    
+    if (isNaN(enrollmentId)) {
+      return res.status(400).json({
         success: false,
-        message: 'Erro ao listar matrículas simplificadas',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        message: 'ID de matrícula inválido'
       });
     }
-  },
-  
-  /**
-   * Obtém detalhes de uma matrícula específica
-   */
-  async getById(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
-      }
-      
-      // Buscar matrícula com dados relacionados
-      const enrollment = await db
-        .select({
-          id: simplifiedEnrollments.id,
-          studentName: simplifiedEnrollments.studentName,
-          studentEmail: simplifiedEnrollments.studentEmail,
-          studentCpf: simplifiedEnrollments.studentCpf,
-          courseId: simplifiedEnrollments.courseId,
-          courseName: courses.name,
-          poloId: simplifiedEnrollments.poloId,
-          poloName: polos.name,
-          institutionId: simplifiedEnrollments.institutionId,
-          institutionName: institutions.name,
-          status: simplifiedEnrollments.status,
-          externalReference: simplifiedEnrollments.externalReference,
-          createdAt: simplifiedEnrollments.createdAt,
-          updatedAt: simplifiedEnrollments.updatedAt,
-          sourceChannel: simplifiedEnrollments.sourceChannel,
-          amount: simplifiedEnrollments.amount,
-          paymentLinkId: simplifiedEnrollments.paymentLinkId,
-          paymentLinkUrl: simplifiedEnrollments.paymentLinkUrl,
-          paymentId: simplifiedEnrollments.paymentId,
-          asaasCustomerId: simplifiedEnrollments.asaasCustomerId,
-          errorDetails: simplifiedEnrollments.errorDetails,
-          processedAt: simplifiedEnrollments.processedAt,
-          createdBy: simplifiedEnrollments.createdById,
-          updatedBy: simplifiedEnrollments.updatedById
-        })
-        .from(simplifiedEnrollments)
-        .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
-        .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id))
-        .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
-        .where(eq(simplifiedEnrollments.id, id))
-        .limit(1);
-      
-      if (!enrollment.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'Matrícula não encontrada'
-        });
-      }
-      
-      res.status(200).json({
-        success: true,
-        data: enrollment[0]
-      });
-    } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao buscar matrícula:', error);
-      res.status(500).json({
+    
+    const result = await db.select({
+      simplifiedEnrollments,
+      courseName: courses.name,
+      institutionName: institutions.name,
+      poloName: polos.name,
+    })
+    .from(simplifiedEnrollments)
+    .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
+    .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
+    .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id))
+    .where(eq(simplifiedEnrollments.id, enrollmentId))
+    .limit(1);
+    
+    if (!result.length) {
+      return res.status(404).json({
         success: false,
-        message: 'Erro ao buscar matrícula simplificada',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
+        message: 'Matrícula não encontrada'
       });
     }
-  },
-  
-  /**
-   * Cria uma nova matrícula simplificada
-   */
-  async create(req: Request, res: Response) {
+    
+    // Formatar resultado
+    const enrollment = { 
+      ...result[0].simplifiedEnrollments,
+      courseName: result[0].courseName,
+      institutionName: result[0].institutionName,
+      poloName: result[0].poloName
+    };
+    
+    res.json({
+      success: true,
+      data: enrollment
+    });
+  } catch (error) {
+    console.error('[API] Erro ao buscar matrícula simplificada:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar matrícula simplificada',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+}
+
+/**
+ * Cria uma nova matrícula simplificada
+ */
+export async function createSimplifiedEnrollment(req: Request, res: Response) {
+  try {
+    // Validar dados usando o schema
     try {
-      const userId = req.user?.id;
-      
-      const {
-        studentName,
-        studentEmail,
-        studentCpf,
-        courseId,
-        institutionId,
-        sourceChannel,
-        poloId,
-        amount
-      } = req.body as CreateSimplifiedEnrollmentData;
-      
-      // Validação básica
-      if (!studentName || !studentEmail || !studentCpf || !courseId || !institutionId) {
+      insertSimplifiedEnrollmentSchema.parse(req.body);
+    } catch (validationError) {
+      if (validationError instanceof ZodError) {
+        const formattedError = fromZodError(validationError);
         return res.status(400).json({
           success: false,
-          message: 'Dados incompletos para criação da matrícula'
+          message: 'Dados de matrícula inválidos',
+          error: formattedError.message
         });
       }
       
-      // Verificar se o curso existe e está ativo
-      const courseExists = await db
-        .select()
-        .from(courses)
-        .where(eq(courses.id, courseId))
+      return res.status(400).json({
+        success: false,
+        message: 'Dados de matrícula inválidos',
+        error: 'Erro de validação'
+      });
+    }
+    
+    const { 
+      studentName, 
+      studentEmail, 
+      studentCpf, 
+      studentPhone, 
+      courseId, 
+      institutionId,
+      poloId, 
+      amount,
+      sourceChannel,
+      externalReference
+    } = req.body;
+    
+    // Verificar se o curso existe
+    const courseExists = await db.select({ id: courses.id, name: courses.name })
+      .from(courses)
+      .where(eq(courses.id, courseId))
+      .limit(1);
+    
+    if (!courseExists.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Curso não encontrado'
+      });
+    }
+    
+    // Verificar se a instituição existe
+    const institutionExists = await db.select({ id: institutions.id, name: institutions.name })
+      .from(institutions)
+      .where(eq(institutions.id, institutionId))
+      .limit(1);
+    
+    if (!institutionExists.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Instituição não encontrada'
+      });
+    }
+    
+    // Verificar se o polo existe, se fornecido
+    let poloName = null;
+    if (poloId) {
+      const poloExists = await db.select({ id: polos.id, name: polos.name })
+        .from(polos)
+        .where(eq(polos.id, poloId))
         .limit(1);
-        
-      if (!courseExists.length) {
+      
+      if (!poloExists.length) {
         return res.status(404).json({
           success: false,
-          message: 'Curso não encontrado ou não está ativo'
+          message: 'Polo não encontrado'
         });
       }
       
-      // Gerar referência externa única
-      const externalReference = generateExternalReference();
-      
-      // Criar matrícula no banco
-      const result = await db.insert(simplifiedEnrollments).values({
-        studentName,
-        studentEmail,
-        studentCpf,
-        courseId,
-        institutionId,
-        sourceChannel: sourceChannel || 'web',
-        poloId,
-        status: 'pending',
-        externalReference,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        amount: amount || 0,
-        createdById: userId || null
-      }).returning();
-      
-      const enrollment = result[0];
-      
-      // Registrar a matrícula no sistema central para garantir a integração
+      poloName = poloExists[0].name;
+    }
+    
+    // Criar a matrícula simplificada
+    const [newEnrollment] = await db.insert(simplifiedEnrollments).values({
+      studentName,
+      studentEmail,
+      studentCpf,
+      studentPhone,
+      courseId,
+      institutionId,
+      poloId,
+      amount,
+      status: 'pending',
+      sourceChannel: sourceChannel || 'admin-portal',
+      externalReference,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdById: req.user?.id || null
+    }).returning();
+    
+    // Adicionar os campos extras para a resposta
+    const enrollmentWithDetails = {
+      ...newEnrollment,
+      courseName: courseExists[0].name,
+      institutionName: institutionExists[0].name,
+      poloName
+    };
+    
+    res.status(201).json({
+      success: true,
+      message: 'Matrícula simplificada criada com sucesso',
+      data: enrollmentWithDetails
+    });
+  } catch (error) {
+    console.error('[API] Erro ao criar matrícula simplificada:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao criar matrícula simplificada',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+}
+
+/**
+ * Gera um link de pagamento para uma matrícula
+ */
+export async function generatePaymentLink(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const enrollmentId = parseInt(id);
+    
+    if (isNaN(enrollmentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de matrícula inválido'
+      });
+    }
+    
+    // Buscar matrícula simplificada
+    const enrollment = await db.select({
+      simplifiedEnrollments,
+      courseName: courses.name,
+    })
+    .from(simplifiedEnrollments)
+    .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
+    .where(eq(simplifiedEnrollments.id, enrollmentId))
+    .limit(1);
+    
+    if (!enrollment.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Matrícula não encontrada'
+      });
+    }
+    
+    const enrollmentData = enrollment[0].simplifiedEnrollments;
+    
+    // Verificar se já existe um link de pagamento
+    if (enrollmentData.paymentLinkId && enrollmentData.paymentLinkUrl) {
+      return res.json({
+        success: true,
+        message: 'Link de pagamento já existe',
+        data: {
+          paymentLinkId: enrollmentData.paymentLinkId,
+          paymentLinkUrl: enrollmentData.paymentLinkUrl
+        }
+      });
+    }
+    
+    // Criar cliente no Asaas, se necessário
+    let asaasCustomerId = enrollmentData.asaasCustomerId;
+    
+    if (!asaasCustomerId) {
       try {
-        // Este é um exemplo de como poderia ser a integração
-        // Na implementação real, isso seria uma chamada para o serviço central
-        console.log(`[CENTRAL INTEGRATION] Registrando matrícula simplificada ${enrollment.id} no sistema central`);
+        // Verificar se já existe um cliente com esse CPF
+        const existingCustomer = await AsaasDirectPaymentService.findCustomerByCpfCnpj(enrollmentData.studentCpf);
         
-        // Aqui você implementaria a lógica de sincronização com o sistema central
-        // Por exemplo, criar uma entrada em uma tabela de registro central que todos os portais consultam
+        if (existingCustomer) {
+          asaasCustomerId = existingCustomer.id;
+        } else {
+          // Criar novo cliente
+          const customer = await AsaasDirectPaymentService.createCustomer({
+            name: enrollmentData.studentName,
+            email: enrollmentData.studentEmail,
+            cpfCnpj: enrollmentData.studentCpf,
+            mobilePhone: enrollmentData.studentPhone || undefined
+          });
+          
+          asaasCustomerId = customer.id;
+        }
         
-      } catch (integrationError) {
-        console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao integrar matrícula com sistema central:', integrationError);
-        // Não impede a criação, mas registra o erro para posterior sincronização
+        // Atualizar a matrícula com o ID do cliente
+        await db.update(simplifiedEnrollments)
+          .set({ asaasCustomerId, updatedAt: new Date() })
+          .where(eq(simplifiedEnrollments.id, enrollmentId));
+      } catch (error) {
+        console.error('[API] Erro ao criar cliente no Asaas:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao criar cliente no Asaas',
+          error: error instanceof Error ? error.message : 'Erro desconhecido'
+        });
       }
-      
-      res.status(201).json({
-        success: true,
-        message: 'Matrícula simplificada criada com sucesso',
-        data: enrollment
-      });
-    } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao criar matrícula:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro ao criar matrícula simplificada',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      });
     }
-  },
-  
-  /**
-   * Gera um link de pagamento para uma matrícula
-   */
-  async generatePaymentLink(req: Request, res: Response) {
+    
+    // Criar link de pagamento no Asaas
     try {
-      const id = parseInt(req.params.id);
-      const userId = req.user?.id;
+      const courseName = enrollment[0].courseName || 'Curso';
+      const description = `Matrícula no curso: ${courseName}`;
       
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
-      }
+      const paymentLink = await AsaasDirectPaymentService.createPaymentLink({
+        name: `Matrícula #${enrollmentId} - ${enrollmentData.studentName}`,
+        description,
+        value: enrollmentData.amount,
+        billingType: 'UNDEFINED', // Permitir que o cliente escolha a forma de pagamento
+        chargeType: 'DETACHED',
+        dueDateLimitDays: 30,
+        maxInstallmentCount: 12
+      });
       
-      // Buscar a matrícula
-      const enrollments = await db
-        .select()
-        .from(simplifiedEnrollments)
-        .where(eq(simplifiedEnrollments.id, id))
-        .limit(1);
+      // Atualizar a matrícula com os dados do link de pagamento
+      await db.update(simplifiedEnrollments)
+        .set({
+          paymentLinkId: paymentLink.id,
+          paymentLinkUrl: paymentLink.url,
+          status: 'waiting_payment',
+          updatedAt: new Date()
+        })
+        .where(eq(simplifiedEnrollments.id, enrollmentId));
       
-      if (!enrollments.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'Matrícula não encontrada'
-        });
-      }
-      
-      const enrollment = enrollments[0];
-      
-      // Verificar se já existe um link de pagamento ativo
-      if (enrollment.status === 'waiting_payment' && enrollment.paymentLinkUrl) {
-        return res.status(200).json({
-          success: true,
-          message: 'Link de pagamento já existe',
-          data: {
-            paymentLinkId: enrollment.paymentLinkId,
-            paymentLinkUrl: enrollment.paymentLinkUrl
-          }
-        });
-      }
-      
-      // Buscar informações do curso
-      const courseResult = await db
-        .select()
-        .from(courses)
-        .where(eq(courses.id, enrollment.courseId))
-        .limit(1);
-      
-      if (!courseResult.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'Curso não encontrado'
-        });
-      }
-      
-      const course = courseResult[0];
-      
-      // Determinar o valor correto
-      const amount = enrollment.amount || course.price || 0;
-      
-      if (amount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valor inválido para geração de link de pagamento'
-        });
-      }
-      
-      try {
-        // 1. Criar ou obter cliente no Asaas
-        const customer = await AsaasDirectPaymentService.createOrGetCustomer(
-          enrollment.studentName,
-          enrollment.studentEmail,
-          enrollment.studentCpf
-        );
-        
-        // 2. Criar cobrança com link
-        const description = `Matrícula: ${course.name}`;
-        const payment = await AsaasDirectPaymentService.createPaymentWithLink(
-          customer.id,
-          amount,
-          description,
-          enrollment.externalReference
-        );
-        
-        // 3. Atualizar a matrícula com as informações do pagamento
-        await db.update(simplifiedEnrollments)
-          .set({
-            status: 'waiting_payment',
-            paymentLinkId: payment.id,
-            paymentLinkUrl: payment.invoiceUrl,
-            paymentId: payment.id,
-            asaasCustomerId: customer.id,
-            updatedAt: new Date(),
-            updatedById: userId || null,
-            processedAt: new Date(),
-            processedById: userId || null
-          })
-          .where(eq(simplifiedEnrollments.id, id));
-        
-        // 4. Retornar sucesso com o link
-        res.status(200).json({
-          success: true,
-          message: 'Link de pagamento gerado com sucesso',
-          data: {
-            paymentLinkId: payment.id,
-            paymentLinkUrl: payment.invoiceUrl,
-            paymentId: payment.id,
-            asaasCustomerId: customer.id
-          }
-        });
-      } catch (asaasError) {
-        console.error('[NEW SIMPLIFIED ENROLLMENT] Erro na integração com Asaas:', asaasError);
-        
-        // Registrar erro na matrícula
-        await db.update(simplifiedEnrollments)
-          .set({
-            status: 'failed',
-            errorDetails: asaasError instanceof Error 
-              ? asaasError.message 
-              : 'Erro desconhecido na integração com Asaas',
-            updatedAt: new Date(),
-            updatedById: userId || null
-          })
-          .where(eq(simplifiedEnrollments.id, id));
-        
-        throw asaasError;
-      }
+      res.json({
+        success: true,
+        message: 'Link de pagamento gerado com sucesso',
+        data: {
+          paymentLinkId: paymentLink.id,
+          paymentLinkUrl: paymentLink.url
+        }
+      });
     } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao gerar link de pagamento:', error);
+      console.error('[API] Erro ao gerar link de pagamento no Asaas:', error);
       
-      // Resposta de erro detalhada
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      const errorDetails = error instanceof Error && (error as any).response?.data 
-        ? JSON.stringify((error as any).response?.data)
-        : 'Sem detalhes adicionais';
+      // Armazenar detalhes do erro na matrícula
+      await db.update(simplifiedEnrollments)
+        .set({
+          errorDetails: error instanceof Error ? error.message : JSON.stringify(error),
+          status: 'failed',
+          updatedAt: new Date()
+        })
+        .where(eq(simplifiedEnrollments.id, enrollmentId));
       
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: 'Erro ao gerar link de pagamento',
-        error: errorMessage,
-        details: errorDetails
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
-  },
-  
-  /**
-   * Cancela uma matrícula
-   */
-  async cancel(req: Request, res: Response) {
+  } catch (error) {
+    console.error('[API] Erro ao gerar link de pagamento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao gerar link de pagamento',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+}
+
+/**
+ * Atualiza o status de pagamento de uma matrícula
+ */
+export async function updatePaymentStatus(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const enrollmentId = parseInt(id);
+    
+    if (isNaN(enrollmentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de matrícula inválido'
+      });
+    }
+    
+    // Buscar matrícula simplificada
+    const enrollment = await db.select()
+      .from(simplifiedEnrollments)
+      .where(eq(simplifiedEnrollments.id, enrollmentId))
+      .limit(1);
+    
+    if (!enrollment.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Matrícula não encontrada'
+      });
+    }
+    
+    const enrollmentData = enrollment[0];
+    
+    // Verificar se há link de pagamento
+    if (!enrollmentData.paymentLinkId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta matrícula não possui um link de pagamento gerado'
+      });
+    }
+    
+    // Verificar status do link de pagamento no Asaas
     try {
-      const id = parseInt(req.params.id);
-      const userId = req.user?.id;
+      const paymentLink = await AsaasDirectPaymentService.getPaymentLinkById(enrollmentData.paymentLinkId);
       
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
-      }
-      
-      // Buscar a matrícula
-      const enrollments = await db
-        .select()
-        .from(simplifiedEnrollments)
-        .where(eq(simplifiedEnrollments.id, id))
-        .limit(1);
-      
-      if (!enrollments.length) {
+      if (!paymentLink) {
         return res.status(404).json({
           success: false,
-          message: 'Matrícula não encontrada'
+          message: 'Link de pagamento não encontrado no Asaas'
         });
       }
       
-      const enrollment = enrollments[0];
+      let newStatus = enrollmentData.status;
       
-      // Se tiver um link de pagamento, cancelar no Asaas
-      if (enrollment.paymentId) {
-        try {
-          await AsaasDirectPaymentService.cancelPayment(enrollment.paymentId);
-        } catch (asaasError) {
-          console.warn('[NEW SIMPLIFIED ENROLLMENT] Erro ao cancelar pagamento no Asaas:', asaasError);
-          // Continuamos mesmo com erro no Asaas
+      // Mapear status do Asaas para status da aplicação
+      if (paymentLink.active && paymentLink.totalPayments > 0) {
+        newStatus = 'payment_confirmed';
+        
+        // Se tiver paymentId, buscar detalhes da cobrança
+        if (paymentLink.lastPayment?.id) {
+          // Atualizar com o ID do pagamento
+          await db.update(simplifiedEnrollments)
+            .set({
+              paymentId: paymentLink.lastPayment.id,
+              updatedAt: new Date()
+            })
+            .where(eq(simplifiedEnrollments.id, enrollmentId));
         }
       }
       
-      // Atualizar status na base
-      await db.update(simplifiedEnrollments)
-        .set({
-          status: 'cancelled',
-          updatedAt: new Date(),
-          updatedById: userId || null
-        })
-        .where(eq(simplifiedEnrollments.id, id));
-      
-      res.status(200).json({
-        success: true,
-        message: 'Matrícula cancelada com sucesso'
-      });
-    } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao cancelar matrícula:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erro ao cancelar matrícula simplificada',
-        error: error instanceof Error ? error.message : 'Erro desconhecido'
-      });
-    }
-  },
-  
-  /**
-   * Atualiza o status de pagamento de uma matrícula
-   */
-  async updatePaymentStatus(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const userId = req.user?.id;
-      
-      if (isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'ID inválido'
-        });
-      }
-      
-      // Buscar a matrícula
-      const enrollments = await db
-        .select()
-        .from(simplifiedEnrollments)
-        .where(eq(simplifiedEnrollments.id, id))
-        .limit(1);
-      
-      if (!enrollments.length) {
-        return res.status(404).json({
-          success: false,
-          message: 'Matrícula não encontrada'
-        });
-      }
-      
-      const enrollment = enrollments[0];
-      
-      // Verificar se existe um ID de pagamento
-      if (!enrollment.paymentId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Não há pagamento associado a esta matrícula'
-        });
-      }
-      
-      // Consultar status no Asaas
-      const payment = await AsaasDirectPaymentService.getPaymentById(enrollment.paymentId);
-      
-      // Mapear status do Asaas para nosso sistema
-      let newStatus: EnrollmentStatus = 'waiting_payment';
-      
-      switch (payment.status) {
-        case 'RECEIVED':
-        case 'CONFIRMED':
-        case 'RECEIVED_IN_CASH':
-          newStatus = 'payment_confirmed';
-          break;
-          
-        case 'OVERDUE':
-        case 'PENDING':
-        case 'AWAITING_RISK_ANALYSIS':
-          newStatus = 'waiting_payment';
-          break;
-          
-        case 'REFUNDED':
-        case 'REFUND_REQUESTED':
-        case 'CHARGEBACK_REQUESTED':
-        case 'CHARGEBACK_DISPUTE':
-        case 'AWAITING_CHARGEBACK_REVERSAL':
-          newStatus = 'cancelled';
-          break;
-          
-        case 'FAILED':
-          newStatus = 'failed';
-          break;
-          
-        default:
-          newStatus = 'waiting_payment';
-      }
-      
-      // Atualizar no banco
+      // Atualizar status da matrícula
       await db.update(simplifiedEnrollments)
         .set({
           status: newStatus,
           updatedAt: new Date(),
-          updatedById: userId || null
+          updatedById: req.user?.id || null
         })
-        .where(eq(simplifiedEnrollments.id, id));
+        .where(eq(simplifiedEnrollments.id, enrollmentId));
       
-      res.status(200).json({
+      res.json({
         success: true,
         message: 'Status de pagamento atualizado com sucesso',
         data: {
-          asaasStatus: payment.status,
-          newStatus
+          status: newStatus,
+          paymentDetails: paymentLink.active ? 
+            { 
+              totalPayments: paymentLink.totalPayments,
+              lastPaymentId: paymentLink.lastPayment?.id 
+            } : null
         }
       });
     } catch (error) {
-      console.error('[NEW SIMPLIFIED ENROLLMENT] Erro ao atualizar status de pagamento:', error);
-      res.status(500).json({
+      console.error('[API] Erro ao verificar status do link de pagamento:', error);
+      return res.status(500).json({
         success: false,
-        message: 'Erro ao atualizar status de pagamento',
+        message: 'Erro ao verificar status do link de pagamento',
         error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
+  } catch (error) {
+    console.error('[API] Erro ao atualizar status de pagamento:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao atualizar status de pagamento',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
   }
-};
+}
+
+/**
+ * Cancela uma matrícula
+ */
+export async function cancelEnrollment(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const enrollmentId = parseInt(id);
+    
+    if (isNaN(enrollmentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de matrícula inválido'
+      });
+    }
+    
+    // Buscar matrícula simplificada
+    const enrollment = await db.select()
+      .from(simplifiedEnrollments)
+      .where(eq(simplifiedEnrollments.id, enrollmentId))
+      .limit(1);
+    
+    if (!enrollment.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Matrícula não encontrada'
+      });
+    }
+    
+    // Verificar se a matrícula já está cancelada
+    if (enrollment[0].status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta matrícula já está cancelada'
+      });
+    }
+    
+    // Cancelar o link de pagamento no Asaas, se existir
+    if (enrollment[0].paymentLinkId) {
+      try {
+        await AsaasDirectPaymentService.deletePaymentLink(enrollment[0].paymentLinkId);
+      } catch (error) {
+        console.error('[API] Erro ao cancelar link de pagamento no Asaas:', error);
+        // Não interromper o processo se falhar, apenas registrar o erro
+      }
+    }
+    
+    // Atualizar status da matrícula para cancelada
+    await db.update(simplifiedEnrollments)
+      .set({
+        status: 'cancelled',
+        updatedAt: new Date(),
+        updatedById: req.user?.id || null
+      })
+      .where(eq(simplifiedEnrollments.id, enrollmentId));
+    
+    res.json({
+      success: true,
+      message: 'Matrícula cancelada com sucesso'
+    });
+  } catch (error) {
+    console.error('[API] Erro ao cancelar matrícula:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao cancelar matrícula',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+}
