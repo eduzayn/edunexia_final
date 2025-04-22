@@ -228,6 +228,8 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       amount,
       sourceChannel,
       externalReference,
+      // Campos para cliente Asaas existente
+      asaasCustomerId,
       // Novos campos para Asaas
       studentAddress,
       studentAddressNumber,
@@ -301,6 +303,9 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
       externalReference,
+      
+      // Se tiver um ID de cliente Asaas, usar
+      asaasCustomerId: asaasCustomerId || null,
       
       // Armazenar metadados adicionais para Asaas
       metadata: JSON.stringify({
