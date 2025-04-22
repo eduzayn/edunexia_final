@@ -659,7 +659,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Endereço do Aluno</h3>
                     <FormDescription className="mb-4">
-                      Os dados de endereço são opcionais, mas recomendados para facilitar a criação do cliente no Asaas.
+                      <strong>Todos os campos de endereço são completamente opcionais.</strong> O Asaas não exige esses dados para o cadastro básico do cliente, mas fornecer essas informações pode facilitar processos futuros.
                     </FormDescription>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
