@@ -68,7 +68,7 @@ export const getQueryFn: <T>(options: {
     const res = await fetch(queryKey[0] as string, {
       method: "GET",
       headers,
-      credentials: "same-origin", // Não mais usar cookies
+      credentials: "omit", // Não usar cookies
     });
 
     // Log para debug

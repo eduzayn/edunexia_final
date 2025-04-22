@@ -79,10 +79,9 @@ export default function AdminAuthPage() {
       // Login bem-sucedido, vamos esperar os dados serem atualizados antes de navegar
       console.log("Login bem-sucedido, redirecionando para dashboard administrativo");
       
-      // Usar setTimeout para garantir que o estado seja completamente atualizado
-      setTimeout(() => {
-        navigate("/admin/dashboard");
-      }, 300);
+      // O redirecionamento agora é feito diretamente pela função de login
+      // que usa window.location.href para garantir um redirecionamento completo
+      // Isso evita problemas com o estado de autenticação no navegador
     } catch (error) {
       console.error("Erro no login:", error);
     }
