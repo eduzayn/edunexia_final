@@ -79,15 +79,11 @@ export class AsaasCoursePaymentService {
   private accessToken: string;
 
   constructor() {
-    // Usar a nova chave de API de produção fornecida
-    const accessToken = process.env.ASAAS_PRODUCTION_KEY || process.env.ASAAS_ZAYN_KEY;
+    // Usar a chave de API da Zayn (produção)
+    const accessToken = process.env.ASAAS_ZAYN_KEY;
     
-    // Forçar o uso do ambiente de produção, independentemente do token
-    // A determinação do ambiente baseada no prefixo do token não está funcionando como esperado
-    const apiUrl = 'https://api.asaas.com/v3'; // Ambiente de produção com prefixo /v3 conforme documentação
-    
-    // Mantemos esta variável apenas para logging
-    const isProductionToken = accessToken?.startsWith('$aact_prod');
+    // Ambiente de produção com prefixo /v3 conforme documentação
+    const apiUrl = 'https://api.asaas.com/v3';
 
     if (!accessToken) {
       // Log informativo para debug
@@ -101,11 +97,8 @@ export class AsaasCoursePaymentService {
     }
 
     // Log detalhado para debug
-    const tokenSource = process.env.ASAAS_PRODUCTION_KEY ? 'ASAAS_PRODUCTION_KEY' : 'ASAAS_ZAYN_KEY';
-    console.log(`[COURSE PAYMENT SERVICE] Utilizando ambiente Asaas ${isProductionToken ? 'produção' : 'sandbox'}:`, apiUrl);
-    console.log(`[COURSE PAYMENT SERVICE] Usando token ${tokenSource}:`, accessToken.substring(0, 10) + '...');
-    console.log(`[COURSE PAYMENT SERVICE] Verificação do token: ${accessToken?.startsWith('$aact_prod') ? 'Token de produção detectado' : 'Token sandbox detectado'}`);
-    
+    console.log(`[COURSE PAYMENT SERVICE] Utilizando ambiente de produção:`, apiUrl);
+    console.log(`[COURSE PAYMENT SERVICE] Usando token ASAAS_ZAYN_KEY:`, accessToken.substring(0, 10) + '...');
 
     this.apiUrl = apiUrl;
     this.accessToken = accessToken;

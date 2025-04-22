@@ -20,18 +20,12 @@ export class AsaasGateway implements PaymentGateway {
     // IMPORTANTE: Usamos a nova chave ASAAS_ZAYN_KEY (nos secrets do Replit)
     this.apiKey = process.env.ASAAS_ZAYN_KEY || '';
     
-    // Verificar se estamos usando token de produção ou sandbox
-    const isProductionToken = this.apiKey?.startsWith('$aact_prod_');
-    this.apiUrl = process.env.ASAAS_API_URL || (
-      isProductionToken
-      ? 'https://api.asaas.com/v3'
-      : 'https://sandbox.asaas.com/api/v3'
-    );
+    // Sempre usar ambiente de produção
+    this.apiUrl = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
     
-    // Log para rastrear qual ambiente está sendo usado
-    console.log(`[ASAAS GATEWAY] Utilizando ambiente: ${isProductionToken ? 'Produção' : 'Sandbox'} - ${this.apiUrl}`);
+    // Log para rastrear a configuração
+    console.log(`[ASAAS GATEWAY] Utilizando ambiente de produção: ${this.apiUrl}`);
     console.log(`[ASAAS GATEWAY] Token da API (ASAAS_API_KEY): ${this.apiKey?.substring(0, 10)}...`);
-    console.log(`[ASAAS GATEWAY] ⚠️ Atenção: Configuração atualizada com a chave correta do Asaas`);
     
     if (!this.apiKey) {
       console.warn('ASAAS_API_KEY não configurada. Integração com Asaas funcionará em modo de simulação.');
@@ -279,7 +273,7 @@ export class AsaasGateway implements PaymentGateway {
   // Métodos para simulação (modo de desenvolvimento)
   private simulatePaymentCreation(enrollment: Enrollment): { externalId: string, paymentUrl: string } {
     const externalId = "pay_" + Math.random().toString(36).substring(2, 15);
-    const paymentUrl = `https://sandbox.asaas.com/payment/${externalId}`;
+    const paymentUrl = `https://api.asaas.com/payment/${externalId}`;
     
     console.log(`[SIMULAÇÃO ASAAS] Criando pagamento para: ${enrollment.code}, valor: ${enrollment.amount}`);
     

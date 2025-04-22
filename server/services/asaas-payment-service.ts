@@ -4,18 +4,12 @@ import { Invoice, InvoiceItem, Payment } from '../../shared/schema';
 // Configurações da API do Asaas
 // IMPORTANTE: Usamos a nova chave ASAAS_ZAYN_KEY (nos secrets do Replit)
 const ASAAS_API_KEY = process.env.ASAAS_ZAYN_KEY;
-// Verificamos se a API key começa com $aact_prod_ para decidir qual ambiente usar
-const isProductionToken = ASAAS_API_KEY?.startsWith('$aact_prod_');
-const ASAAS_API_URL = process.env.ASAAS_API_URL || (
-  isProductionToken
-  ? 'https://api.asaas.com/v3'
-  : 'https://sandbox.asaas.com/api/v3'
-);
+// Sempre usar ambiente de produção
+const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
 
-// Log para rastrear qual ambiente está sendo usado
-console.log(`[ASAAS PAYMENT] Utilizando ambiente: ${isProductionToken ? 'Produção' : 'Sandbox'} - ${ASAAS_API_URL}`);
-console.log(`[ASAAS PAYMENT] Token da API (ASAAS_API_KEY): ${ASAAS_API_KEY?.substring(0, 10)}...`);
-console.log(`[ASAAS PAYMENT] ⚠️ Atenção: Configuração atualizada com a chave correta do Asaas`);
+// Log para rastrear a configuração
+console.log(`[ASAAS PAYMENT] Utilizando ambiente de produção: ${ASAAS_API_URL}`);
+console.log(`[ASAAS PAYMENT] Token da API (ASAAS_ZAYN_KEY): ${ASAAS_API_KEY?.substring(0, 10)}...`);
 
 // Configuração do cliente Axios para a API do Asaas
 const asaasClient = axios.create({
