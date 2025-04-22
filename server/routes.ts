@@ -2339,74 +2339,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================== Rotas para CRM - Clientes ==================
   // Listar clientes
   app.get("/api/admin/crm/clients", requireAdmin, async (req, res) => {
-    try {
-      const search = req.query.search?.toString();
-      const status = req.query.status?.toString();
-      const limit = parseInt(req.query.limit?.toString() || "50");
-      const offset = parseInt(req.query.offset?.toString() || "0");
-
-      const clients = await storage.getClients(search, status, limit, offset);
-      res.json(clients);
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      res.status(500).json({ message: "Erro ao buscar clientes" });
-    }
+    console.log("Redirecionando rota legada de clientes para Asaas Clients API");
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize /api/debug/asaas-customers para clientes Asaas.",
+      redirectTo: "/api/debug/asaas-customers"
+    });
   });
 
-  // Obter um cliente específico
+  // Redirecionamento para operações específicas de cliente
   app.get("/api/admin/crm/clients/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const client = await storage.getClient(id);
-
-      if (!client) {
-        return res.status(404).json({ message: "Cliente não encontrado" });
-      }
-
-      res.json(client);
-    } catch (error) {
-      console.error("Error fetching client:", error);
-      res.status(500).json({ message: "Erro ao buscar cliente" });
-    }
+    console.log(`Redirecionando rota legada de detalhes de cliente ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize /api/debug/asaas-customers para clientes Asaas.",
+      redirectTo: "/api/debug/asaas-customers"
+    });
   });
 
   // Criar um novo cliente
   app.post("/api/admin/crm/clients", requireAdmin, async (req, res) => {
-    try {
-      // Validar os dados do cliente
-      const clientData = insertClientSchema.parse({ 
-        ...req.body,
-        createdById: req.user.id
-      });
-
-      // Verificar integração com Asaas - tentar buscar cliente pelo CPF/CNPJ
-      try {
-        const { AsaasService } = await import('./services/asaas-service');
-        const existingAsaasCustomer = await AsaasService.getCustomerByCpfCnpj(clientData.cpfCnpj);
-
-        if (existingAsaasCustomer) {
-          console.log(`Cliente já existe no Asaas com o CPF/CNPJ ${clientData.cpfCnpj}. ID Asaas: ${existingAsaasCustomer.id}`);
-
-          // Incluir o ID do Asaas nos dados do cliente
-          clientData.asaasId = existingAsaasCustomer.id;
-        }
-      } catch (asaasError) {
-        console.warn('Erro ao verificar cliente no Asaas:', asaasError);
-        // Continuamos mesmo se não conseguirmos verificar o cliente no Asaas
-      }
-
-      const client = await storage.createClient(clientData);
-      res.status(201).json(client);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Dados inválidos", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error creating client:", error);
-      res.status(500).json({ message: "Erro ao criar cliente" });
-    }
+    console.log("Redirecionando rota legada de criação de cliente para Asaas Clients API");
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Atualizar um cliente
