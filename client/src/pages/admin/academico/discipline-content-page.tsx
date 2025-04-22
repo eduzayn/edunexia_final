@@ -94,10 +94,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 // Schema para validação dos formulários
 const videoFormSchema = z.object({
   title: z.string().min(3, { message: "Título deve ter pelo menos 3 caracteres" }),
-  description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
+  description: z.string().optional(),
   videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
   url: z.string().url({ message: "URL inválida" }),
-  duration: z.coerce.number().min(1, { message: "Duração deve ser maior que 0" }),
+  duration: z.string().regex(/^\d+:\d+$/, { message: "Duração deve estar no formato mm:ss" }),
 });
 
 const materialFormSchema = z.object({
@@ -404,7 +404,7 @@ export default function DisciplineContentPage() {
       description: "",
       videoSource: "youtube",
       url: "",
-      duration: 0,
+      duration: "00:00",
     },
   });
   
@@ -990,7 +990,7 @@ export default function DisciplineContentPage() {
                               {video.description}
                             </p>
                             <div className="flex items-center mt-2 text-sm text-gray-500">
-                              <span>{video.duration} minutos</span>
+                              <span>Duração: {video.duration}</span>
                             </div>
                           </CardContent>
                           <CardFooter className="p-4 pt-0 flex justify-between">
