@@ -88,7 +88,7 @@ export default function AdminAuthPage() {
       setLoginSuccess(true);
       
       // Forçar uma nova consulta para obter as informações do usuário mais atualizadas
-      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api-json/user"] });
       
       // O redirecionamento será tratado pelo useEffect acima
       console.log("Login bem-sucedido, preparando acesso ao Portal Administrativo...");

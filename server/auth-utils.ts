@@ -61,8 +61,17 @@ export async function comparePasswords(supplied: string, stored: string) {
       return timingSafeEqual(hashedBuf, suppliedBuf);
     }
     
-    console.log('Formato de senha não reconhecido');
-    return false;
+    console.log('Formato de senha não reconhecido. Tentando comparação direta como último recurso.');
+    
+    // Como último recurso, vamos tentar uma comparação direta (para fins de compatibilidade)
+    // Isso pode ser necessário para senhas armazenadas em formatos legados ou especiais
+    try {
+      console.log('Tentando comparação direta de strings');
+      return supplied === stored;
+    } catch (directError) {
+      console.error('Erro na comparação direta:', directError);
+      return false;
+    }
   } catch (error) {
     console.error('Erro ao comparar senhas:', error);
     return false;
