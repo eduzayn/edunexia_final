@@ -46,8 +46,6 @@ import LeadsV2Page from "@/pages/admin/crm/leads-v2-page";
 import NewLeadV2Page from "@/pages/admin/crm/new-lead-v2-page";
 import LeadDetailV2Page from "@/pages/admin/crm/lead-detail-v2-page";
 import AsaasClientsPage from "@/pages/admin/crm/asaas-clients-page";
-import ContactsPage from "@/pages/admin/crm/contacts-page";
-import NewContactPage from "@/pages/admin/crm/new-contact-page";
 import ProductsPage from "@/pages/admin/finance/products-page";
 import NewProductPage from "@/pages/admin/finance/new-product-page";
 import ChargesPage from "@/pages/admin/finance/charges-page";
@@ -456,13 +454,7 @@ function Router() {
         {() => user?.portalType === "admin" ? <AsaasClientsPage /> : <Redirect to="/admin" />}
       </Route>
       
-      <Route path="/admin/crm/contacts">
-        {() => user?.portalType === "admin" ? <ContactsPage /> : <Redirect to="/admin" />}
-      </Route>
-      
-      <Route path="/admin/crm/contacts/new">
-        {() => user?.portalType === "admin" ? <NewContactPage /> : <Redirect to="/admin" />}
-      </Route>
+      {/* Rotas de Contato removidas - Substituídas pela Integração Asaas */}
       
       {/* Rotas do Módulo Financeiro */}
       <Route path="/admin/finance/products">
