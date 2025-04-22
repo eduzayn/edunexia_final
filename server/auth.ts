@@ -168,13 +168,17 @@ export function setupAuth(app: Express) {
           // Usar o usuário atualizado na sessão
           req.login(updatedUser, (err) => {
             if (err) return next(err);
-            return res.status(200).json(updatedUser);
+            // Evitar enviar todos os dados do usuário, especialmente a senha
+            const safeUser = { ...updatedUser, password: undefined };
+            return res.status(200).json(safeUser);
           });
         } else {
           // Se o usuário não for encontrado (improvável), use o original
           req.login(user, (err) => {
             if (err) return next(err);
-            return res.status(200).json(user);
+            // Evitar enviar todos os dados do usuário, especialmente a senha
+            const safeUser = { ...user, password: undefined };
+            return res.status(200).json(safeUser);
           });
         }
       } catch (error: unknown) {
@@ -184,7 +188,9 @@ export function setupAuth(app: Express) {
         // Fallback para o usuário original caso haja erro
         req.login(user, (err) => {
           if (err) return next(err);
-          return res.status(200).json(user);
+          // Evitar enviar todos os dados do usuário, especialmente a senha
+          const safeUser = { ...user, password: undefined };
+          return res.status(200).json(safeUser);
         });
       }
     })(req, res, next);
