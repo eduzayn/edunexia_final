@@ -66,6 +66,66 @@ export const EnrollmentIntegrationService = {
   },
   
   /**
+   * Função para reparar ou recuperar disciplinas associadas a um curso
+   * Isso resolve problemas em que as disciplinas foram selecionadas mas não foram persistidas corretamente
+   */
+  async repairCourseDisciplines(courseId: number): Promise<boolean> {
+    try {
+      // Verificar se existe um backup temporário das disciplinas do curso
+      // Este é um cache temporário que podemos usar para recuperar as seleções
+      const cacheKey = `temp_course_disciplines_${courseId}`;
+      const cachedDisciplines = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, cacheKey))
+        .limit(1);
+        
+      if (!cachedDisciplines.length || !cachedDisciplines[0].value) {
+        console.log(`Nenhum cache de disciplinas encontrado para o curso ${courseId}`);
+        return false;
+      }
+      
+      // Tentar recuperar as disciplinas do cache
+      const disciplineIds = JSON.parse(cachedDisciplines[0].value);
+      
+      if (!Array.isArray(disciplineIds) || disciplineIds.length === 0) {
+        console.log(`Cache de disciplinas inválido para o curso ${courseId}`);
+        return false;
+      }
+      
+      // Limpar quaisquer disciplinas existentes (para evitar duplicatas)
+      await db
+        .delete(courseDisciplines)
+        .where(eq(courseDisciplines.courseId, courseId));
+        
+      // Recriar as disciplinas do curso a partir do cache
+      const insertPromises = disciplineIds.map((disciplineId, index) => {
+        return db.insert(courseDisciplines).values({
+          courseId,
+          disciplineId,
+          order: index + 1,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      });
+      
+      await Promise.all(insertPromises);
+      
+      // Limpar o cache após uso
+      await db
+        .delete(systemSettings)
+        .where(eq(systemSettings.key, cacheKey));
+        
+      console.log(`Disciplinas recuperadas com sucesso para o curso ${courseId}`);
+      return true;
+      
+    } catch (error) {
+      console.error(`Erro ao reparar disciplinas do curso ${courseId}:`, error);
+      return false;
+    }
+  },
+  
+  /**
    * Sincroniza uma matrícula simplificada com o sistema central
    */
   async syncSimplifiedEnrollment(simplifiedId: number): Promise<boolean> {

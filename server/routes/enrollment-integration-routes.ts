@@ -110,4 +110,50 @@ router.post('/simplified-enrollments/:id/sync', requireAuth, async (req, res) =>
   }
 });
 
+// Rota para resolver problemas de disciplinas em cursos
+router.post('/courses/:id/fix-disciplines', requireAuth, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.id);
+    
+    if (isNaN(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de curso inválido'
+      });
+    }
+    
+    // Verificar disciplinas atuais
+    const currentDisciplines = await db
+      .select()
+      .from(courseDisciplines)
+      .where(eq(courseDisciplines.courseId, courseId));
+      
+    if (currentDisciplines.length === 0) {
+      // Se não houver disciplinas, verificar se há dados temporários para restaurar
+      const result = await EnrollmentIntegrationService.repairCourseDisciplines(courseId);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Verificação de disciplinas concluída',
+        repaired: result,
+        disciplinesCount: result ? 'recuperadas' : 'nenhuma recuperada'
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Curso já possui disciplinas',
+      disciplinesCount: currentDisciplines.length
+    });
+    
+  } catch (error) {
+    console.error('Erro ao reparar disciplinas do curso:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao reparar disciplinas do curso',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
 export default router;

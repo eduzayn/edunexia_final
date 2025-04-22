@@ -252,14 +252,43 @@ export default function CourseFormPage() {
   // Mutation para adicionar disciplinas ao curso
   const addDisciplinesToCourseMutation = useMutation({
     mutationFn: async ({ courseId, disciplineIds }: { courseId: number; disciplineIds: number[] }) => {
-      const promises = disciplineIds.map((disciplineId, index) => {
-        return apiRequest("POST", "/api/admin/course-disciplines", {
-          courseId,
-          disciplineId,
-          order: index + 1
+      try {
+        // Armazenar temporariamente as disciplinas selecionadas como backup
+        await apiRequest("POST", "/api/admin/system-settings", {
+          key: `temp_course_disciplines_${courseId}`,
+          value: JSON.stringify(disciplineIds),
+          scope: "system"
         });
-      });
-      await Promise.all(promises);
+        
+        // Remover disciplinas existentes
+        await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+        
+        // Adicionar novas disciplinas
+        const promises = disciplineIds.map((disciplineId, index) => {
+          return apiRequest("POST", "/api/admin/course-disciplines", {
+            courseId,
+            disciplineId,
+            order: index + 1
+          });
+        });
+        
+        await Promise.all(promises);
+        
+        // Verificar se as disciplinas foram realmente adicionadas
+        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const addedDisciplines = await result.json();
+        
+        if (!addedDisciplines || addedDisciplines.length === 0) {
+          // Se falhar, tente recuperar usando a API de reparo
+          await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+        }
+      } catch (error) {
+        console.error("Erro durante o processo de adição de disciplinas:", error);
+        
+        // Tente recuperar disciplinas em caso de erro
+        await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -273,7 +302,7 @@ export default function CourseFormPage() {
       toast({
         title: "Erro ao adicionar disciplinas",
         description: error.message || "Ocorreu um erro ao vincular as disciplinas ao curso.",
-        variant: "destructive",
+        variant: "destructive"ve",
       });
     },
   });
