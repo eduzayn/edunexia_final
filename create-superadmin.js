@@ -3,106 +3,85 @@
  * 
  * Este script cria um novo usuário administrativo com acesso a todos os portais
  */
-
 import pg from 'pg';
-import bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 
 const { Pool } = pg;
 
-// Configurar a conexão com o banco de dados
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Função para gerar o hash da senha
-async function hashPassword(password) {
-  const saltRounds = 10;
-  return bcrypt.hash(password, saltRounds);
+// Função para criar hash da senha
+function hashPassword(password) {
+  return createHash('sha256').update(password).digest('hex');
 }
 
 async function createSuperAdmin() {
-  // Configuração do novo usuário
-  const userData = {
-    username: 'marcoadmin',
-    password: 'admin123',
-    fullName: 'Marco Magonder',
-    email: 'marcomagonder@gmail.com',
-    portalType: 'admin'
-  };
-  
-  const client = await pool.connect();
-  
   try {
-    // Iniciar transação
-    await client.query('BEGIN');
-    
-    // Hash da senha
-    const hashedPassword = await hashPassword(userData.password);
-    
+    // Conexão com o banco de dados usando a variável de ambiente
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
+
+    // Obter parâmetros da linha de comando
+    const username = process.argv[2] || 'admin';
+    const password = process.argv[3] || 'admin';
+    const email = process.argv[4] || 'admin@edunexa.com';
+    const fullName = process.argv[5] || 'Administrador';
+
     // Verificar se o usuário já existe
-    const checkResult = await client.query(
-      'SELECT id FROM users WHERE username = $1 OR email = $2',
-      [userData.username, userData.email]
+    const userQuery = await pool.query(
+      `SELECT id, username, portal_type FROM users WHERE username = $1`,
+      [username]
     );
-    
-    if (checkResult.rows.length > 0) {
-      // Se existir, atualizar o usuário
-      console.log('Usuário já existe. Atualizando...');
+
+    if (userQuery.rows.length > 0) {
+      const user = userQuery.rows[0];
+      console.log(`Usuário ${username} já existe:`, user);
       
-      await client.query(
-        `UPDATE users 
-         SET password = $1, 
-             full_name = $2,
-             email = $3,
-             portal_type = $4
-         WHERE username = $5`,
-        [hashedPassword, userData.fullName, userData.email, userData.portalType, userData.username]
-      );
-      
-      console.log('Usuário atualizado com sucesso!');
+      // Perguntar se deseja atualizar
+      console.log(`Deseja atualizar a senha e tipo do usuário ${username}? (S/N)`);
+      process.stdin.once('data', async (data) => {
+        const answer = data.toString().trim().toUpperCase();
+        
+        if (answer === 'S') {
+          // Atualizar usuário existente
+          const hashedPassword = hashPassword(password);
+          
+          const result = await pool.query(
+            `UPDATE users SET password = $1, portal_type = 'admin', email = $2, full_name = $3 
+             WHERE username = $4 RETURNING id, username, portal_type`,
+            [hashedPassword, email, fullName, username]
+          );
+          
+          console.log(`Usuário ${username} atualizado com sucesso!`);
+          console.log('Nova senha:', password);
+          console.log('Detalhes do usuário:', result.rows[0]);
+        } else {
+          console.log('Operação cancelada pelo usuário.');
+        }
+        
+        await pool.end();
+        process.exit(0);
+      });
     } else {
-      // Se não existir, criar o usuário
-      console.log('Criando novo usuário administrativo...');
+      // Criar novo usuário
+      const hashedPassword = hashPassword(password);
       
-      await client.query(
-        `INSERT INTO users 
-         (username, password, full_name, email, portal_type) 
-         VALUES ($1, $2, $3, $4, $5)`,
-        [userData.username, hashedPassword, userData.fullName, userData.email, userData.portalType]
+      const result = await pool.query(
+        `INSERT INTO users (username, password, portal_type, email, full_name)
+         VALUES ($1, $2, 'admin', $3, $4)
+         RETURNING id, username, portal_type`,
+        [username, hashedPassword, email, fullName]
       );
       
-      console.log('Usuário criado com sucesso!');
+      console.log(`Usuário ${username} criado com sucesso!`);
+      console.log('Senha:', password);
+      console.log('Detalhes do usuário:', result.rows[0]);
+      
+      await pool.end();
     }
-    
-    // Commit da transação
-    await client.query('COMMIT');
-    
-    console.log('✅ Operação concluída com sucesso!');
-    console.log('-----------------------------------');
-    console.log(`Username: ${userData.username}`);
-    console.log(`Password: ${userData.password}`);
-    console.log(`Full Name: ${userData.fullName}`);
-    console.log(`Email: ${userData.email}`);
-    console.log(`Portal Type: ${userData.portalType}`);
-    console.log('-----------------------------------');
-    
   } catch (error) {
-    // Rollback em caso de erro
-    await client.query('ROLLBACK');
-    console.error('❌ Erro ao criar usuário administrativo:', error);
-  } finally {
-    // Liberar o cliente
-    client.release();
+    console.error('Erro ao criar/atualizar usuário admin:', error);
+    process.exit(1);
   }
 }
 
-// Executar a função principal
-createSuperAdmin()
-  .then(() => {
-    console.log('Script concluído.');
-    process.exit(0);
-  })
-  .catch(error => {
-    console.error('Erro fatal:', error);
-    process.exit(1);
-  });
+createSuperAdmin();
