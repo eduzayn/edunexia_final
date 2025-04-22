@@ -160,6 +160,7 @@ function Router() {
       </Route>
       <Route path="/public-view/charges" component={SimpleChargesPage} />
       <Route path="/create-charge" component={PublicCreateChargePage} />
+      <Route path="/admin-emergency-access" component={AdminEmergencyAccess} />
       
       <ProtectedRoute path="/student/dashboard" portalType="student" />
       <Route path="/student/courses">
