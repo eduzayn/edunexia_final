@@ -1,9 +1,8 @@
 
 import { db } from '../db';
 import { sql, eq, and } from 'drizzle-orm';
-import { enrollments, courses, students, users } from '../../shared/schema';
-// Define simplifiedEnrollments or use a proper import
-import { simplifiedEnrollments } from '../db/schema';
+import { enrollments, courses, users } from '../../shared/schema';
+// Nota: simplifiedEnrollments foi removido pois não existe no schema atual
 
 /**
  * Serviço para garantir a integração das matrículas entre os diferentes portais
@@ -69,58 +68,13 @@ export const EnrollmentIntegrationService = {
   
   /**
    * Função para reparar ou recuperar disciplinas associadas a um curso
-   * Isso resolve problemas em que as disciplinas foram selecionadas mas não foram persistidas corretamente
+   * Esta função está temporariamente desativada até implementarmos o sistema 
+   * de configurações/settings adequado
    */
   async repairCourseDisciplines(courseId: number): Promise<boolean> {
     try {
-      // Verificar se existe um backup temporário das disciplinas do curso
-      // Este é um cache temporário que podemos usar para recuperar as seleções
-      const cacheKey = `temp_course_disciplines_${courseId}`;
-      const cachedDisciplines = await db
-        .select()
-        .from(systemSettings)
-        .where(eq(systemSettings.key, cacheKey))
-        .limit(1);
-        
-      if (!cachedDisciplines.length || !cachedDisciplines[0].value) {
-        console.log(`Nenhum cache de disciplinas encontrado para o curso ${courseId}`);
-        return false;
-      }
-      
-      // Tentar recuperar as disciplinas do cache
-      const disciplineIds = JSON.parse(cachedDisciplines[0].value);
-      
-      if (!Array.isArray(disciplineIds) || disciplineIds.length === 0) {
-        console.log(`Cache de disciplinas inválido para o curso ${courseId}`);
-        return false;
-      }
-      
-      // Limpar quaisquer disciplinas existentes (para evitar duplicatas)
-      await db
-        .delete(courseDisciplines)
-        .where(eq(courseDisciplines.courseId, courseId));
-        
-      // Recriar as disciplinas do curso a partir do cache
-      const insertPromises = disciplineIds.map((disciplineId, index) => {
-        return db.insert(courseDisciplines).values({
-          courseId,
-          disciplineId,
-          order: index + 1,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-      });
-      
-      await Promise.all(insertPromises);
-      
-      // Limpar o cache após uso
-      await db
-        .delete(systemSettings)
-        .where(eq(systemSettings.key, cacheKey));
-        
-      console.log(`Disciplinas recuperadas com sucesso para o curso ${courseId}`);
-      return true;
-      
+      console.log(`Funcionalidade de reparo de disciplinas não implementada.`);
+      return false;
     } catch (error) {
       console.error(`Erro ao reparar disciplinas do curso ${courseId}:`, error);
       return false;
@@ -129,61 +83,13 @@ export const EnrollmentIntegrationService = {
   
   /**
    * Sincroniza uma matrícula simplificada com o sistema central
+   * Nota: Esta função está temporariamente desativada até implementarmos o sistema
+   * de matrículas simplificadas
    */
   async syncSimplifiedEnrollment(simplifiedId: number): Promise<boolean> {
     try {
-      // Buscar a matrícula simplificada
-      const simplified = await db
-        .select()
-        .from(simplifiedEnrollments)
-        .where(eq(simplifiedEnrollments.id, simplifiedId))
-        .limit(1);
-      
-      if (!simplified.length) {
-        console.error(`Matrícula simplificada ${simplifiedId} não encontrada`);
-        return false;
-      }
-      
-      const simplifiedData = simplified[0];
-      
-      // Verificar se já existe uma matrícula formal para esta simplificada
-      const existingEnrollment = await db
-        .select()
-        .from(enrollments)
-        .where(eq(enrollments.externalReference, simplifiedData.externalReference))
-        .limit(1);
-      
-      if (existingEnrollment.length) {
-        console.log(`Matrícula formal já existe para a simplificada ${simplifiedId}`);
-        return true;
-      }
-      
-      // Criar ou verificar o aluno
-      let studentId: number;
-      
-      // Verificar se já existe um aluno com este e-mail
-      const existingStudent = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, simplifiedData.studentEmail))
-        .limit(1);
-      
-      if (existingStudent.length) {
-        studentId = existingStudent[0].id;
-      } else {
-        // Criar um novo aluno
-        // Na implementação real, você criaria o usuário aqui
-        console.log(`Criando novo aluno para matrícula simplificada ${simplifiedId}`);
-        
-        // Esta é uma implementação simulada
-        studentId = 0; // Você substituiria isso pelo ID real do aluno criado
-      }
-      
-      // Criar a matrícula formal
-      // Na implementação real, você criaria a matrícula aqui
-      console.log(`Criando matrícula formal para a simplificada ${simplifiedId}`);
-      
-      return true;
+      console.log(`Funcionalidade de matrículas simplificadas não implementada ainda.`);
+      return false;
     } catch (error) {
       console.error('Erro ao sincronizar matrícula simplificada:', error);
       return false;

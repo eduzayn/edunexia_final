@@ -857,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Impedir a exclusão do usuário admin principal
       if (id === 5) {
-        return        return res.status(403).json({ message: "Não é permitido excluir o usuário admin principal" });
+        return res.status(403).json({ message: "Não é permitido excluir o usuário admin principal" });
       }
 
       // Verificar se o usuário existe

@@ -178,7 +178,7 @@ export interface IStorage {
   deleteContract(id: number): Promise<boolean>;
   
   // Gateway de pagamento
-  createPayment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}>;
+  createPaymentForEnrollment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}>;
   getPaymentStatus(externalId: string, gateway: string): Promise<string>;
   
   // CRM - Clients and Contacts
@@ -1374,7 +1374,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   // ==================== Gateway de pagamento ====================
-  async createEnrollmentPayment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}> {
+  async createPaymentForEnrollment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}> {
     const { createPaymentGateway } = await import('./services/payment-gateways');
     
     try {
