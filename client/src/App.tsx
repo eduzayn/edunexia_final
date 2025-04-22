@@ -48,6 +48,7 @@ import LeadDetailV2Page from "@/pages/admin/crm/lead-detail-v2-page";
 import ClientsPage from "@/pages/admin/crm/clients-page";
 import NewClientPage from "@/pages/admin/crm/new-client-page";
 import ClientDetailsPage from "@/pages/admin/crm/client-details-page";
+import AsaasClientsPage from "@/pages/admin/crm/asaas-clients-page";
 import ContactsPage from "@/pages/admin/crm/contacts-page";
 import NewContactPage from "@/pages/admin/crm/new-contact-page";
 import ProductsPage from "@/pages/admin/finance/products-page";
@@ -456,6 +457,10 @@ function Router() {
       
       <Route path="/admin/crm/clients">
         {() => user?.portalType === "admin" ? <ClientsPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/crm/asaas-clients">
+        {() => user?.portalType === "admin" ? <AsaasClientsPage /> : <Redirect to="/admin" />}
       </Route>
       
       <Route path="/admin/crm/clients/new">

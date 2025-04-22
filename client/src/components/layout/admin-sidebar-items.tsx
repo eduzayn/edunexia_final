@@ -44,7 +44,7 @@ import {
   TelegramIcon,
   WidgetIcon,
 } from "@/components/ui/icons";
-import { CircleDollarSign, ShieldIcon } from "lucide-react";
+import { CircleDollarSign, ShieldIcon, CreditCardIcon } from "lucide-react";
 
 // Interfaces para definir a estrutura dos itens da barra lateral
 export interface SidebarItem {
@@ -334,6 +334,12 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           active: currentPath === "/admin/crm/clients" || (currentPath && currentPath.includes("/admin/crm/clients/"))
         },
         { 
+          name: "Clientes Asaas", 
+          icon: <CreditCardIcon />, 
+          href: "/admin/crm/asaas-clients",
+          active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
+        },
+        { 
           name: "Contatos", 
           icon: <ContactIcon />, 
           href: "/admin/crm/contacts",
@@ -374,6 +380,12 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         icon: <BuildingStoreIcon />, 
         href: "/admin/crm/clients",
         active: currentPath === "/admin/crm/clients" || (currentPath && currentPath.includes("/admin/crm/clients/"))
+      },
+      { 
+        name: "Clientes Asaas", 
+        icon: <CreditCardIcon />, 
+        href: "/admin/crm/asaas-clients",
+        active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
       },
       { 
         name: "Contatos", 
