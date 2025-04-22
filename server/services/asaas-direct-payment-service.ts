@@ -58,6 +58,48 @@ interface AsaasCustomerResponse {
   dateCreated: string;
 }
 
+// Interface para link de pagamento
+interface AsaasPaymentLinkRequest {
+  name: string;
+  description?: string;
+  value: number;
+  billingType?: string;
+  chargeType?: string;
+  dueDateLimitDays?: number;
+  maxInstallmentCount?: number;
+  showDescription?: boolean;
+  showNegotiationTerms?: boolean;
+  fine?: number;
+  interest?: number;
+  externalReference?: string;
+}
+
+// Interface para resposta de link de pagamento
+interface AsaasPaymentLinkResponse {
+  id: string;
+  url: string;
+  name: string;
+  description?: string;
+  value: number;
+  billingType?: string;
+  chargeType?: string;
+  dueDateLimitDays?: number;
+  subscriptionCycle?: string;
+  maxInstallmentCount?: number;
+  fine?: number;
+  interest?: number;
+  active: boolean;
+  dateCreated: string;
+  externalReference?: string;
+  totalPayments?: number;
+  totalValue?: number;
+  lastPayment?: {
+    id: string;
+    value: number;
+    paymentDate: string;
+  };
+}
+
 // Interface para criação de cobrança
 interface AsaasPaymentRequest {
   customer: string;                 // ID do cliente no Asaas
@@ -186,6 +228,106 @@ export const AsaasDirectPaymentService = {
       return createResponse.data;
     } catch (error) {
       console.error('[ASAAS DIRECT] Erro ao criar/buscar cliente no Asaas:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Busca um cliente pelo CPF/CNPJ
+   */
+  async findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCustomerResponse | null> {
+    try {
+      // Formata o CPF removendo caracteres não numéricos
+      const formattedCpf = cpfCnpj.replace(/[^\d]+/g, '');
+      
+      console.log(`[ASAAS DIRECT] Buscando cliente pelo CPF/CNPJ: ${formattedCpf}`);
+      
+      // Tentativa de busca por listagem
+      const searchResponse = await asaasClient.get('/customers', {
+        params: { cpfCnpj: formattedCpf }
+      });
+      
+      if (searchResponse.data.data && searchResponse.data.data.length > 0) {
+        console.log(`[ASAAS DIRECT] Cliente encontrado pelo CPF/CNPJ`);
+        return searchResponse.data.data[0];
+      }
+      
+      console.log(`[ASAAS DIRECT] Cliente não encontrado pelo CPF/CNPJ: ${formattedCpf}`);
+      return null;
+    } catch (error) {
+      console.error('[ASAAS DIRECT] Erro ao buscar cliente por CPF/CNPJ:', error);
+      return null;
+    }
+  },
+  
+  /**
+   * Cria um novo cliente no Asaas
+   */
+  async createCustomer(customerData: AsaasCustomerRequest): Promise<AsaasCustomerResponse> {
+    try {
+      console.log(`[ASAAS DIRECT] Criando novo cliente no Asaas:`, JSON.stringify(customerData));
+      
+      const createResponse = await asaasClient.post('/customers', customerData);
+      
+      console.log(`[ASAAS DIRECT] Cliente criado com sucesso:`, JSON.stringify(createResponse.data));
+      
+      return createResponse.data;
+    } catch (error) {
+      console.error('[ASAAS DIRECT] Erro ao criar cliente no Asaas:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Cria um link de pagamento no Asaas
+   */
+  async createPaymentLink(linkData: AsaasPaymentLinkRequest): Promise<AsaasPaymentLinkResponse> {
+    try {
+      console.log('[ASAAS DIRECT] Criando link de pagamento no Asaas:', JSON.stringify(linkData, null, 2));
+      
+      const response = await asaasClient.post('/paymentLinks', linkData);
+      
+      console.log('[ASAAS DIRECT] Link de pagamento criado com sucesso:', JSON.stringify(response.data, null, 2));
+      
+      return response.data;
+    } catch (error) {
+      console.error('[ASAAS DIRECT] Erro ao criar link de pagamento no Asaas:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Busca detalhes de um link de pagamento pelo ID
+   */
+  async getPaymentLinkById(linkId: string): Promise<AsaasPaymentLinkResponse> {
+    try {
+      console.log(`[ASAAS DIRECT] Buscando detalhes do link de pagamento: ${linkId}`);
+      
+      const response = await asaasClient.get(`/paymentLinks/${linkId}`);
+      
+      console.log('[ASAAS DIRECT] Detalhes do link de pagamento obtidos com sucesso');
+      
+      return response.data;
+    } catch (error) {
+      console.error(`[ASAAS DIRECT] Erro ao buscar detalhes do link de pagamento (ID: ${linkId}):`, error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Remove um link de pagamento
+   */
+  async deletePaymentLink(linkId: string): Promise<{ deleted: boolean }> {
+    try {
+      console.log(`[ASAAS DIRECT] Removendo link de pagamento: ${linkId}`);
+      
+      const response = await asaasClient.delete(`/paymentLinks/${linkId}`);
+      
+      console.log('[ASAAS DIRECT] Link de pagamento removido com sucesso');
+      
+      return { deleted: true };
+    } catch (error) {
+      console.error(`[ASAAS DIRECT] Erro ao remover link de pagamento (ID: ${linkId}):`, error);
       throw error;
     }
   },

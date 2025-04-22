@@ -1,40 +1,47 @@
-// Script para resetar a senha do administrador
-const bcrypt = require('bcrypt');
-const { Client } = require('pg');
+const { db } = require('./server/db');
+const { users } = require('./shared/schema');
+const { eq } = require('drizzle-orm');
+const { scrypt, randomBytes } = require('crypto');
+const { promisify } = require('util');
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const buf = await scryptAsync(password, salt, 64);
+  return `${buf.toString('hex')}.${salt}`;
+}
 
 async function resetAdminPassword() {
   try {
-    // Conectar ao banco de dados
-    const client = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
+    // Senha padrão: 123456
+    const hashedPassword = await hashPassword('123456');
     
-    await client.connect();
-    console.log('Conectado ao banco de dados PostgreSQL');
-
-    // Gerar nova senha hash para '123456'
-    const saltRounds = 10;
-    const plainPassword = '123456';
-    const passwordHash = await bcrypt.hash(plainPassword, saltRounds);
+    // Buscar todos os administradores
+    const adminUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.role, 'admin'))
+      .orWhere(eq(users.role, 'superadmin'));
     
-    console.log('Hash de senha gerado:', passwordHash);
-
-    // Atualizar senha do administrador
-    const result = await client.query(
-      'UPDATE users SET password = $1 WHERE username = $2 RETURNING id, username',
-      [passwordHash, 'admin']
-    );
+    console.log(`Encontrados ${adminUsers.length} usuários admin/superadmin`);
     
-    if (result.rows.length > 0) {
-      console.log('Senha resetada com sucesso para o usuário:', result.rows[0]);
-    } else {
-      console.error('Usuário admin não encontrado');
+    for (const user of adminUsers) {
+      console.log(`Resetando senha do usuário: ${user.name} (${user.email})`);
+      
+      await db.update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, user.id));
     }
-
-    await client.end();
-    console.log('Conexão com o banco de dados fechada');
+    
+    console.log('Senhas resetadas com sucesso para "123456"');
   } catch (error) {
-    console.error('Erro ao resetar senha:', error);
+    console.error('Erro ao resetar senhas:', error);
+  } finally {
+    process.exit(0);
   }
 }
 
