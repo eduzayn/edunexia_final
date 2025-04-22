@@ -9,8 +9,6 @@ import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
 import { setupAuth } from './auth';
-// import { setupEmergencyAuth } from './dev-auth';
-// import { setupSimpleAuth } from './dev-simple-auth';
 import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
