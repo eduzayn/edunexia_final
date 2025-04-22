@@ -337,6 +337,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Nova rota API JSON para instituições - usada no formulário de matrícula
+  app.get('/api-json/institutions', async (req, res) => {
+    console.log('Buscando todas as instituições (API JSON)');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Buscar todas as instituições sem filtros
+      const institutionsList = await storage.getInstitutions();
+      console.log(`Retornando ${institutionsList.length} instituições`);
+      // Formato padronizado com campo data para manter compatibilidade
+      return res.status(200).json({ 
+        success: true, 
+        data: institutionsList 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar instituições (API JSON):', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao buscar instituições' 
+      });
+    }
+  });
+  
+  // Nova rota API JSON para polos - usada no formulário de matrícula
+  app.get('/api-json/polos', async (req, res) => {
+    console.log('Buscando todos os polos (API JSON)');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Buscar todos os polos sem filtros
+      const polosList = await storage.getPolos();
+      console.log(`Retornando ${polosList.length} polos`);
+      // Formato padronizado com campo data para manter compatibilidade
+      return res.status(200).json({ 
+        success: true, 
+        data: polosList 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar polos (API JSON):', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao buscar polos' 
+      });
+    }
+  });
+  
   app.get('/api/admin/disciplines', (req, res) => {
     console.log('Redirecionando /api/admin/disciplines para /api-json/admin/disciplines');
     // Garantir que a resposta seja JSON
