@@ -103,6 +103,7 @@ import PoloSalesLinksPage from "@/pages/polo/sales-links-page";
 import PublicChargesPage from "@/pages/public-charges";
 import PublicCreateChargePage from "@/pages/public-create-charge";
 import SimpleChargesPage from "@/pages/charges";
+import AdminEmergencyAccess from "@/pages/admin-emergency-access";
 import { ProtectedRoute } from "./lib/protected-route";
 import { useAuth, AuthProvider } from "./hooks/use-auth";
 

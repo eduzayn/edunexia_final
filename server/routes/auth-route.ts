@@ -30,6 +30,49 @@ passport.use(
 const router = Router();
 
 // Rota de login
+// Rota especial para acesso administrativo direto (use apenas em situações críticas)
+router.post('/admin-direct-access', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  
+  const { accessCode } = req.body;
+  // Código de acesso simples, considere usar uma variável de ambiente ou algo mais seguro em produção
+  const adminAccessCode = process.env.ADMIN_ACCESS_CODE || 'edunexi@2023';
+  
+  if (accessCode !== adminAccessCode) {
+    return res.status(401).json({
+      success: false,
+      message: 'Código de acesso inválido'
+    });
+  }
+  
+  // Simular login de admin sem verificar no banco de dados
+  const adminUser = {
+    id: 1,
+    username: 'admin',
+    name: 'Administrador',
+    email: 'admin@edunexia.com',
+    role: 'admin',
+    portalType: 'admin'
+  };
+  
+  // Realizar login no Passport.js
+  req.login(adminUser, (err) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao realizar login administrativo',
+        error: err.message
+      });
+    }
+    
+    return res.json({
+      success: true,
+      message: 'Acesso administrativo concedido',
+      user: adminUser
+    });
+  });
+});
+
 router.post('/login', (req, res, next) => {
   // Certifica-se de que o conteúdo seja tratado como JSON
   res.setHeader('Content-Type', 'application/json');
