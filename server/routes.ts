@@ -9,6 +9,7 @@ import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
 import { setupAuth } from './auth';
+import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
 import { NewSimplifiedEnrollmentController } from './controllers/new-simplified-enrollment-controller';
@@ -95,6 +96,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Redirecionar a requisição para o novo endpoint
     req.url = '/api-json/user';
     app._router.handle(req, res);
+  });
+  
+  // Adicionar redirecionamentos para endpoints acadêmicos
+  app.get('/api/admin/courses', (req, res) => {
+    console.log('Redirecionando /api/admin/courses para /api-json/admin/courses');
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Consultar diretamente da base de dados
+      storage.getAllCourses()
+        .then(courses => {
+          return res.status(200).json(courses);
+        })
+        .catch(error => {
+          console.error('Erro ao buscar cursos:', error);
+          return res.status(500).json({ error: 'Erro ao buscar cursos' });
+        });
+    } catch (error) {
+      console.error('Erro ao processar requisição de cursos:', error);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+  
+  app.get('/api/admin/disciplines', (req, res) => {
+    console.log('Redirecionando /api/admin/disciplines para /api-json/admin/disciplines');
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Consultar diretamente da base de dados
+      storage.getAllDisciplines()
+        .then(disciplines => {
+          return res.status(200).json(disciplines);
+        })
+        .catch(error => {
+          console.error('Erro ao buscar disciplinas:', error);
+          return res.status(500).json({ error: 'Erro ao buscar disciplinas' });
+        });
+    } catch (error) {
+      console.error('Erro ao processar requisição de disciplinas:', error);
+      return res.status(500).json({ error: 'Erro interno do servidor' });
+    }
   });
 
   // Redirecionar rotas obsoletas para novos endpoints
