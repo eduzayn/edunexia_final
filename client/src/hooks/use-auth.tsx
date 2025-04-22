@@ -5,6 +5,18 @@ import {
   UseMutationResult,
 } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser, LoginData } from "@shared/schema";
+// Interface para a resposta da API de login
+interface LoginResponse {
+  success: boolean;
+  token: string;
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  portalType: string;
+  role: string;
+  [key: string]: any; // Permite campos adicionais
+}
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -14,7 +26,7 @@ type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  loginMutation: UseMutationResult<LoginResponse, Error, LoginData>;
   logoutMutation: UseMutationResult<{}, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
@@ -78,7 +90,7 @@ const defaultAuthContext: AuthContextType = {
   user: null,
   isLoading: false,
   error: null,
-  loginMutation: defaultLoginMutation as unknown as UseMutationResult<SelectUser, Error, LoginData>,
+  loginMutation: defaultLoginMutation as unknown as UseMutationResult<LoginResponse, Error, LoginData>,
   logoutMutation: defaultLogoutMutation as unknown as UseMutationResult<{}, Error, void>,
   registerMutation: defaultRegisterMutation as unknown as UseMutationResult<SelectUser, Error, InsertUser>,
 };
@@ -98,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [, setLocation] = useLocation();
   
-  const loginMutation = useMutation({
+  const loginMutation = useMutation<LoginResponse, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
       // Garantir que o portalType esteja presente na requisição
       const data = { ...credentials };
@@ -119,7 +131,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Token salvo no localStorage:", response.token);
       }
       
-      const user = response as SelectUser;
+      // Extrair os campos necessários para criar um objeto SelectUser a partir da resposta
+      const user = {
+        id: response.id,
+        username: response.username,
+        fullName: response.fullName,
+        email: response.email,
+        portalType: response.portalType,
+        password: "", // Não armazenamos a senha no objeto de usuário
+        role: response.role,
+        cpf: null,
+        phone: null,
+        address: null,
+        city: null,
+        state: null,
+        zipCode: null,
+        birthDate: null,
+        poloId: null
+      } as SelectUser;
       
       // Atualizar o cache do usuário com os dados mais recentes
       queryClient.setQueryData(["/api-json/user"], user);
