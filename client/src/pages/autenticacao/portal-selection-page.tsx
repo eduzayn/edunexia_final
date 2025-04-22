@@ -15,11 +15,8 @@ export default function PortalSelectionPage() {
   // Efeito para lidar com usuário já autenticado
   useEffect(() => {
     const cleanupAuth = async () => {
-      // Verificar se estamos em ambiente de desenvolvimento
-      const isDevelopment = process.env.NODE_ENV === 'development';
-      
-      if (user && !isDevelopment) {
-        // No modo de produção, limpar a autenticação
+      if (user) {
+        // Sempre limpar a autenticação para consistência entre ambientes
         console.log("Limpando autenticação na seleção de portal");
         
         try {
@@ -47,8 +44,6 @@ export default function PortalSelectionPage() {
         } catch (error) {
           console.error("Erro ao limpar autenticação:", error);
         }
-      } else if (isDevelopment) {
-        console.log("[DEV MODE] Pulando processo de logout no modo de desenvolvimento");
       }
     };
     
@@ -94,11 +89,10 @@ export default function PortalSelectionPage() {
     setSelectedPortal(portalId);
     
     try {
-      // Verificar se estamos em ambiente de desenvolvimento
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      // Não precisamos mais verificar ambiente, aplicação tem comportamento consistente
       
-      // Em modo de desenvolvimento, não precisamos fazer logout
-      if (user && !isDevelopment) {
+      // Sempre fazer logout para consistência entre ambientes
+      if (user) {
         console.log("Limpando sessão existente antes de mudar de portal");
         await logoutMutation.mutateAsync();
         
@@ -114,19 +108,15 @@ export default function PortalSelectionPage() {
             console.error("Erro ao limpar storage:", e);
           }
         }
-      } else if (isDevelopment) {
-        console.log("[DEV MODE] Pulando processo de logout ao mudar de portal em modo de desenvolvimento");
       } else {
-        // Mesmo sem usuário logado, limpar todo o cache por segurança (somente em produção)
-        if (!isDevelopment) {
-          queryClient.clear();
-        }
+        // Mesmo sem usuário logado, limpar todo o cache por segurança
+        queryClient.clear();
       }
       
       // Aplicar um delay mais longo para garantir uma transição suave
       setTimeout(() => {
         // Direcionar para a rota específica do portal selecionado
-        console.log("[" + (isDevelopment ? "DEV MODE" : "PROD") + "] Redirecionando para portal:", portalId);
+        console.log("Redirecionando para portal:", portalId);
         
         // Usar window.location para forçar recarregamento completo da página
         if (portalId === "admin") {
@@ -145,10 +135,8 @@ export default function PortalSelectionPage() {
       console.error("Erro ao mudar de portal:", error);
       
       // Em caso de erro no logout, limpar o estado manualmente e tentar redirecionar
-      if (process.env.NODE_ENV !== 'development') {
-        queryClient.setQueryData(["/api/user"], null);
-        queryClient.clear();
-      }
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.clear();
       
       // Forçar redirecionamento após erro
       setTimeout(() => {
