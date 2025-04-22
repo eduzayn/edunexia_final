@@ -65,6 +65,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Usar as rotas de debug
   app.use('/api/debug', debugRouter);
+  
+  // Adicionar redirecionamentos de compatibilidade para rotas de autenticação antigas
+  app.post('/api/login', (req, res) => {
+    console.log('Redirecionando /api/login para /api-json/login');
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Redirecionar a requisição para o novo endpoint
+    req.url = '/api-json/login';
+    app._router.handle(req, res);
+  });
+  
+  app.post('/api/logout', (req, res) => {
+    console.log('Redirecionando /api/logout para /api-json/logout');
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Redirecionar a requisição para o novo endpoint
+    req.url = '/api-json/logout';
+    app._router.handle(req, res);
+  });
+  
+  app.get('/api/user', (req, res) => {
+    console.log('Redirecionando /api/user para /api-json/user');
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Redirecionar a requisição para o novo endpoint
+    req.url = '/api-json/user';
+    app._router.handle(req, res);
+  });
 
   // Redirecionar rotas obsoletas para novos endpoints
   // - Antigos endpoints de clientes agora são redirecionados para a implementação do Asaas
