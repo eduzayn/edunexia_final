@@ -79,6 +79,7 @@ import {
   GoogleDriveIcon,
   VimeoIcon,
   CheckIcon,
+  EditIcon,
 } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -2187,6 +2188,87 @@ export default function DisciplineContentPage() {
                   {selectedAssessmentType === "simulado"
                     ? "Criar Simulado"
                     : "Criar Avaliação"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para inserir link de e-book externo */}
+      <Dialog open={isEbookLinkDialogOpen} onOpenChange={setIsEbookLinkDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Inserir Link de E-book</DialogTitle>
+            <DialogDescription>
+              Preencha os dados abaixo para adicionar um link para um e-book externo.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...ebookLinkForm}>
+            <form onSubmit={ebookLinkForm.handleSubmit(onEbookLinkSubmit)} className="space-y-6">
+              <FormField
+                control={ebookLinkForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Título</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: E-book Completo de Matemática" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={ebookLinkForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Breve descrição do conteúdo do e-book" 
+                        className="min-h-[100px]" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={ebookLinkForm.control}
+                name="url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>URL do E-book</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://..." {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Insira a URL completa para o e-book externo, incluindo o protocolo (http:// ou https://)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEbookLinkDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {addEbookLinkMutation.isPending ? (
+                    <>
+                      <span className="animate-spin mr-2">◌</span>
+                      Salvando...
+                    </>
+                  ) : (
+                    "Adicionar E-book"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
