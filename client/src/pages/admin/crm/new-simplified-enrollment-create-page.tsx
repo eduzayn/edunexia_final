@@ -434,12 +434,53 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                   <SelectValue placeholder="Selecione um curso" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                {courses.map((course: any) => (
-                                  <SelectItem key={course.id} value={course.id.toString()}>
-                                    {course.name}
-                                  </SelectItem>
-                                ))}
+                              <SelectContent className="max-h-[400px]">
+                                <div className="px-3 py-2 border-b">
+                                  <Input 
+                                    id="courseSearch"
+                                    placeholder="Buscar curso pelo nome..."
+                                    className="h-8"
+                                    onChange={(e) => {
+                                      const searchValue = e.target.value.toLowerCase();
+                                      const courseItems = document.querySelectorAll('[data-course-item]');
+                                      
+                                      courseItems.forEach((item: any) => {
+                                        const courseName = item.getAttribute('data-course-name').toLowerCase();
+                                        const courseCode = item.getAttribute('data-course-code')?.toLowerCase() || '';
+                                        
+                                        if (courseName.includes(searchValue) || courseCode.includes(searchValue)) {
+                                          item.style.display = '';
+                                        } else {
+                                          item.style.display = 'none';
+                                        }
+                                      });
+                                    }}
+                                  />
+                                </div>
+                                <div className="max-h-[300px] overflow-auto">
+                                  {courses.length === 0 ? (
+                                    <div className="px-3 py-2 text-center text-muted-foreground">
+                                      Nenhum curso disponível
+                                    </div>
+                                  ) : (
+                                    courses.map((course: any) => (
+                                      <SelectItem 
+                                        key={course.id} 
+                                        value={course.id.toString()}
+                                        data-course-item
+                                        data-course-name={course.name}
+                                        data-course-code={course.code}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{course.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {course.code} - {course.category}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </div>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -461,12 +502,53 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                   <SelectValue placeholder="Selecione uma instituição" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                {institutions.map((institution: any) => (
-                                  <SelectItem key={institution.id} value={institution.id.toString()}>
-                                    {institution.name}
-                                  </SelectItem>
-                                ))}
+                              <SelectContent className="max-h-[400px]">
+                                <div className="px-3 py-2 border-b">
+                                  <Input 
+                                    id="institutionSearch"
+                                    placeholder="Buscar instituição pelo nome..."
+                                    className="h-8"
+                                    onChange={(e) => {
+                                      const searchValue = e.target.value.toLowerCase();
+                                      const institutionItems = document.querySelectorAll('[data-institution-item]');
+                                      
+                                      institutionItems.forEach((item: any) => {
+                                        const institutionName = item.getAttribute('data-institution-name').toLowerCase();
+                                        const institutionCode = item.getAttribute('data-institution-code')?.toLowerCase() || '';
+                                        
+                                        if (institutionName.includes(searchValue) || institutionCode.includes(searchValue)) {
+                                          item.style.display = '';
+                                        } else {
+                                          item.style.display = 'none';
+                                        }
+                                      });
+                                    }}
+                                  />
+                                </div>
+                                <div className="max-h-[300px] overflow-auto">
+                                  {institutions.length === 0 ? (
+                                    <div className="px-3 py-2 text-center text-muted-foreground">
+                                      Nenhuma instituição disponível
+                                    </div>
+                                  ) : (
+                                    institutions.map((institution: any) => (
+                                      <SelectItem 
+                                        key={institution.id} 
+                                        value={institution.id.toString()}
+                                        data-institution-item
+                                        data-institution-name={institution.name}
+                                        data-institution-code={institution.code}
+                                      >
+                                        <div className="flex flex-col">
+                                          <span>{institution.name}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {institution.code} - {institution.cnpj}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </div>
                               </SelectContent>
                             </Select>
                             <FormMessage />
