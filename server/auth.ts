@@ -134,6 +134,9 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    // Certifica-se de que o conteúdo seja tratado como JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     passport.authenticate("local", async (err: any, user: Express.User | false, info: any) => {
       if (err) return next(err);
       if (!user) {
@@ -170,7 +173,9 @@ export function setupAuth(app: Express) {
             if (err) return next(err);
             // Evitar enviar todos os dados do usuário, especialmente a senha
             const safeUser = { ...updatedUser, password: undefined };
-            return res.status(200).json(safeUser);
+            // Forçar formato JSON e especificar o cabeçalho explicitamente
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(200).send(JSON.stringify(safeUser));
           });
         } else {
           // Se o usuário não for encontrado (improvável), use o original
@@ -178,7 +183,9 @@ export function setupAuth(app: Express) {
             if (err) return next(err);
             // Evitar enviar todos os dados do usuário, especialmente a senha
             const safeUser = { ...user, password: undefined };
-            return res.status(200).json(safeUser);
+            // Forçar formato JSON e especificar o cabeçalho explicitamente
+            res.setHeader('Content-Type', 'application/json');
+            return res.status(200).send(JSON.stringify(safeUser));
           });
         }
       } catch (error: unknown) {
@@ -190,21 +197,34 @@ export function setupAuth(app: Express) {
           if (err) return next(err);
           // Evitar enviar todos os dados do usuário, especialmente a senha
           const safeUser = { ...user, password: undefined };
-          return res.status(200).json(safeUser);
+          // Forçar formato JSON e especificar o cabeçalho explicitamente
+          res.setHeader('Content-Type', 'application/json');
+          return res.status(200).send(JSON.stringify(safeUser));
         });
       }
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     req.logout((err) => {
       if (err) return next(err);
-      res.status(200).json({ success: true, message: "Logout successful" });
+      res.status(200).send(JSON.stringify({ success: true, message: "Logout successful" }));
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    // Sempre definir o cabeçalho content-type para application/json
+    res.setHeader('Content-Type', 'application/json');
+    
+    if (!req.isAuthenticated()) {
+      return res.status(401).send(JSON.stringify({ message: "Unauthorized" }));
+    }
+    
+    // Remover a senha antes de enviar
+    const safeUser = { ...req.user, password: undefined };
+    return res.status(200).send(JSON.stringify(safeUser));
   });
 }
