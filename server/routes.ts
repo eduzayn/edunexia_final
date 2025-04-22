@@ -3174,12 +3174,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas avançadas para e-books com recursos aprimorados de IA
   app.use("/api/advanced-ebooks", advancedEbooksRoutes);
 
-  const poloEnrollmentsRouter = require('./routes/polo-enrollments').default;
-  app.use('/api/polo', poloEnrollmentsRouter);
+  // Já importamos o poloEnrollmentsRoutes na linha 28, vamos usá-lo diretamente
+  // app.use('/api/polo', poloEnrollmentsRouter); // Isso já está configurado na linha 88
 
   // Rotas de integração de matrículas
-  const enrollmentIntegrationRouter = require('./routes/enrollment-integration-routes').default;
-  app.use('/api', enrollmentIntegrationRouter);
+  // Usando o módulo de integração de matrículas
+  // Verificar se a rota já foi importada anteriormente e configurada
+  try {
+    const { default: enrollmentIntegrationRoutes } = await import('./routes/enrollment-integration-routes');
+    app.use('/api', enrollmentIntegrationRoutes);
+  } catch (error) {
+    console.warn("Não foi possível carregar as rotas de integração de matrículas:", error);
+  }
 
   const httpServer = createServer(app);
 

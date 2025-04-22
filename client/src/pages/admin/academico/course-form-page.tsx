@@ -302,7 +302,7 @@ export default function CourseFormPage() {
       toast({
         title: "Erro ao adicionar disciplinas",
         description: error.message || "Ocorreu um erro ao vincular as disciplinas ao curso.",
-        variant: "destructive"ve",
+        variant: "destructive",
       });
     },
   });
