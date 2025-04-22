@@ -114,10 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: async (user: SelectUser) => {
       // Atualizar o cache do usuário com os dados mais recentes
-      queryClient.setQueryData(["/api/user"], user);
+      queryClient.setQueryData(["/api-json/user"], user);
       
       // Forçar uma invalidação do cache para garantir que temos os dados mais recentes
-      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api-json/user"] });
       
       // Adicionar logs para debug
       console.log("Login bem-sucedido. Dados do usuário:", user);
@@ -143,11 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const response = await apiRequest("POST", "/api/register", credentials);
+      const response = await apiRequest("POST", "/api-json/register", credentials);
       return await response.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+      queryClient.setQueryData(["/api-json/user"], user);
       toast({
         title: "Registro bem-sucedido",
         description: `Bem-vindo(a), ${user.fullName}!`,
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Executando logout - mutationFn");
-      const response = await apiRequest("POST", "/api/logout");
+      const response = await apiRequest("POST", "/api-json/logout");
       
       // Limpar todos os dados em cache para evitar problemas de persistência
       queryClient.clear();
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Logout bem-sucedido - onSuccess");
       
       // Definir explicitamente o usuário como null no cache
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api-json/user"], null);
       
       // Notificar o usuário
       toast({
@@ -212,7 +212,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       // Em caso de erro, tentar forçar o logout de qualquer maneira
-      queryClient.setQueryData(["/api/user"], null);
+      queryClient.setQueryData(["/api-json/user"], null);
       queryClient.clear();
     },
   });
