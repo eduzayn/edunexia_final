@@ -53,7 +53,7 @@ export function setupAuth(app: Express) {
       httpOnly: true,
       sameSite: 'lax',
       path: '/',
-      secure: false // Definir como true em produção
+      secure: process.env.NODE_ENV === 'production' // Configuração adaptativa conforme ambiente
     }
   };
 
