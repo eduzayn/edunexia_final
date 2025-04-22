@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth-middleware';
 import { EnrollmentIntegrationService } from '../services/enrollment-integration-service';
@@ -11,16 +10,16 @@ const router = Router();
 router.get('/enrollments/:id/verify-integration', requireAuth, async (req, res) => {
   try {
     const enrollmentId = parseInt(req.params.id);
-    
+
     if (isNaN(enrollmentId)) {
       return res.status(400).json({
         success: false,
         message: 'ID de matrícula inválido'
       });
     }
-    
+
     const result = await EnrollmentIntegrationService.verifyIntegration(enrollmentId);
-    
+
     res.status(200).json({
       success: true,
       isIntegrated: result.isIntegrated,
@@ -42,16 +41,16 @@ router.get('/enrollments/:id/verify-integration', requireAuth, async (req, res) 
 router.get('/enrollments/:id/validate', requireAuth, async (req, res) => {
   try {
     const enrollmentId = parseInt(req.params.id);
-    
+
     if (isNaN(enrollmentId)) {
       return res.status(400).json({
         success: false,
         message: 'ID de matrícula inválido'
       });
     }
-    
+
     const result = await EnrollmentIntegrationService.validateEnrollment(enrollmentId);
-    
+
     if (result.isValid) {
       res.status(200).json({
         success: true,
@@ -79,16 +78,16 @@ router.get('/enrollments/:id/validate', requireAuth, async (req, res) => {
 router.post('/simplified-enrollments/:id/sync', requireAuth, async (req, res) => {
   try {
     const simplifiedId = parseInt(req.params.id);
-    
+
     if (isNaN(simplifiedId)) {
       return res.status(400).json({
         success: false,
         message: 'ID de matrícula simplificada inválido'
       });
     }
-    
+
     const success = await EnrollmentIntegrationService.syncSimplifiedEnrollment(simplifiedId);
-    
+
     if (success) {
       res.status(200).json({
         success: true,
@@ -114,24 +113,24 @@ router.post('/simplified-enrollments/:id/sync', requireAuth, async (req, res) =>
 router.post('/courses/:id/fix-disciplines', requireAuth, async (req, res) => {
   try {
     const courseId = parseInt(req.params.id);
-    
+
     if (isNaN(courseId)) {
       return res.status(400).json({
         success: false,
         message: 'ID de curso inválido'
       });
     }
-    
+
     // Verificar disciplinas atuais
     const currentDisciplines = await db
       .select()
       .from(courseDisciplines)
       .where(eq(courseDisciplines.courseId, courseId));
-      
+
     if (currentDisciplines.length === 0) {
       // Se não houver disciplinas, verificar se há dados temporários para restaurar
       const result = await EnrollmentIntegrationService.repairCourseDisciplines(courseId);
-      
+
       return res.status(200).json({
         success: true,
         message: 'Verificação de disciplinas concluída',
@@ -139,13 +138,13 @@ router.post('/courses/:id/fix-disciplines', requireAuth, async (req, res) => {
         disciplinesCount: result ? 'recuperadas' : 'nenhuma recuperada'
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: 'Curso já possui disciplinas',
       disciplinesCount: currentDisciplines.length
     });
-    
+
   } catch (error) {
     console.error('Erro ao reparar disciplinas do curso:', error);
     res.status(500).json({

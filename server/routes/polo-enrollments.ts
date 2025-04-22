@@ -33,7 +33,7 @@ router.get("/enrollments", async (req, res) => {
     if (date && date !== "all") {
       const now = new Date();
       dateEnd = now;
-      
+
       switch(date) {
         case 'last30days':
           dateStart = new Date(now.setDate(now.getDate() - 30));
@@ -67,18 +67,18 @@ router.get("/enrollments", async (req, res) => {
     const enrollmentsWithDetails = await Promise.all(enrollmentsList.map(async enrollment => {
       // Obter dados do aluno
       const student = await storage.getUser(enrollment.studentId);
-      
+
       // Obter dados do curso
       const course = await storage.getCourse(enrollment.courseId);
-      
+
       // Verificar status da documentação (simulação)
       let documentsStatus: "pending" | "incomplete" | "complete" = "pending";
-      
+
       // Na implementação real, seria verificado através de uma tabela de documentos
       if (enrollment.status === "active") {
         documentsStatus = Math.random() > 0.5 ? "complete" : "incomplete";
       }
-      
+
       return {
         id: enrollment.id,
         code: enrollment.code,
@@ -131,7 +131,7 @@ router.post("/enrollments", async (req, res) => {
 
     // Verificar se estamos criando matrícula para aluno existente ou novo aluno
     let student;
-    
+
     if (enrollmentData.studentId) {
       // Caso de aluno existente
       student = await storage.getUser(parseInt(enrollmentData.studentId));
@@ -142,10 +142,10 @@ router.post("/enrollments", async (req, res) => {
     else if (enrollmentData.newStudent) {
       // Caso de novo aluno
       const newStudentData = enrollmentData.newStudent;
-      
+
       // Verificar se já existe aluno com este email
       const existingStudent = await storage.getUserByEmail(newStudentData.email);
-      
+
       if (existingStudent) {
         // Se aluno já existe, usamos o existente
         console.log(`Aluno com email ${newStudentData.email} já existe, ID: ${existingStudent.id}`);
@@ -153,7 +153,7 @@ router.post("/enrollments", async (req, res) => {
       } else {
         // Gerar senha aleatória para o novo aluno
         const tempPassword = randomBytes(8).toString('hex');
-        
+
         // Criar novo usuário com dados completos
         console.log(`Criando novo aluno: ${newStudentData.fullName}, email: ${newStudentData.email}`);
         student = await storage.createUser({
@@ -170,7 +170,7 @@ router.post("/enrollments", async (req, res) => {
           portalType: "student",
           poloId: userPolo.id
         });
-        
+
         console.log(`Novo aluno criado com ID: ${student.id}`);
       }
     } else {
@@ -181,13 +181,13 @@ router.post("/enrollments", async (req, res) => {
     const year = new Date().getFullYear().toString();
     const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const enrollmentCode = `MAT${year.substring(2)}${randomSuffix}`;
-    
+
     // Criar a matrícula
     const amount = course.price || 1000; // Valor padrão se o preço não estiver definido
-    
+
     // Usar o gateway selecionado pelo usuário ou o padrão
     const paymentGateway = enrollmentData.paymentGateway || "asaas";
-    
+
     const newEnrollment = await storage.createEnrollment({
       code: enrollmentCode,
       studentId: student.id,
@@ -232,7 +232,7 @@ router.post("/documents/generate", async (req, res) => {
     if (!poloUser || !poloUser.id) {
       return res.status(401).json({ message: "Usuário não autenticado" });
     }
-    
+
     const userPolo = await storage.getPoloByUserId(poloUser.id);
     if (!userPolo || enrollment.poloId !== userPolo.id) {
       return res.status(403).json({ message: "Acesso negado a esta matrícula" });
@@ -246,7 +246,7 @@ router.post("/documents/generate", async (req, res) => {
 
     // Simular geração de documento (na implementação real, geraria um PDF)
     // No mundo real, aqui integraria com uma biblioteca como PDFKit ou similar
-    
+
     // URL simulada do documento gerado
     const timestamp = format(new Date(), "yyyyMMddHHmmss");
     const documentUrl = `/api/documents/${documentType}_${enrollment.id}_${timestamp}.pdf`;
@@ -290,7 +290,7 @@ router.get("/enrollments/:id", async (req, res) => {
     if (!poloUser || !poloUser.id) {
       return res.status(401).json({ message: "Usuário não autenticado" });
     }
-    
+
     const userPolo = await storage.getPoloByUserId(poloUser.id);
     if (!userPolo || enrollment.poloId !== userPolo.id) {
       return res.status(403).json({ message: "Acesso negado a esta matrícula" });
@@ -360,7 +360,7 @@ router.post("/enrollments/:id/send-payment-link", async (req, res) => {
     if (!poloUser || !poloUser.id) {
       return res.status(401).json({ message: "Usuário não autenticado" });
     }
-    
+
     const userPolo = await storage.getPoloByUserId(poloUser.id);
     if (!userPolo || enrollment.poloId !== userPolo.id) {
       return res.status(403).json({ message: "Acesso negado a esta matrícula" });
@@ -381,7 +381,7 @@ router.post("/enrollments/:id/send-payment-link", async (req, res) => {
 
     // Simulação de envio de email (na implementação real, integrar com serviço de email)
     // Na implementação real, usaríamos nodemailer ou similar para envio de email
-    
+
     console.log(`
       [SIMULAÇÃO DE EMAIL]
       Para: ${studentEmail}

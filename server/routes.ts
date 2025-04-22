@@ -3174,11 +3174,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas avançadas para e-books com recursos aprimorados de IA
   app.use("/api/advanced-ebooks", advancedEbooksRoutes);
 
-  const poloEnrollmentsRouter = require('./routes/polo-enrollments').default;
+  // Import routers using ESM syntax
+  import poloEnrollmentsRouter from './routes/polo-enrollments';
   app.use('/api/polo', poloEnrollmentsRouter);
 
   // Rotas de integração de matrículas
-  const enrollmentIntegrationRouter = require('./routes/enrollment-integration-routes').default;
+  import enrollmentIntegrationRouter from './routes/enrollment-integration-routes';
   app.use('/api', enrollmentIntegrationRouter);
 
   const httpServer = createServer(app);
