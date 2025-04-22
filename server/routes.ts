@@ -293,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Adicionar redirecionamentos para endpoints acadêmicos
+  // Endpoint para listar cursos para administradores
   app.get('/api/admin/courses', (req, res) => {
     console.log('Redirecionando /api/admin/courses para /api-json/admin/courses');
     // Garantir que a resposta seja JSON
@@ -311,6 +312,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Erro ao processar requisição de cursos:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+  });
+  
+  // Nova rota API JSON para cursos - usada no formulário de matrícula
+  app.get('/api-json/courses', async (req, res) => {
+    console.log('Buscando todos os cursos (API JSON)');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const courses = await storage.getAllCourses();
+      console.log(`Retornando ${courses.length} cursos`);
+      // Formato padronizado com campo data para manter compatibilidade
+      return res.status(200).json({ 
+        success: true, 
+        data: courses 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar cursos (API JSON):', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao buscar cursos' 
+      });
     }
   });
   
