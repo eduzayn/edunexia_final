@@ -112,7 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiRequest("POST", "/api-json/login", data);
       return await response.json();
     },
-    onSuccess: async (user: SelectUser) => {
+    onSuccess: async (response) => {
+      // Salvar o token no localStorage
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+        console.log("Token salvo no localStorage:", response.token);
+      }
+      
+      const user = response as SelectUser;
+      
       // Atualizar o cache do usuário com os dados mais recentes
       queryClient.setQueryData(["/api-json/user"], user);
       
@@ -128,9 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: `Bem-vindo(a) de volta, ${user.fullName}!`,
       });
 
-      // Não fazemos redirecionamento automático aqui
-      // O redirecionamento será feito pelo componente que chamou o login
-      // Isso evita problemas de sincronização com o estado da autenticação
+      console.log("Login bem-sucedido, redirecionando para dashboard administrativo");
+      // Forçar o redirecionamento para o dashboard
+      if (user.portalType) {
+        window.location.href = `/${user.portalType}/dashboard`;
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -194,13 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Limpar quaisquer dados armazenados localmente que possam interferir
           sessionStorage.clear();
           localStorage.removeItem('queryClient');
+          localStorage.removeItem('auth_token'); // Remover o token de autenticação
         } catch (e) {
           console.error("Erro ao limpar storage:", e);
         }
       }
       
-      // Não redirecionamos aqui - deixamos para o componente que chama o logout
-      // decidir para onde redirecionar (ex: sidebar ou navbar)
+      // Redirecionar para a página de login após o logout
+      window.location.href = '/auth'; 
     },
     onError: (error: Error) => {
       console.error("Erro ao fazer logout:", error);

@@ -20,6 +20,12 @@ export async function apiRequest<T = any>(
   headers?: Record<string, string>
 ): Promise<Response> {
   const customHeaders = headers || {};
+  
+  // Adicionar token de autenticação ao header se disponível no localStorage
+  const authToken = localStorage.getItem('auth_token');
+  if (authToken) {
+    customHeaders['Authorization'] = `Bearer ${authToken}`;
+  }
 
   // Adicionar console.log para debug
   console.log(`Realizando requisição ${method} para ${url}`);
@@ -31,7 +37,7 @@ export async function apiRequest<T = any>(
       ...customHeaders
     },
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include", // Importante: inclui cookies de autenticação
+    credentials: "same-origin", // Não mais usar cookies
   });
 
   // Log para debug
@@ -51,10 +57,18 @@ export const getQueryFn: <T>(options: {
     // Log para debug
     console.log(`QueryClient fazendo requisição para: ${queryKey[0]}`);
     
+    // Adicionar token de autenticação ao header se disponível no localStorage
+    const authToken = localStorage.getItem('auth_token');
+    const headers: Record<string, string> = {};
+    
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    
     const res = await fetch(queryKey[0] as string, {
       method: "GET",
-      headers: {},
-      credentials: "include", // Importante: inclui cookies de autenticação
+      headers,
+      credentials: "same-origin", // Não mais usar cookies
     });
 
     // Log para debug

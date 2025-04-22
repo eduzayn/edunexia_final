@@ -107,6 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         return res.status(200).json({
           success: true,
+          token: token,
           ...safeUser
         });
       })
@@ -128,18 +129,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const token = Date.now().toString();
           activeUsers[token] = user;
           
-          // Simular sessão com cookie
-          res.cookie('auth_token', token, { 
-            httpOnly: false, // Permitir acesso via JavaScript
-            maxAge: 24 * 60 * 60 * 1000, // 24 horas
-            path: '/',
-            sameSite: 'lax'
-          });
+          // Não usar cookies, enviar o token na resposta
+          // O cliente irá armazenar no localStorage
           
           console.log(`Login de emergência para ${username}`);
           
           return res.status(200).json({
             success: true,
+            token: token,
             ...user
           });
         }
@@ -153,16 +150,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Rota para logout simples
   app.post('/api-json/logout', (req, res) => {
-    const token = req.cookies?.auth_token;
+    // Verificar o token no header de Authorization
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
     if (token && activeUsers[token]) {
       delete activeUsers[token];
     }
     
-    res.clearCookie('auth_token', {
-      path: '/',
-      sameSite: 'lax'
-    });
     res.status(200).json({
       success: true,
       message: "Logout realizado com sucesso"
@@ -171,7 +166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Rota para obter usuário atual
   app.get('/api-json/user', (req, res) => {
-    const token = req.cookies?.auth_token;
+    // Verificar o token no header de Authorization
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
     if (!token || !activeUsers[token]) {
       return res.status(401).json({
@@ -185,7 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware para verificar autenticação (simplificado)
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies?.auth_token;
+    // Verificar o token no header de Authorization
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
     if (!token || !activeUsers[token]) {
       return res.status(401).json({ 
@@ -201,7 +200,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware para verificar permissão de administrador (simplificado)
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies?.auth_token;
+    // Verificar o token no header de Authorization
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
     if (!token || !activeUsers[token]) {
       return res.status(401).json({ 
@@ -225,7 +226,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware para verificar permissão de estudante (simplificado)
   const requireStudent = (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies?.auth_token;
+    // Verificar o token no header de Authorization
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
     if (!token || !activeUsers[token]) {
       return res.status(401).json({ 
