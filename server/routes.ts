@@ -67,18 +67,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = Date.now().toString();
       activeUsers[token] = user;
       
-      // Simular sessão com cookie
-      res.cookie('auth_token', token, { 
-        httpOnly: false, // Permitir acesso via JavaScript
-        maxAge: 24 * 60 * 60 * 1000, // 24 horas
-        path: '/',
-        sameSite: 'lax'
-      });
+      // Não usar cookies, enviar o token na resposta
+      // O cliente irá armazenar no localStorage
       
       console.log(`Login bem-sucedido para ${username}`);
       
       return res.status(200).json({
         success: true,
+        token: token,
         ...user
       });
     } 
@@ -104,13 +100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: safeUser.portalType
         };
         
-        // Simular sessão com cookie
-        res.cookie('auth_token', token, { 
-          httpOnly: false, // Permitir acesso via JavaScript
-          maxAge: 24 * 60 * 60 * 1000, // 24 horas
-          path: '/',
-          sameSite: 'lax'
-        });
+        // Não usar cookies, enviar o token na resposta
+        // O cliente irá armazenar no localStorage
         
         console.log(`Login via DB bem-sucedido para ${username}`);
         
