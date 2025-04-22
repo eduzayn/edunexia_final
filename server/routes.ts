@@ -6,6 +6,7 @@ import { Server } from 'http';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
+import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -51,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/healthcheck', (req, res) => {
     res.status(200).json({ message: 'API funcionando corretamente!', timestamp: new Date() });
   });
+
+  // Usar as rotas de autenticação com um prefixo especial para evitar a interceptação pelo Vite
+  app.use('/api-json', authRouter);
 
   // Usar as rotas de debug
   app.use('/api/debug', debugRouter);
