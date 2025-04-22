@@ -4,6 +4,9 @@
  * Este módulo implementa rotas de autenticação de emergência simples
  * que substituem completamente o sistema de autenticação existente
  * para permitir acesso ao sistema em situações críticas.
+ * 
+ * ATENÇÃO: Esta é uma configuração de emergência que permite login com qualquer usuário
+ * sem verificação de senha. Use apenas para recuperação de acesso.
  */
 
 import express from 'express';
@@ -13,12 +16,51 @@ import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 export function setupSimpleAuth(app: Express) {
+  // ======= LOGIN DIRETO EM MODO EMERGÊNCIA =======
+  app.get('/admin-login-direto', async (req, res) => {
+    console.log('🚨🚨🚨 ACESSO EMERGENCIAL: Login direto para admin foi solicitado');
+    
+    try {
+      // Buscar o usuário admin diretamente
+      const [adminUser] = await db.select().from(users).where(eq(users.username, 'admin'));
+      
+      if (!adminUser) {
+        console.error('❌ ACESSO EMERGENCIAL: Usuário admin não encontrado no banco de dados!');
+        return res.status(500).send(`
+          <h1>Erro: Usuário admin não encontrado</h1>
+          <p>O usuário 'admin' não foi encontrado no banco de dados.</p>
+          <a href="/">Voltar para o início</a>
+        `);
+      }
+      
+      // Configurar a sessão manualmente e redirecionar
+      if (!req.session) {
+        req.session = {} as any;
+      }
+      
+      req.session.user = adminUser;
+      req.session.authenticated = true;
+      
+      console.log('✅ ACESSO EMERGENCIAL: Login direto para admin foi bem-sucedido!');
+      
+      // Redirecionar para a página inicial
+      return res.redirect('/admin');
+    } catch (error) {
+      console.error('❌ ACESSO EMERGENCIAL: Erro ao fazer login direto:', error);
+      return res.status(500).send(`
+        <h1>Erro ao fazer login direto</h1>
+        <p>Ocorreu um erro ao tentar fazer login direto: ${error}</p>
+        <a href="/">Voltar para o início</a>
+      `);
+    }
+  });
+
   // Rota para autenticação de emergência
   app.post('/api-json/login', async (req, res) => {
     try {
       const { username, password } = req.body;
       
-      console.log('🚨 AUTENTICAÇÃO DE EMERGÊNCIA: Tentativa de login para', username);
+      console.log('🔥 MODO DE EMERGÊNCIA: Requisição de login para:', username);
       
       // Buscar o usuário no banco de dados para obter informações completas
       const [userFromDb] = await db.select().from(users).where(eq(users.username, username));
@@ -26,17 +68,17 @@ export function setupSimpleAuth(app: Express) {
       // ⚠️ MODO INSEGURO: Aceitar qualquer usuário que exista no banco de dados
       // ⚠️ Implementação temporária para recuperação de acesso ao sistema
       if (username) {
-        console.log('🚨 AUTENTICAÇÃO DE EMERGÊNCIA: Credenciais fornecidas');
+        console.log('🔥 MODO DE EMERGÊNCIA: Tentando autenticar usuário:', username);
         
         let user;
         
         // Se o usuário existe no banco de dados, use seus dados reais
         if (userFromDb) {
-          console.log('🚨 AUTENTICAÇÃO DE EMERGÊNCIA: Usuário encontrado no banco de dados');
-          console.log('🚨 IGNORANDO VERIFICAÇÃO DE SENHA PARA ACESSO EMERGENCIAL');
+          console.log('🔥 MODO DE EMERGÊNCIA: Usuário encontrado no banco de dados');
+          console.log('🔥 MODO DE EMERGÊNCIA: IGNORANDO VERIFICAÇÃO DE SENHA');
           user = userFromDb;
         } else {
-          console.log('🚨 AUTENTICAÇÃO DE EMERGÊNCIA: Usuário não encontrado no banco de dados');
+          console.log('❌ MODO DE EMERGÊNCIA: Usuário não encontrado no banco de dados');
           // Se não encontrar o usuário, retorne erro
           return res.status(401).json({ message: 'Invalid credentials' });
         }
