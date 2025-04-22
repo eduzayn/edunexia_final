@@ -222,17 +222,20 @@ function Router() {
         {() => user?.portalType === "polo" ? <PoloSalesLinksPage /> : <Redirect to="/polo" />}
       </Route>
       <ProtectedRoute path="/admin/dashboard" portalType="admin" />
-      <Route path="/admin/disciplines">
+      <Route path="/admin/academico/disciplines">
         {() => user?.portalType === "admin" ? <DisciplinesPage /> : <Redirect to="/admin" />}
       </Route>
+      <Route path="/admin/academico/disciplines/:id/content">
+        {() => user?.portalType === "admin" ? <DisciplineContentPage /> : <Redirect to="/admin" />}
+      </Route>
+      <Route path="/admin/disciplines">
+        {() => <Redirect to="/admin/academico/disciplines" />}
+      </Route>
       <Route path="/admin/courses">
-        {() => user?.portalType === "admin" ? <CoursesPage /> : <Redirect to="/admin" />}
+        {() => <Redirect to="/admin/academico/courses" />}
       </Route>
       <Route path="/admin/academico/courses">
         {() => user?.portalType === "admin" ? <CoursesPage /> : <Redirect to="/admin" />}
-      </Route>
-      <Route path="/admin/disciplines/:id/content">
-        {() => user?.portalType === "admin" ? <DisciplineContentPage /> : <Redirect to="/admin" />}
       </Route>
 
       {/* Rotas de e-books */}
