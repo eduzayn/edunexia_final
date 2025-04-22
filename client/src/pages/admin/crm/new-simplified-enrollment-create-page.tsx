@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { AsaasCustomerSearch } from '@/components/admin/crm/asaas-customer-search';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -93,6 +94,15 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  
+  // Estado para guardar cliente do Asaas selecionado
+  const [selectedAsaasCustomer, setSelectedAsaasCustomer] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    mobilePhone?: string;
+  } | null>(null);
 
   // Buscar cursos (usando API JSON direta para contornar o middleware Vite)
   const { data: coursesResponse } = useQuery({
@@ -185,7 +195,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   // Submit handler
   const onSubmit = (values: FormValues) => {
     setIsSubmitting(true);
-    createEnrollmentMutation.mutate({
+    
+    const enrollmentData = {
       studentName: values.studentName,
       studentEmail: values.studentEmail,
       studentCpf: values.studentCpf.replace(/\D/g, ''), // Remover formatação
@@ -209,7 +220,16 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       allowInstallments: values.allowInstallments,
       interestRate: parseFloat(values.interestRate || '0'),
       fine: parseFloat(values.fine || '0'),
-    });
+    };
+    
+    // Se tiver um cliente Asaas selecionado, incluir o ID
+    if (selectedAsaasCustomer) {
+      Object.assign(enrollmentData, {
+        asaasCustomerId: selectedAsaasCustomer.id
+      });
+    }
+    
+    createEnrollmentMutation.mutate(enrollmentData);
   };
 
   // Formatação de CPF
@@ -242,6 +262,33 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       .replace(/\D/g, '')
       .replace(/(\d{5})(\d)/, '$1-$2')
       .replace(/(-\d{3})\d+?$/, '$1');
+  };
+  
+  // Função para lidar com a seleção de cliente do Asaas
+  const handleAsaasCustomerSelect = (customer: {
+    id: string;
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    mobilePhone?: string;
+  }) => {
+    setSelectedAsaasCustomer(customer);
+    
+    // Atualizar campos do formulário com os dados do cliente Asaas
+    form.setValue('studentName', customer.name);
+    form.setValue('studentEmail', customer.email);
+    form.setValue('studentCpf', customer.cpfCnpj);
+    
+    if (customer.mobilePhone) {
+      form.setValue('studentPhone', customer.mobilePhone);
+    }
+    
+    // Exibir mensagem de sucesso
+    toast({
+      title: 'Cliente encontrado',
+      description: 'Os dados do cliente foram preenchidos automaticamente.',
+      variant: 'default',
+    });
   };
 
   return (
@@ -292,7 +339,14 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormItem>
                             <FormLabel>Nome Completo*</FormLabel>
                             <FormControl>
-                              <Input placeholder="Nome completo do aluno" {...field} />
+                              <AsaasCustomerSearch 
+                                value={field.value} 
+                                onChange={field.onChange}
+                                onCustomerSelect={handleAsaasCustomerSelect}
+                                placeholder="Digite o nome do aluno para buscar ou criar"
+                                description="Digite para buscar alunos existentes no Asaas"
+                                isRequired
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
