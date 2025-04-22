@@ -945,6 +945,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erro ao verificar completude da disciplina" });
     }
   });
+  
+  // Obter vídeos de uma disciplina
+  app.get("/api/admin/discipline-videos/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const discipline = await storage.getDiscipline(id);
+      
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Mapear vídeos a partir dos campos da disciplina
+      const videos = [];
+      
+      if (discipline.videoAula1Url) {
+        videos.push({
+          id: 1,
+          disciplineId: discipline.id,
+          title: "Vídeo-aula 1",
+          description: "",
+          videoSource: discipline.videoAula1Source,
+          url: discipline.videoAula1Url,
+          duration: "45:00" // Duração padrão
+        });
+      }
+      
+      if (discipline.videoAula2Url) {
+        videos.push({
+          id: 2,
+          disciplineId: discipline.id,
+          title: "Vídeo-aula 2",
+          description: "",
+          videoSource: discipline.videoAula2Source,
+          url: discipline.videoAula2Url,
+          duration: "45:00" // Duração padrão
+        });
+      }
+      
+      res.json(videos);
+    } catch (error) {
+      console.error("Error fetching discipline videos:", error);
+      res.status(500).json({ message: "Erro ao buscar vídeos da disciplina" });
+    }
+  });
+  
+  // Adicionar vídeo a uma disciplina
+  app.post("/api/admin/discipline-videos/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const discipline = await storage.getDiscipline(id);
+      
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Validar dados do vídeo
+      const videoData = z.object({
+        title: z.string().min(3),
+        description: z.string().optional(),
+        videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
+        url: z.string().url(),
+        duration: z.string().regex(/^\d+:\d+$/)
+      }).parse(req.body);
+      
+      // Verificar se já existem vídeos
+      const videos = [];
+      let updateData = {};
+      
+      if (discipline.videoAula1Url) {
+        videos.push({
+          id: 1,
+          title: "Video 1",
+          url: discipline.videoAula1Url
+        });
+      }
+      
+      if (discipline.videoAula2Url) {
+        videos.push({
+          id: 2,
+          title: "Video 2",
+          url: discipline.videoAula2Url
+        });
+      }
+      
+      // Adicionar novo vídeo ao primeiro slot disponível
+      if (videos.length >= 2) {
+        return res.status(400).json({ message: "Esta disciplina já possui 2 vídeos. Remova um existente para adicionar um novo." });
+      }
+      
+      if (!discipline.videoAula1Url) {
+        updateData = {
+          videoAula1Url: videoData.url,
+          videoAula1Source: videoData.videoSource
+        };
+      } else {
+        updateData = {
+          videoAula2Url: videoData.url,
+          videoAula2Source: videoData.videoSource
+        };
+      }
+      
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(id, updateData);
+      
+      // Criar objeto de resposta
+      const newVideoId = !discipline.videoAula1Url ? 1 : 2;
+      const newVideo = {
+        id: newVideoId,
+        disciplineId: discipline.id,
+        title: videoData.title,
+        description: videoData.description || "",
+        videoSource: videoData.videoSource,
+        url: videoData.url,
+        duration: videoData.duration
+      };
+      
+      res.status(201).json(newVideo);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error adding discipline video:", error);
+      res.status(500).json({ message: "Erro ao adicionar vídeo à disciplina" });
+    }
+  });
+  
+  // Atualizar um vídeo de disciplina
+  app.put("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const videoId = parseInt(req.params.videoId);
+      
+      if (videoId !== 1 && videoId !== 2) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
+      }
+      
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Verificar se o vídeo existe
+      if ((videoId === 1 && !discipline.videoAula1Url) || 
+          (videoId === 2 && !discipline.videoAula2Url)) {
+        return res.status(404).json({ message: "Vídeo não encontrado" });
+      }
+      
+      // Validar dados
+      const videoData = z.object({
+        title: z.string().min(3),
+        description: z.string().optional(),
+        videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
+        url: z.string().url(),
+        duration: z.string().regex(/^\d+:\d+$/)
+      }).parse(req.body);
+      
+      // Atualizar dados
+      let updateData = {};
+      
+      if (videoId === 1) {
+        updateData = {
+          videoAula1Url: videoData.url,
+          videoAula1Source: videoData.videoSource
+        };
+      } else {
+        updateData = {
+          videoAula2Url: videoData.url,
+          videoAula2Source: videoData.videoSource
+        };
+      }
+      
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
+      
+      // Objeto de resposta
+      const updatedVideo = {
+        id: videoId,
+        disciplineId: disciplineId,
+        title: videoData.title,
+        description: videoData.description || "",
+        videoSource: videoData.videoSource,
+        url: videoData.url,
+        duration: videoData.duration
+      };
+      
+      res.json(updatedVideo);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error updating discipline video:", error);
+      res.status(500).json({ message: "Erro ao atualizar vídeo da disciplina" });
+    }
+  });
+  
+  // Excluir um vídeo de disciplina
+  app.delete("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const videoId = parseInt(req.params.videoId);
+      
+      if (videoId !== 1 && videoId !== 2) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
+      }
+      
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Verificar se o vídeo existe
+      if ((videoId === 1 && !discipline.videoAula1Url) || 
+          (videoId === 2 && !discipline.videoAula2Url)) {
+        return res.status(404).json({ message: "Vídeo não encontrado" });
+      }
+      
+      // Atualizar dados
+      let updateData = {};
+      
+      if (videoId === 1) {
+        updateData = {
+          videoAula1Url: null,
+          videoAula1Source: null
+        };
+      } else {
+        updateData = {
+          videoAula2Url: null,
+          videoAula2Source: null
+        };
+      }
+      
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting discipline video:", error);
+      res.status(500).json({ message: "Erro ao excluir vídeo da disciplina" });
+    }
+  });
 
   // ================== Rotas para Questões ==================
   // Listar questões de uma disciplina
