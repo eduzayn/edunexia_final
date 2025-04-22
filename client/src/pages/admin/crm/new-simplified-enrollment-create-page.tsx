@@ -426,7 +426,17 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormItem>
                             <FormLabel>Curso*</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                
+                                // Buscar o curso selecionado para obter o preço
+                                const selectedCourse = courses.find(course => course.id.toString() === value);
+                                if (selectedCourse && selectedCourse.price) {
+                                  // Formatar o valor do curso para exibição e atualizar o campo de valor
+                                  const formattedPrice = selectedCourse.price.toString().replace('.', ',');
+                                  form.setValue('amount', formattedPrice);
+                                }
+                              }}
                               defaultValue={field.value}
                             >
                               <FormControl>
