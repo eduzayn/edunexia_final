@@ -1635,11 +1635,11 @@ export default function DisciplineContentPage() {
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duração (mm:ss)</FormLabel>
+                    <FormLabel>Duração (minutos)</FormLabel>
                     <FormControl>
                       <Input
-                        type="text"
-                        placeholder="Ex: 45:30"
+                        type="number"
+                        placeholder="Ex: 45"
                         {...field}
                       />
                     </FormControl>
@@ -1787,11 +1787,11 @@ export default function DisciplineContentPage() {
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duração (mm:ss)</FormLabel>
+                    <FormLabel>Duração (minutos)</FormLabel>
                     <FormControl>
                       <Input
-                        type="text"
-                        placeholder="Ex: 45:30"
+                        type="number"
+                        placeholder="Ex: 45"
                         {...field}
                       />
                     </FormControl>
