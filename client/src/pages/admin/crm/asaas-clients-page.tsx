@@ -1,39 +1,19 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import AdminLayout from "@/components/layout/admin-layout";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { 
-  UserIcon, 
-  SearchIcon, 
-  FilterIcon,
-  EyeIcon,
-  MailIcon,
-  PhoneIcon,
-  Building2Icon,
-  IdCardIcon
-} from "lucide-react";
+import { RefreshCcw, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { queryClient } from "@/lib/queryClient";
+import AdminLayout from "@/components/layout/admin-layout";
+import { useToast } from "@/hooks/use-toast";
 
-// Interface for Asaas customer
-interface AsaasCustomer {
+
+// Define a interface para clientes do Asaas
+export interface AsaasCustomer {
   id: string;
   name: string;
   email: string;
@@ -53,183 +33,253 @@ interface AsaasCustomer {
   externalReference?: string;
 }
 
+// Componente principal da página de clientes Asaas
 export default function AsaasClientsPage() {
-  const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Fetch clients from the Asaas API
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/debug/asaas-customers", searchTerm],
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isSearching, setIsSearching] = useState(false);
+  const itemsPerPage = 10;
+
+  // Consulta para buscar clientes Asaas
+  const {
+    data: clientsData,
+    isLoading,
+    isError,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/debug/asaas-customers', searchTerm],
     queryFn: async () => {
-      const url = searchTerm
+      console.log("Buscando clientes Asaas...");
+      const endpoint = searchTerm 
         ? `/api/debug/asaas-customers?search=${encodeURIComponent(searchTerm)}`
         : '/api/debug/asaas-customers';
+        
+      const response = await fetch(endpoint);
       
-      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('Falha ao carregar clientes do Asaas');
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao carregar clientes Asaas");
       }
-      return response.json();
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || "Erro no processamento da requisição");
+      }
+      
+      return data.data || [];
     },
-    refetchOnWindowFocus: false
+    enabled: true,
   });
-  
-  const customers: AsaasCustomer[] = data?.data || [];
 
-  // Format CPF/CNPJ for display
-  const formatDocument = (doc: string) => {
-    if (!doc) return '';
-    
-    // CPF: 123.456.789-01
-    if (doc.length === 11) {
-      return doc.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
-    }
-    
-    // CNPJ: 12.345.678/0001-90
-    if (doc.length === 14) {
-      return doc.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
-    }
-    
-    return doc;
+  // Função para lidar com erro de carregamento
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['/api/debug/asaas-customers'] });
+    refetch();
+    toast({
+      title: "Atualizando dados",
+      description: "Buscando dados atualizados dos clientes Asaas."
+    });
   };
 
-  // Get badge for person type
-  const getPersonTypeBadge = (type: string) => {
-    if (type === "FISICA") {
-      return <Badge className="bg-blue-500">Pessoa Física</Badge>;
-    }
-    if (type === "JURIDICA") {
-      return <Badge className="bg-purple-500">Pessoa Jurídica</Badge>;
-    }
-    return <Badge>{type}</Badge>;
+  // Função para realizar a pesquisa
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSearching(true);
+    setCurrentPage(1);
+    refetch().finally(() => setIsSearching(false));
   };
+
+  // Calcular paginação
+  const clients = clientsData || [];
+  const totalPages = Math.ceil(clients.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentClients = clients.slice(startIndex, endIndex);
 
   return (
     <AdminLayout>
       <div className="container mx-auto py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clientes Asaas</h1>
-            <p className="text-gray-500">
-              Gerenciamento de clientes integrados com Asaas.
-            </p>
-          </div>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Clientes Asaas</h1>
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> Atualizando...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar
+              </>
+            )}
+          </Button>
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Listagem de Clientes Asaas</CardTitle>
+          <CardHeader>
+            <CardTitle>Clientes registrados no Asaas</CardTitle>
             <CardDescription>
-              Visualize todos os clientes cadastrados na plataforma de pagamentos Asaas.
+              Lista de clientes sincronizados com a plataforma Asaas para processamento de pagamentos.
             </CardDescription>
-            <div className="flex items-center space-x-2 pt-2">
-              <div className="relative flex-1">
-                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  type="search"
-                  placeholder="Buscar por nome, email ou CPF/CNPJ..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Button variant="outline" size="sm">
-                <FilterIcon className="mr-2 h-4 w-4" />
-                Filtros
-              </Button>
-            </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              // Loading state
-              <div className="space-y-2">
-                {Array(5)
-                  .fill(null)
-                  .map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4">
-                      <Skeleton className="h-12 w-12 rounded-full" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-[250px]" />
-                        <Skeleton className="h-4 w-[200px]" />
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ) : error ? (
-              // Error state
-              <div className="p-6 text-center">
-                <p className="text-red-500">Erro ao carregar clientes do Asaas.</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Verifique a conexão com a API Asaas e tente novamente.
-                </p>
+            <form onSubmit={handleSearch} className="flex gap-2 mb-6">
+              <Input
+                placeholder="Buscar por nome, e-mail ou CPF/CNPJ..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={isSearching || isLoading}>
+                {isSearching ? (
+                  <>
+                    <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> Buscando
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" /> Buscar
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {isError ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md my-4">
+                <h3 className="font-semibold mb-2">Erro ao carregar clientes</h3>
+                <p>Ocorreu um erro ao tentar carregar os clientes do Asaas. Por favor, tente novamente.</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-2" 
+                  onClick={handleRefresh} 
+                  size="sm"
+                >
+                  Tentar novamente
+                </Button>
               </div>
             ) : (
-              // Data table
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>CPF/CNPJ</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Localização</TableHead>
-                    <TableHead className="text-right">ID Asaas</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                        Nenhum cliente encontrado.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    customers.map((customer) => (
-                      <TableRow key={customer.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <UserIcon className="mr-2 h-4 w-4" />
-                            {customer.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <IdCardIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {formatDocument(customer.cpfCnpj)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <MailIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {customer.email}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <PhoneIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {customer.mobilePhone || customer.phone || "-"}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getPersonTypeBadge(customer.personType)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Building2Icon className="mr-2 h-4 w-4 text-gray-500" />
-                            {customer.cityName && customer.state 
-                              ? `${customer.cityName}/${customer.state}` 
-                              : customer.state || "-"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-xs">
-                          {customer.id}
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>CPF/CNPJ</TableHead>
+                        <TableHead>E-mail</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>ID Asaas</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        Array(5).fill(0).map((_, index) => (
+                          <TableRow key={`skeleton-${index}`}>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-10" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : currentClients.length > 0 ? (
+                        currentClients.map((client: AsaasCustomer) => (
+                          <TableRow key={client.id}>
+                            <TableCell className="font-medium">{client.name}</TableCell>
+                            <TableCell>{client.cpfCnpj}</TableCell>
+                            <TableCell>{client.email}</TableCell>
+                            <TableCell>{client.mobilePhone || client.phone || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant={client.personType === "FISICA" ? "outline" : "secondary"}>
+                                {client.personType === "FISICA" ? "Pessoa Física" : "Pessoa Jurídica"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{client.state || "-"}</TableCell>
+                            <TableCell>
+                              <span className="text-xs text-gray-500 font-mono">{client.id}</span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-4">
+                            {searchTerm ? (
+                              <div className="text-gray-500">
+                                <p>Nenhum cliente encontrado para "{searchTerm}"</p>
+                                <p className="text-sm mt-1">Tente usar um termo diferente ou limpar a busca</p>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500">
+                                <p>Nenhum cliente encontrado</p>
+                                <p className="text-sm mt-1">Não há clientes cadastrados no Asaas ainda</p>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Paginação */}
+                {!isLoading && clients.length > itemsPerPage && (
+                  <div className="mt-4 flex justify-center">
+                    <nav className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-md ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                      >
+                        Anterior
+                      </button>
+                      
+                      {Array.from({ length: Math.min(totalPages, 5) }).map((_, index) => {
+                        let pageNumber;
+                        
+                        // Lógica para mostrar páginas relevantes quando há muitas
+                        if (totalPages <= 5) {
+                          pageNumber = index + 1;
+                        } else if (currentPage <= 3) {
+                          pageNumber = index + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNumber = totalPages - 4 + index;
+                        } else {
+                          pageNumber = currentPage - 2 + index;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNumber}
+                            onClick={() => setCurrentPage(pageNumber)}
+                            className={`w-9 h-9 rounded-md ${
+                              currentPage === pageNumber 
+                                ? 'bg-primary text-white' 
+                                : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        );
+                      })}
+                      
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-md ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                      >
+                        Próxima
+                      </button>
+                    </nav>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
