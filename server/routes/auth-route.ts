@@ -36,59 +36,8 @@ router.post('/login', (req, res, next) => {
   // Certifica-se de que o conteúdo seja tratado como JSON
   res.setHeader('Content-Type', 'application/json');
   
-  // Verificar se estamos no modo de desenvolvimento
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  if (isDevelopment) {
-    console.log("[DEV MODE] Login automático para desenvolvimento");
-    
-    // Simular login com dados de usuário para desenvolvimento
-    // O portalType define o tipo de usuário que será retornado
-    const portalType = req.body.portalType || 'admin';
-    const mockUser: any = {
-      id: 0,
-      username: '',
-      password: undefined,
-      portalType: portalType,
-      name: '',
-      email: '',
-      role: ''
-    };
-    
-    if (portalType === 'admin') {
-      mockUser.id = 1;
-      mockUser.username = 'admin';
-      mockUser.name = 'Admin Teste';
-      mockUser.email = 'admin@edunexia.com';
-      mockUser.role = 'admin';
-    } else if (portalType === 'student') {
-      mockUser.id = 2;
-      mockUser.username = 'student';
-      mockUser.name = 'Estudante Teste';
-      mockUser.email = 'aluno@edunexia.com';
-      mockUser.role = 'student';
-    } else if (portalType === 'institution') {
-      mockUser.id = 3;
-      mockUser.username = 'institution';
-      mockUser.name = 'Instituição Teste';
-      mockUser.email = 'instituicao@edunexia.com';
-      mockUser.role = 'institution';
-    } else if (portalType === 'instructor') {
-      mockUser.id = 4;
-      mockUser.username = 'instructor';
-      mockUser.name = 'Professor Teste';
-      mockUser.email = 'professor@edunexia.com';
-      mockUser.role = 'instructor';
-    }
-    
-    console.log("[DEV MODE] Usuário simulado:", mockUser);
-    
-    // Serializa o usuário na sessão
-    req.login(mockUser, (err) => {
-      if (err) return next(err);
-      return res.status(200).json(mockUser);
-    });
-    return;
-  }
+  // O modo de desenvolvimento automático foi desativado para permitir a autenticação real
+  console.log("Usando autenticação real do banco de dados");
   
   // Comportamento normal de produção
   passport.authenticate("local", async (err: any, user: Express.User | false, info: any) => {
@@ -187,65 +136,8 @@ router.get('/user', (req, res) => {
   // Sempre definir o cabeçalho content-type para application/json
   res.setHeader('Content-Type', 'application/json');
   
-  // Verificar se estamos no modo de desenvolvimento
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  if (isDevelopment) {
-    console.log("[DEV MODE] Retornando usuário simulado para /api-json/user");
-    
-    // Se houver um usuário na sessão, usamos ele
-    if (req.session && req.session.passport && req.session.passport.user) {
-      const userId = req.session.passport.user;
-      
-      storage.getUser(userId)
-        .then(user => {
-          if (user) {
-            // Remover a senha antes de enviar
-            const safeUser = { ...user, password: undefined };
-            return res.status(200).send(JSON.stringify(safeUser));
-          } else {
-            // Se não encontrar o usuário, criar um mock
-            const mockUser = {
-              id: 1,
-              username: 'admin',
-              name: 'Admin Teste',
-              email: 'admin@edunexia.com',
-              role: 'admin',
-              portalType: 'admin',
-              password: undefined
-            };
-            return res.status(200).send(JSON.stringify(mockUser));
-          }
-        })
-        .catch(error => {
-          console.error("[DEV MODE] Erro ao buscar usuário da sessão:", error);
-          
-          // Em caso de erro, usar um mock padrão
-          const mockUser = {
-            id: 1,
-            username: 'admin',
-            name: 'Admin Teste',
-            email: 'admin@edunexia.com',
-            role: 'admin',
-            portalType: 'admin',
-            password: undefined
-          };
-          return res.status(200).send(JSON.stringify(mockUser));
-        });
-    } else {
-      // Se não houver sessão, criar um mock padrão
-      const mockUser = {
-        id: 1,
-        username: 'admin',
-        name: 'Admin Teste',
-        email: 'admin@edunexia.com',
-        role: 'admin',
-        portalType: 'admin',
-        password: undefined
-      };
-      return res.status(200).send(JSON.stringify(mockUser));
-    }
-    return;
-  }
+  // O modo de desenvolvimento simulado foi desativado para permitir a autenticação real
+  console.log("Verificando autenticação real para /api-json/user");
   
   // Comportamento normal em produção
   if (req.session && req.session.passport && req.session.passport.user) {
