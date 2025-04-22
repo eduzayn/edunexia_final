@@ -9,10 +9,13 @@ import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
 import { setupAuth } from './auth';
+import { createLeadV2, getLeadByIdV2, updateLeadV2, listLeadsV2, listInstitutionsForLeads, listCoursesForLeads, listCommonCourses, listTrackedSources, listTrackedPlatforms } from './controllers/leads-controller';
+import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
+import { createSimplifiedEnrollment, getSimplifiedEnrollment, listSimplifiedEnrollments, generatePaymentLink, updatePaymentStatus, cancelEnrollment } from './controllers/new-simplified-enrollment-controller';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
-  
+
   // Configurar autenticação
   setupAuth(app);
 
@@ -29,12 +32,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
-    
+
     const user = req.user as any;
     if (user.role !== 'admin' && user.role !== 'superadmin') {
       return res.status(403).json({ message: 'Você não tem permissão para acessar este recurso.' });
     }
-    
+
     next();
   };
 
@@ -43,12 +46,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
-    
+
     const user = req.user as any;
     if (user.role !== 'student') {
       return res.status(403).json({ message: 'Este recurso é exclusivo para estudantes.' });
     }
-    
+
     next();
   };
 
@@ -136,6 +139,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       redirectTo: '/api/debug/asaas-customers'
     });
   });
+
+  // Leads V2 (sistema CRM) 
+  app.post('/api/v2/leads', requireAuth, createLeadV2);
+  app.get('/api/v2/leads', requireAuth, listLeadsV2);
+  app.get('/api/v2/leads/:id', requireAuth, getLeadByIdV2);
+  app.put('/api/v2/leads/:id', requireAuth, updateLeadV2);
+
+  // Dados para formulários de leads
+  app.get('/api/v2/leads-institutions', requireAuth, listInstitutionsForLeads);
+  app.get('/api/v2/leads-courses', requireAuth, listCoursesForLeads);
+  app.get('/api/v2/common-courses', requireAuth, listCommonCourses);
+  app.get('/api/v2/tracked-sources', requireAuth, listTrackedSources);
+  app.get('/api/v2/tracked-platforms', requireAuth, listTrackedPlatforms);
+
+  // Asaas CRM
+  app.post('/api/v2/crm/asaas-customers', requireAuth, createAsaasCustomer);
+  app.get('/api/v2/crm/search-customer-by-cpf', requireAuth, searchAsaasCustomerByCpfCnpj);
+
+  // Matrículas Simplificadas
+  app.post('/api/v2/simplified-enrollments', requireAuth, createSimplifiedEnrollment);
+  app.get('/api/v2/simplified-enrollments', requireAuth, listSimplifiedEnrollments);
+  app.get('/api/v2/simplified-enrollments/:id', requireAuth, getSimplifiedEnrollment);
+  app.post('/api/v2/simplified-enrollments/:id/generate-payment-link', requireAuth, generatePaymentLink);
+  app.post('/api/v2/simplified-enrollments/:id/update-payment-status', requireAuth, updatePaymentStatus);
+  app.post('/api/v2/simplified-enrollments/:id/cancel', requireAuth, cancelEnrollment);
 
   return server;
 }

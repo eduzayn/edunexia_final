@@ -44,7 +44,7 @@ import {
   TelegramIcon,
   WidgetIcon,
 } from "@/components/ui/icons";
-import { CircleDollarSign, ShieldIcon, CreditCardIcon } from "lucide-react";
+import { CircleDollarSign, ShieldIcon, CreditCardIcon, GraduationCap } from "lucide-react";
 
 // Interfaces para definir a estrutura dos itens da barra lateral
 export interface SidebarItem {
@@ -353,10 +353,10 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           active: currentPath === "/admin/finance/charges" || (currentPath && currentPath.includes("/admin/finance/charges/"))
         },
         { 
-          name: "Pagamentos", 
-          icon: <PaymentsIcon />, 
-          href: "/admin/finance/payments",
-          active: currentPath === "/admin/finance/payments" || (currentPath && currentPath.includes("/admin/finance/payments/"))
+          name: "Matrículas Simplificadas",
+          icon: <GraduationCap />,
+          href: "/admin/crm/new-simplified-enrollments",
+          active: currentPath === "/admin/crm/new-simplified-enrollments" || (currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
         },
         // Submódulo Contratos
         { 
@@ -388,7 +388,12 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         href: "/admin/finance/charges",
         active: currentPath === "/admin/finance/charges" || (currentPath && currentPath.includes("/admin/finance/charges/"))
       },
-      /* Item Pagamentos removido - Obsoleto após integração com Asaas */
+      { 
+        name: "Matrículas Simplificadas",
+        icon: <GraduationCap />,
+        href: "/admin/crm/new-simplified-enrollments",
+        active: currentPath === "/admin/crm/new-simplified-enrollments" || (currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
+      },
       // Submódulo Contratos
       { 
         name: "Contratos", 
@@ -398,7 +403,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       },
     ]
   };
-  
+
   // Categoria: Comunicação
   const communicationCategory: SidebarCategory = {
     name: "Comunicação",
@@ -623,7 +628,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       },
     ]
   };
-  
+
   // Categoria: Administração - Financeiro Empresarial
   const adminFinanceCategory: SidebarCategory = {
     name: "Financeiro Empresarial",
