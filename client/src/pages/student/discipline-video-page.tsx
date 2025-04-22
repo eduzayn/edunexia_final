@@ -45,6 +45,22 @@ interface DisciplineDetail {
   videoAula1Source?: string;
   videoAula2Url?: string;
   videoAula2Source?: string;
+  videoAula3Url?: string;
+  videoAula3Source?: string;
+  videoAula4Url?: string;
+  videoAula4Source?: string;
+  videoAula5Url?: string;
+  videoAula5Source?: string;
+  videoAula6Url?: string;
+  videoAula6Source?: string;
+  videoAula7Url?: string;
+  videoAula7Source?: string;
+  videoAula8Url?: string;
+  videoAula8Source?: string;
+  videoAula9Url?: string;
+  videoAula9Source?: string;
+  videoAula10Url?: string;
+  videoAula10Source?: string;
   apostilaPdfUrl?: string;
   ebookInterativoUrl?: string;
   createdAt?: string;
@@ -67,10 +83,29 @@ export default function DisciplineVideoPage() {
   const sidebarItems = getStudentSidebarItems(location);
 
   // Determinar o vídeo a ser exibido baseado no parâmetro videoNumber
-  const isVideoAula1 = videoNumber === "1";
-  const videoUrl = isVideoAula1 ? discipline?.videoAula1Url : discipline?.videoAula2Url;
-  const videoSource = isVideoAula1 ? discipline?.videoAula1Source : discipline?.videoAula2Source;
-  const videoTitle = isVideoAula1 ? "Vídeo-aula 1" : "Vídeo-aula 2";
+  const videoNum = parseInt(videoNumber || "1");
+  
+  // Função para obter URL e fonte com base no número do vídeo
+  const getVideoData = (num: number) => {
+    switch(num) {
+      case 1: return { url: discipline?.videoAula1Url, source: discipline?.videoAula1Source };
+      case 2: return { url: discipline?.videoAula2Url, source: discipline?.videoAula2Source };
+      case 3: return { url: discipline?.videoAula3Url, source: discipline?.videoAula3Source };
+      case 4: return { url: discipline?.videoAula4Url, source: discipline?.videoAula4Source };
+      case 5: return { url: discipline?.videoAula5Url, source: discipline?.videoAula5Source };
+      case 6: return { url: discipline?.videoAula6Url, source: discipline?.videoAula6Source };
+      case 7: return { url: discipline?.videoAula7Url, source: discipline?.videoAula7Source };
+      case 8: return { url: discipline?.videoAula8Url, source: discipline?.videoAula8Source };
+      case 9: return { url: discipline?.videoAula9Url, source: discipline?.videoAula9Source };
+      case 10: return { url: discipline?.videoAula10Url, source: discipline?.videoAula10Source };
+      default: return { url: discipline?.videoAula1Url, source: discipline?.videoAula1Source };
+    }
+  };
+  
+  const videoData = getVideoData(videoNum);
+  const videoUrl = videoData.url;
+  const videoSource = videoData.source;
+  const videoTitle = `Vídeo-aula ${videoNum}`;
 
   // Função para renderizar o player de vídeo de acordo com a fonte
   const renderVideoPlayer = () => {
@@ -157,11 +192,15 @@ export default function DisciplineVideoPage() {
 
   // Função para navegar entre os conteúdos
   const goToNextContent = () => {
-    // Se for a primeira vídeo-aula, ir para a segunda
-    if (isVideoAula1) {
-      setLocation(`/student/discipline/${id}/video/2`);
+    // Verificar se há próximo vídeo disponível
+    const nextVideoNum = videoNum + 1;
+    const nextVideoData = getVideoData(nextVideoNum);
+    
+    if (nextVideoNum <= 10 && nextVideoData.url) {
+      // Se houver próximo vídeo, navegar para ele
+      setLocation(`/student/discipline/${id}/video/${nextVideoNum}`);
     } else {
-      // Se for a segunda, ir para a apostila em PDF
+      // Caso contrário, ir para a apostila em PDF
       setLocation(`/student/discipline/${id}/apostila`);
     }
   };
@@ -234,9 +273,9 @@ export default function DisciplineVideoPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-700 mb-4">
-                      {isVideoAula1 
+                      {videoNum === 1 
                         ? "Esta é a primeira vídeo-aula da disciplina. Assista com atenção para compreender os conceitos iniciais."
-                        : "Esta é a segunda vídeo-aula da disciplina. Os tópicos avançados são explorados neste vídeo."}
+                        : `Esta é a vídeo-aula ${videoNum} da disciplina. Continue assistindo para aprofundar seus conhecimentos.`}
                     </p>
                     <Progress value={discipline?.progress || 0} className="h-2 mb-1" />
                     <p className="text-sm text-gray-600">
@@ -251,14 +290,28 @@ export default function DisciplineVideoPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => setLocation(`/student/discipline/${id}/video/${isVideoAula1 ? "2" : "1"}`)}
-                      >
-                        <PlayCircleIcon className="h-4 w-4 mr-2" />
-                        {isVideoAula1 ? "Ir para Vídeo-aula 2" : "Voltar para Vídeo-aula 1"}
-                      </Button>
+                      {videoNum > 1 && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => setLocation(`/student/discipline/${id}/video/${videoNum - 1}`)}
+                        >
+                          <PlayCircleIcon className="h-4 w-4 mr-2" />
+                          Voltar para Vídeo-aula {videoNum - 1}
+                        </Button>
+                      )}
+                      
+                      {/* Avançar para próximo vídeo se disponível */}
+                      {getVideoData(videoNum + 1).url && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => setLocation(`/student/discipline/${id}/video/${videoNum + 1}`)}
+                        >
+                          <PlayCircleIcon className="h-4 w-4 mr-2" />
+                          Avançar para Vídeo-aula {videoNum + 1}
+                        </Button>
+                      )}
                       
                       <Button 
                         className="w-full justify-start" 
@@ -275,41 +328,48 @@ export default function DisciplineVideoPage() {
               {/* Related lessons */}
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Conteúdos relacionados</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Button
-                  variant={isVideoAula1 ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/1`)}
-                >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 1
-                </Button>
+                {/* Renderizar botões para todos os vídeos disponíveis */}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
+                  const data = getVideoData(num);
+                  // Só mostrar botão se o vídeo existir
+                  if (data.url) {
+                    return (
+                      <Button
+                        key={`video-${num}`}
+                        variant={videoNum === num ? "default" : "outline"}
+                        className="justify-start"
+                        onClick={() => setLocation(`/student/discipline/${id}/video/${num}`)}
+                      >
+                        <PlayCircleIcon className="h-4 w-4 mr-2" />
+                        Vídeo-aula {num}
+                      </Button>
+                    );
+                  }
+                  return null;
+                })}
                 
-                <Button
-                  variant={!isVideoAula1 ? "default" : "outline"}
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/2`)}
-                >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 2
-                </Button>
+                {/* Outros tipos de conteúdo */}
+                {discipline?.apostilaPdfUrl && (
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => setLocation(`/student/discipline/${id}/apostila`)}
+                  >
+                    <DescriptionIcon className="h-4 w-4 mr-2" />
+                    Apostila em PDF
+                  </Button>
+                )}
                 
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/apostila`)}
-                >
-                  <DescriptionIcon className="h-4 w-4 mr-2" />
-                  Apostila em PDF
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/ebook`)}
-                >
-                  <MenuBookIcon className="h-4 w-4 mr-2" />
-                  E-book Interativo
-                </Button>
+                {discipline?.ebookInterativoUrl && (
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => setLocation(`/student/discipline/${id}/ebook`)}
+                  >
+                    <MenuBookIcon className="h-4 w-4 mr-2" />
+                    E-book Interativo
+                  </Button>
+                )}
               </div>
             </>
           )}

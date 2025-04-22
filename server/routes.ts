@@ -959,28 +959,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mapear vídeos a partir dos campos da disciplina
       const videos = [];
       
-      if (discipline.videoAula1Url) {
-        videos.push({
-          id: 1,
-          disciplineId: discipline.id,
-          title: "Vídeo-aula 1",
-          description: "",
-          videoSource: discipline.videoAula1Source,
-          url: discipline.videoAula1Url,
-          duration: "45:00" // Duração padrão
-        });
-      }
-      
-      if (discipline.videoAula2Url) {
-        videos.push({
-          id: 2,
-          disciplineId: discipline.id,
-          title: "Vídeo-aula 2",
-          description: "",
-          videoSource: discipline.videoAula2Source,
-          url: discipline.videoAula2Url,
-          duration: "45:00" // Duração padrão
-        });
+      // Verificar todos os 10 possíveis vídeos
+      for (let i = 1; i <= 10; i++) {
+        const urlField = `videoAula${i}Url` as keyof typeof discipline;
+        const sourceField = `videoAula${i}Source` as keyof typeof discipline;
+        
+        if (discipline[urlField]) {
+          videos.push({
+            id: i,
+            disciplineId: discipline.id,
+            title: `Vídeo-aula ${i}`,
+            description: "",
+            videoSource: discipline[sourceField],
+            url: discipline[urlField],
+            duration: "45:00" // Duração padrão
+          });
+        }
       }
       
       res.json(videos);
@@ -1009,50 +1003,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration: z.string().regex(/^\d+:\d+$/)
       }).parse(req.body);
       
-      // Verificar se já existem vídeos
-      const videos = [];
-      let updateData = {};
-      
-      if (discipline.videoAula1Url) {
-        videos.push({
-          id: 1,
-          title: "Video 1",
-          url: discipline.videoAula1Url
-        });
+      // Verificar todos os slots de vídeo disponíveis (1 a 10)
+      const existingVideos = [];
+      for (let i = 1; i <= 10; i++) {
+        const urlField = `videoAula${i}Url` as keyof typeof discipline;
+        if (discipline[urlField]) {
+          existingVideos.push({
+            id: i,
+            url: discipline[urlField]
+          });
+        }
       }
       
-      if (discipline.videoAula2Url) {
-        videos.push({
-          id: 2,
-          title: "Video 2",
-          url: discipline.videoAula2Url
-        });
+      // Verificar se já atingiu o limite de 10 vídeos
+      if (existingVideos.length >= 10) {
+        return res.status(400).json({ message: "Esta disciplina já possui 10 vídeos. Remova um existente para adicionar um novo." });
       }
       
-      // Adicionar novo vídeo ao primeiro slot disponível
-      if (videos.length >= 2) {
-        return res.status(400).json({ message: "Esta disciplina já possui 2 vídeos. Remova um existente para adicionar um novo." });
+      // Encontrar o próximo slot disponível
+      let nextVideoId = 1;
+      while (discipline[`videoAula${nextVideoId}Url` as keyof typeof discipline] && nextVideoId <= 10) {
+        nextVideoId++;
       }
       
-      if (!discipline.videoAula1Url) {
-        updateData = {
-          videoAula1Url: videoData.url,
-          videoAula1Source: videoData.videoSource
-        };
-      } else {
-        updateData = {
-          videoAula2Url: videoData.url,
-          videoAula2Source: videoData.videoSource
-        };
-      }
+      // Criar objeto de atualização
+      const updateData = {
+        [`videoAula${nextVideoId}Url`]: videoData.url,
+        [`videoAula${nextVideoId}Source`]: videoData.videoSource
+      };
       
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(id, updateData);
       
       // Criar objeto de resposta
-      const newVideoId = !discipline.videoAula1Url ? 1 : 2;
       const newVideo = {
-        id: newVideoId,
+        id: nextVideoId,
         disciplineId: discipline.id,
         title: videoData.title,
         description: videoData.description || "",
@@ -1080,8 +1065,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const disciplineId = parseInt(req.params.disciplineId);
       const videoId = parseInt(req.params.videoId);
       
-      if (videoId !== 1 && videoId !== 2) {
-        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
+      if (videoId < 1 || videoId > 10) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser um número entre 1 e 10." });
       }
       
       const discipline = await storage.getDiscipline(disciplineId);
@@ -1090,8 +1075,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se o vídeo existe
-      if ((videoId === 1 && !discipline.videoAula1Url) || 
-          (videoId === 2 && !discipline.videoAula2Url)) {
+      const urlField = `videoAula${videoId}Url` as keyof typeof discipline;
+      if (!discipline[urlField]) {
         return res.status(404).json({ message: "Vídeo não encontrado" });
       }
       
@@ -1104,20 +1089,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duration: z.string().regex(/^\d+:\d+$/)
       }).parse(req.body);
       
-      // Atualizar dados
-      let updateData = {};
-      
-      if (videoId === 1) {
-        updateData = {
-          videoAula1Url: videoData.url,
-          videoAula1Source: videoData.videoSource
-        };
-      } else {
-        updateData = {
-          videoAula2Url: videoData.url,
-          videoAula2Source: videoData.videoSource
-        };
-      }
+      // Atualizar dados usando campos dinâmicos para suportar 10 vídeos
+      const updateData = {
+        [`videoAula${videoId}Url`]: videoData.url,
+        [`videoAula${videoId}Source`]: videoData.videoSource
+      };
       
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
@@ -1152,8 +1128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const disciplineId = parseInt(req.params.disciplineId);
       const videoId = parseInt(req.params.videoId);
       
-      if (videoId !== 1 && videoId !== 2) {
-        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
+      if (videoId < 1 || videoId > 10) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser um número entre 1 e 10." });
       }
       
       const discipline = await storage.getDiscipline(disciplineId);
@@ -1162,25 +1138,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se o vídeo existe
-      if ((videoId === 1 && !discipline.videoAula1Url) || 
-          (videoId === 2 && !discipline.videoAula2Url)) {
+      const urlField = `videoAula${videoId}Url` as keyof typeof discipline;
+      if (!discipline[urlField]) {
         return res.status(404).json({ message: "Vídeo não encontrado" });
       }
       
-      // Atualizar dados
-      let updateData = {};
-      
-      if (videoId === 1) {
-        updateData = {
-          videoAula1Url: null,
-          videoAula1Source: null
-        };
-      } else {
-        updateData = {
-          videoAula2Url: null,
-          videoAula2Source: null
-        };
-      }
+      // Atualizar dados usando campos dinâmicos
+      const updateData = {
+        [`videoAula${videoId}Url`]: null,
+        [`videoAula${videoId}Source`]: null
+      };
       
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);

@@ -83,6 +83,22 @@ export const disciplines = pgTable("disciplines", {
   videoAula1Source: videoSourceEnum("video_aula1_source"), // Fonte do vídeo 1
   videoAula2Url: text("video_aula2_url"), // URL do vídeo 2
   videoAula2Source: videoSourceEnum("video_aula2_source"), // Fonte do vídeo 2
+  videoAula3Url: text("video_aula3_url"), // URL do vídeo 3
+  videoAula3Source: videoSourceEnum("video_aula3_source"), // Fonte do vídeo 3
+  videoAula4Url: text("video_aula4_url"), // URL do vídeo 4
+  videoAula4Source: videoSourceEnum("video_aula4_source"), // Fonte do vídeo 4
+  videoAula5Url: text("video_aula5_url"), // URL do vídeo 5
+  videoAula5Source: videoSourceEnum("video_aula5_source"), // Fonte do vídeo 5
+  videoAula6Url: text("video_aula6_url"), // URL do vídeo 6
+  videoAula6Source: videoSourceEnum("video_aula6_source"), // Fonte do vídeo 6
+  videoAula7Url: text("video_aula7_url"), // URL do vídeo 7
+  videoAula7Source: videoSourceEnum("video_aula7_source"), // Fonte do vídeo 7
+  videoAula8Url: text("video_aula8_url"), // URL do vídeo 8
+  videoAula8Source: videoSourceEnum("video_aula8_source"), // Fonte do vídeo 8
+  videoAula9Url: text("video_aula9_url"), // URL do vídeo 9
+  videoAula9Source: videoSourceEnum("video_aula9_source"), // Fonte do vídeo 9
+  videoAula10Url: text("video_aula10_url"), // URL do vídeo 10
+  videoAula10Source: videoSourceEnum("video_aula10_source"), // Fonte do vídeo 10
   apostilaPdfUrl: text("apostila_pdf_url"), // URL da apostila PDF
   ebookInterativoUrl: text("ebook_interativo_url"), // URL do e-book interativo
   
