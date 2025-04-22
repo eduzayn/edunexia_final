@@ -126,18 +126,18 @@ export const StudentSidebar: React.FC<StudentSidebarProps> = ({
           <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
             {user?.profileImage ? (
               <Avatar className="h-16 w-16 border border-gray-200">
-                <AvatarImage src={user.profileImage} alt={user?.name || "Usuário"} />
+                <AvatarImage src={user.profileImage} alt={user?.fullName || "Usuário"} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                  {(user?.name || "U").substring(0, 1).toUpperCase()}
+                  {(user?.fullName || "U").substring(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             ) : (
               <div className="text-2xl font-bold text-primary">
-                {(user?.name || "ES").substring(0, 2).toUpperCase()}
+                {(user?.fullName || "ES").substring(0, 2).toUpperCase()}
               </div>
             )}
           </div>
-          <h3 className="font-semibold text-gray-800">{user?.name || "Estudante"}</h3>
+          <h3 className="font-semibold text-gray-800">{user?.fullName || "Estudante"}</h3>
           <span className="text-xs text-gray-500">Portal do Aluno</span>
         </div>
       </div>
