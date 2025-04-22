@@ -218,6 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       console.log("Logout bem-sucedido - onSuccess");
       
+      // Remover o token do localStorage
+      localStorage.removeItem('auth_token');
+      
       // Definir explicitamente o usuário como null no cache
       queryClient.setQueryData(["/api-json/user"], null);
       

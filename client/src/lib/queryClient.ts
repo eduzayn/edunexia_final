@@ -37,7 +37,7 @@ export async function apiRequest<T = any>(
       ...customHeaders
     },
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "same-origin", // Não mais usar cookies
+    credentials: "omit", // Não usar cookies
   });
 
   // Log para debug
