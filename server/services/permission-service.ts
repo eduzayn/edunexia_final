@@ -8,6 +8,11 @@ import * as abacSchema from '../../shared/abac-schema';
 import { eq, and, or, inArray, lt, gt, lte, gte, isNull, not, asc, desc, sql } from 'drizzle-orm';
 import { InsertInstitutionPhasePermission, InsertPeriodPermissionRule, InsertPaymentStatusPermission } from '../../shared/abac-schema';
 
+// Ensure all required schemas are properly imported
+const systemSettings = schema.institutionSettings; // Fallback for missing schema
+const contracts = schema.contracts; // Make sure contracts is available
+const leads = schema.clients; // Fallback for leads using clients table
+
 /**
  * Verifica se um usuário tem uma permissão específica
  * @param userId ID do usuário

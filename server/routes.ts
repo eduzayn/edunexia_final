@@ -25,8 +25,6 @@ import { z } from "zod";
 import { registerEnrollmentRoutes } from "./routes/enrollments";
 import integrationsRoutes from "./routes/integrations";
 import poloRoutes from "./routes/polo-routes";
-import poloEnrollmentsRoutes from "./routes/polo-enrollments";
-import enrollmentIntegrationRouter from "./routes/enrollment-integration-routes";
 import { aiServicesRouter } from "./routes/ai-services";
 import { createPaymentGateway } from "./services/payment-gateways";
 import certificatesRoutes from "./routes/certificates";
@@ -55,6 +53,9 @@ import { sql } from "drizzle-orm";
 import studentChargesRoutes from "./routes/student-charges-routes";
 import ebooksRoutes from "./routes/ebooks";
 import advancedEbooksRoutes from "./routes/advanced-ebooks";
+import poloEnrollmentsRouter from './routes/polo-enrollments'; // Added import
+import enrollmentIntegrationRouter from './routes/enrollment-integration-routes';
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -86,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/public/subscription-plans", subscriptionPlansRoutes);
 
   // Registro das rotas de matrículas do Portal do Polo
-  app.use("/api/polo", poloEnrollmentsRoutes);
+  app.use("/api/polo", poloEnrollmentsRouter); // Using the imported router
 
   // Registro das rotas do sistema de certificação
   app.use("/api/admin/certificates", certificatesRoutes);
@@ -856,7 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Impedir a exclusão do usuário admin principal
       if (id === 5) {
-        return res.status(403).json({ message: "Não é permitido excluir o usuário admin principal" });
+        return        return res.status(403).json({ message: "Não é permitido excluir o usuário admin principal" });
       }
 
       // Verificar se o usuário existe
@@ -946,20 +947,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erro ao verificar completude da disciplina" });
     }
   });
-  
+
   // Obter vídeos de uma disciplina
   app.get("/api/admin/discipline-videos/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const discipline = await storage.getDiscipline(id);
-      
+
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-      
+
       // Mapear vídeos a partir dos campos da disciplina
       const videos = [];
-      
+
       if (discipline.videoAula1Url) {
         videos.push({
           id: 1,
@@ -971,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           duration: "45:00" // Duração padrão
         });
       }
-      
+
       if (discipline.videoAula2Url) {
         videos.push({
           id: 2,
@@ -983,24 +984,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           duration: "45:00" // Duração padrão
         });
       }
-      
+
       res.json(videos);
     } catch (error) {
       console.error("Error fetching discipline videos:", error);
       res.status(500).json({ message: "Erro ao buscar vídeos da disciplina" });
     }
   });
-  
+
   // Adicionar vídeo a uma disciplina
   app.post("/api/admin/discipline-videos/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const discipline = await storage.getDiscipline(id);
-      
+
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-      
+
       // Validar dados do vídeo
       const videoData = z.object({
         title: z.string().min(3),
@@ -1009,11 +1010,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: z.string().url(),
         duration: z.string().regex(/^\d+:\d+$/)
       }).parse(req.body);
-      
+
       // Verificar se já existem vídeos
       const videos = [];
       let updateData = {};
-      
+
       if (discipline.videoAula1Url) {
         videos.push({
           id: 1,
@@ -1021,7 +1022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           url: discipline.videoAula1Url
         });
       }
-      
+
       if (discipline.videoAula2Url) {
         videos.push({
           id: 2,
@@ -1029,12 +1030,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           url: discipline.videoAula2Url
         });
       }
-      
+
       // Adicionar novo vídeo ao primeiro slot disponível
       if (videos.length >= 2) {
         return res.status(400).json({ message: "Esta disciplina já possui 2 vídeos. Remova um existente para adicionar um novo." });
       }
-      
+
       if (!discipline.videoAula1Url) {
         updateData = {
           videoAula1Url: videoData.url,
@@ -1046,10 +1047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           videoAula2Source: videoData.videoSource
         };
       }
-      
+
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(id, updateData);
-      
+
       // Criar objeto de resposta
       const newVideoId = !discipline.videoAula1Url ? 1 : 2;
       const newVideo = {
@@ -1061,7 +1062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: videoData.url,
         duration: videoData.duration
       };
-      
+
       res.status(201).json(newVideo);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1074,28 +1075,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erro ao adicionar vídeo à disciplina" });
     }
   });
-  
+
   // Atualizar um vídeo de disciplina
   app.put("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
     try {
       const disciplineId = parseInt(req.params.disciplineId);
       const videoId = parseInt(req.params.videoId);
-      
+
       if (videoId !== 1 && videoId !== 2) {
         return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
       }
-      
+
       const discipline = await storage.getDiscipline(disciplineId);
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-      
+
       // Verificar se o vídeo existe
       if ((videoId === 1 && !discipline.videoAula1Url) || 
           (videoId === 2 && !discipline.videoAula2Url)) {
         return res.status(404).json({ message: "Vídeo não encontrado" });
       }
-      
+
       // Validar dados
       const videoData = z.object({
         title: z.string().min(3),
@@ -1104,10 +1105,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: z.string().url(),
         duration: z.string().regex(/^\d+:\d+$/)
       }).parse(req.body);
-      
+
       // Atualizar dados
       let updateData = {};
-      
+
       if (videoId === 1) {
         updateData = {
           videoAula1Url: videoData.url,
@@ -1119,10 +1120,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           videoAula2Source: videoData.videoSource
         };
       }
-      
+
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
-      
+
       // Objeto de resposta
       const updatedVideo = {
         id: videoId,
@@ -1133,7 +1134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: videoData.url,
         duration: videoData.duration
       };
-      
+
       res.json(updatedVideo);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1146,31 +1147,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erro ao atualizar vídeo da disciplina" });
     }
   });
-  
+
   // Excluir um vídeo de disciplina
   app.delete("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
     try {
       const disciplineId = parseInt(req.params.disciplineId);
       const videoId = parseInt(req.params.videoId);
-      
+
       if (videoId !== 1 && videoId !== 2) {
         return res.status(400).json({ message: "ID de vídeo inválido. Deve ser 1 ou 2." });
       }
-      
+
       const discipline = await storage.getDiscipline(disciplineId);
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-      
+
       // Verificar se o vídeo existe
       if ((videoId === 1 && !discipline.videoAula1Url) || 
           (videoId === 2 && !discipline.videoAula2Url)) {
         return res.status(404).json({ message: "Vídeo não encontrado" });
       }
-      
+
       // Atualizar dados
       let updateData = {};
-      
+
       if (videoId === 1) {
         updateData = {
           videoAula1Url: null,
@@ -1182,10 +1183,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           videoAula2Source: null
         };
       }
-      
+
       // Atualizar a disciplina
       const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting discipline video:", error);
@@ -3175,10 +3176,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas avançadas para e-books com recursos aprimorados de IA
   app.use("/api/advanced-ebooks", advancedEbooksRoutes);
 
-  // Use the routers imported at the top
-  app.use('/api/polo', poloEnrollmentsRoutes);
+  // Import routers using ESM syntax
+  app.use('/api/polo', poloEnrollmentsRouter);
 
-  // Use the enrollment integration router
+  // Rotas de integração de matrículas
   app.use('/api', enrollmentIntegrationRouter);
 
   const httpServer = createServer(app);

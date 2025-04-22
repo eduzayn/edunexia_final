@@ -1374,7 +1374,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   // ==================== Gateway de pagamento ====================
-  async createPayment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}> {
+  async createEnrollmentPayment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}> {
     const { createPaymentGateway } = await import('./services/payment-gateways');
     
     try {

@@ -427,3 +427,56 @@ router.post("/enrollments/:id/send-payment-link", async (req, res) => {
 });
 
 export default router;
+/**
+ * Rotas para gerenciamento de matrículas pelo polo
+ */
+
+import express from 'express';
+import { requireAuth } from '../middleware/auth';
+import { requirePermission } from '../middleware/permission-middleware';
+import { storage } from '../storage';
+
+const router = express.Router();
+
+// Rota para listar matrículas do polo
+router.get('/', requireAuth, requirePermission('matricula', 'listar'), async (req, res) => {
+  try {
+    const poloId = req.user?.poloId;
+    
+    if (!poloId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Usuário não está associado a um polo'
+      });
+    }
+    
+    const enrollments = await storage.getEnrollments(
+      req.query.search as string,
+      req.query.status as string,
+      undefined, // studentId
+      undefined, // courseId
+      poloId,
+      undefined, // institutionId
+      undefined, // partnerId
+      undefined, // startDate
+      undefined, // endDate
+      undefined, // paymentGateway
+      parseInt(req.query.limit as string) || 50,
+      parseInt(req.query.offset as string) || 0
+    );
+    
+    res.json({
+      success: true,
+      data: enrollments
+    });
+  } catch (error) {
+    console.error('Error fetching polo enrollments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao buscar matrículas do polo',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
+export default router;
