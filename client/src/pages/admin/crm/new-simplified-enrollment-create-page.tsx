@@ -105,12 +105,18 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   } | null>(null);
 
   // Buscar cursos (usando API JSON direta para contornar o middleware Vite)
-  const { data: coursesResponse } = useQuery({
+  const { data: coursesResponse, error: coursesError } = useQuery({
     queryKey: ['/api-json/courses'],
     queryFn: async () => {
+      console.log("Buscando cursos disponíveis...");
       const response = await fetch('/api-json/courses');
-      if (!response.ok) throw new Error('Falha ao carregar cursos');
-      return response.json();
+      if (!response.ok) {
+        console.error("Erro ao buscar cursos:", response.status, response.statusText);
+        throw new Error('Falha ao carregar cursos');
+      }
+      const data = await response.json();
+      console.log("Cursos carregados:", data);
+      return data;
     },
   });
 
@@ -134,7 +140,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     },
   });
 
-  const courses = coursesResponse?.data || [];
+  // Extrair os cursos da resposta e logar para depuração
+  console.log("Resposta completa dos cursos:", coursesResponse);
+  const courses = Array.isArray(coursesResponse) ? coursesResponse : coursesResponse?.data || [];
+  console.log("Cursos processados para o select:", courses);
   const institutions = institutionsResponse?.data || [];
   const polos = polosResponse?.data || [];
 
