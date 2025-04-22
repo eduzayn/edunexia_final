@@ -8,7 +8,8 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
-import { setupAuth } from './auth';
+// import { setupAuth } from './auth';
+import { setupEmergencyAuth } from './dev-auth';
 import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
@@ -24,8 +25,9 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
 
-  // Configurar autenticação
-  setupAuth(app);
+  // Configurar autenticação de emergência em vez da autenticação normal
+  // setupAuth(app);
+  setupEmergencyAuth(app);
 
   // Middleware para verificar autenticação
   // Requer autenticação real do banco de dados
