@@ -329,12 +329,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         // Submódulo CRM
         { 
           name: "Clientes", 
-          icon: <BuildingStoreIcon />, 
-          href: "/admin/crm/clients",
-          active: currentPath === "/admin/crm/clients" || (currentPath && currentPath.includes("/admin/crm/clients/"))
-        },
-        { 
-          name: "Clientes Asaas", 
           icon: <CreditCardIcon />, 
           href: "/admin/crm/asaas-clients",
           active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
@@ -377,12 +371,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       // Submódulo CRM
       { 
         name: "Clientes", 
-        icon: <BuildingStoreIcon />, 
-        href: "/admin/crm/clients",
-        active: currentPath === "/admin/crm/clients" || (currentPath && currentPath.includes("/admin/crm/clients/"))
-      },
-      { 
-        name: "Clientes Asaas", 
         icon: <CreditCardIcon />, 
         href: "/admin/crm/asaas-clients",
         active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))

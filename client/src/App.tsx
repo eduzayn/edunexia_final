@@ -45,9 +45,6 @@ import CertificationSignersPage from "@/pages/admin/certification/signers-page";
 import LeadsV2Page from "@/pages/admin/crm/leads-v2-page";
 import NewLeadV2Page from "@/pages/admin/crm/new-lead-v2-page";
 import LeadDetailV2Page from "@/pages/admin/crm/lead-detail-v2-page";
-import ClientsPage from "@/pages/admin/crm/clients-page";
-import NewClientPage from "@/pages/admin/crm/new-client-page";
-import ClientDetailsPage from "@/pages/admin/crm/client-details-page";
 import AsaasClientsPage from "@/pages/admin/crm/asaas-clients-page";
 import ContactsPage from "@/pages/admin/crm/contacts-page";
 import NewContactPage from "@/pages/admin/crm/new-contact-page";
@@ -455,20 +452,8 @@ function Router() {
         {() => user?.portalType === "admin" ? <LeadDetailV2Page /> : <Redirect to="/admin" />}
       </Route>
       
-      <Route path="/admin/crm/clients">
-        {() => user?.portalType === "admin" ? <ClientsPage /> : <Redirect to="/admin" />}
-      </Route>
-      
       <Route path="/admin/crm/asaas-clients">
         {() => user?.portalType === "admin" ? <AsaasClientsPage /> : <Redirect to="/admin" />}
-      </Route>
-      
-      <Route path="/admin/crm/clients/new">
-        {() => user?.portalType === "admin" ? <NewClientPage /> : <Redirect to="/admin" />}
-      </Route>
-      
-      <Route path="/admin/crm/clients/:id">
-        {() => user?.portalType === "admin" ? <ClientDetailsPage /> : <Redirect to="/admin" />}
       </Route>
       
       <Route path="/admin/crm/contacts">
