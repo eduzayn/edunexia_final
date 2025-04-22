@@ -375,12 +375,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         href: "/admin/crm/asaas-clients",
         active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
       },
-      { 
-        name: "Contatos", 
-        icon: <ContactIcon />, 
-        href: "/admin/crm/contacts",
-        active: currentPath === "/admin/crm/contacts" || (currentPath && currentPath.includes("/admin/crm/contacts/"))
-      },
       // Submódulo Financeiro
       { 
         name: "Cursos e Serviços", 

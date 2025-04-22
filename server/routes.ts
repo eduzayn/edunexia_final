@@ -2366,158 +2366,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Atualizar um cliente
   app.put("/api/admin/crm/clients/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const existingClient = await storage.getClient(id);
-
-      if (!existingClient) {
-        return res.status(404).json({ message: "Cliente não encontrado" });
-      }
-
-      // Validar os dados da atualização
-      const updateData = insertClientSchema.partial().parse(req.body);
-
-      // Verificar se o CPF/CNPJ está sendo alterado e se precisamos verificar no Asaas
-      if (updateData.cpfCnpj && updateData.cpfCnpj !== existingClient.cpfCnpj && !existingClient.asaasId) {
-        try {
-          const { AsaasService } = await import('./services/asaas-service');
-          const existingAsaasCustomer = await AsaasService.getCustomerByCpfCnpj(updateData.cpfCnpj);
-
-          if (existingAsaasCustomer) {
-            console.log(`Cliente já existe no Asaas com o CPF/CNPJ ${updateData.cpfCnpj}. ID Asaas: ${existingAsaasCustomer.id}`);
-
-            // Incluir o ID do Asaas nos dados da atualização
-            updateData.asaasId = existingAsaasCustomer.id;
-          }
-        } catch (asaasError) {
-          console.warn('Erro ao verificar cliente no Asaas:', asaasError);
-          // Continuamos mesmo se não conseguirmos verificar o cliente no Asaas
-        }
-      }
-
-      const updatedClient = await storage.updateClient(id, updateData);
-      res.json(updatedClient);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Dados inválidos", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error updating client:", error);
-      res.status(500).json({ message: "Erro ao atualizar cliente" });
-    }
+    console.log(`Redirecionando rota legada de atualização de cliente ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Excluir um cliente
   app.delete("/api/admin/crm/clients/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteClient(id);
-
-      if (!success) {
-        return res.status(404).json({ message: "Cliente não encontrado ou não pode ser excluído" });
-      }
-
-      res.status(204).end();
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      res.status(500).json({ message: "Erro ao excluir cliente" });
-    }
+    console.log(`Redirecionamento de rota legada de exclusão de cliente ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
-  // ================== Rotas para CRM - Contatos ==================
+  // ================== Rotas para CRM - Contatos (Redirecionadas para Asaas) ==================
   // Listar contatos de um cliente
   app.get("/api/admin/crm/clients/:clientId/contacts", requireAdmin, async (req, res) => {
-    try {
-      const clientId = parseInt(req.params.clientId);
-      const contacts = await storage.getContactsByClient(clientId);
-      res.json(contacts);
-    } catch (error) {
-      console.error("Error fetching client contacts:", error);
-      res.status(500).json({ message: "Erro ao buscar contatos do cliente" });
-    }
+    console.log(`Redirecionando rota legada de contatos do cliente ${req.params.clientId} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Obter um contato específico
   app.get("/api/admin/crm/contacts/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const contact = await storage.getContact(id);
-
-      if (!contact) {
-        return res.status(404).json({ message: "Contato não encontrado" });
-      }
-
-      res.json(contact);
-    } catch (error) {
-      console.error("Error fetching contact:", error);
-      res.status(500).json({ message: "Erro ao buscar contato" });
-    }
+    console.log(`Redirecionando rota legada de detalhe de contato ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Criar um novo contato
   app.post("/api/admin/crm/contacts", requireAdmin, async (req, res) => {
-    try {
-      // Validar os dados do contato
-      const contactData = insertContactSchema.parse(req.body);
-
-      const contact = await storage.createContact(contactData);
-      res.status(201).json(contact);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Dados inválidos", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error creating contact:", error);
-      res.status(500).json({ message: "Erro ao criar contato" });
-    }
+    console.log("Redirecionando rota legada de criação de contato para Asaas Clients API");
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Atualizar um contato
   app.put("/api/admin/crm/contacts/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const existingContact = await storage.getContact(id);
-
-      if (!existingContact) {
-        return res.status(404).json({ message: "Contato não encontrado" });
-      }
-
-      // Validar os dados da atualização
-      const updateData = insertContactSchema.partial().parse(req.body);
-
-      const updatedContact = await storage.updateContact(id, updateData);
-      res.json(updatedContact);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Dados inválidos", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error updating contact:", error);
-      res.status(500).json({ message: "Erro ao atualizar contato" });
-    }
+    console.log(`Redirecionando rota legada de atualização de contato ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // Excluir um contato
   app.delete("/api/admin/crm/contacts/:id", requireAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteContact(id);
-
-      if (!success) {
-        return res.status(404).json({ message: "Contato não encontrado ou não pode ser excluído" });
-      }
-
-      res.status(204).end();
-    } catch (error) {
-      console.error("Error deleting contact:", error);
-      res.status(500).json({ message: "Erro ao excluir contato" });
-    }
+    console.log(`Redirecionando rota legada de exclusão de contato ${req.params.id} para Asaas Clients API`);
+    return res.status(410).json({
+      message: "Esta API foi migrada. Utilize a página de Clientes Asaas.",
+      redirectTo: "/admin/crm/asaas-clients"
+    });
   });
 
   // ================== Rotas para Finanças - Produtos/Serviços ==================
