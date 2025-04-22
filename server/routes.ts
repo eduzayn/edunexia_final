@@ -8,9 +8,9 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
-// import { setupAuth } from './auth';
+import { setupAuth } from './auth';
 // import { setupEmergencyAuth } from './dev-auth';
-import { setupSimpleAuth } from './dev-simple-auth';
+// import { setupSimpleAuth } from './dev-simple-auth';
 import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
@@ -26,75 +26,45 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
 
-  // Configurar autenticação simplificada em vez da autenticação normal
-  // setupAuth(app);
-  // setupEmergencyAuth(app);
-  setupSimpleAuth(app);
+  // Configurar autenticação normal
+  setupAuth(app);
 
-  // ======= MODO DE EMERGÊNCIA =======
-  // Estes middlewares são simplificados para situações de emergência
-  // e permitem acesso sem verificação rigorosa
-  
-  // Middleware para verificar autenticação - MODO DE EMERGÊNCIA
+  // Middleware para verificar autenticação
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔥 MODO DE EMERGÊNCIA: Permitindo acesso aos recursos protegidos');
-    
-    // Permitir acesso sem verificar autenticação
-    if (!req.session || !req.session.user) {
-      // MODO DE EMERGÊNCIA: Simular usuário admin para todas as requisições
-      req.session = req.session || {} as any;
-      req.session.user = { 
-        id: 18, 
-        username: 'admin', 
-        portalType: 'admin',
-        role: 'admin'
-      };
-      req.session.authenticated = true;
-      req.user = req.session.user;
+    // Verificação de autenticação padrão
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
-    
     next();
   };
 
-  // Middleware para verificar permissão de administrador - MODO DE EMERGÊNCIA
+  // Middleware para verificar permissão de administrador
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔥 MODO DE EMERGÊNCIA: Permitindo acesso admin aos recursos protegidos');
-    
-    // Permitir acesso sem verificar autenticação
-    if (!req.session || !req.session.user) {
-      // MODO DE EMERGÊNCIA: Simular usuário admin para todas as requisições
-      req.session = req.session || {} as any;
-      req.session.user = { 
-        id: 18, 
-        username: 'admin', 
-        portalType: 'admin',
-        role: 'admin'
-      };
-      req.session.authenticated = true;
-      req.user = req.session.user;
+    // Verificação de autenticação padrão
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
-    
+
+    const user = req.user as any;
+    if (user.role !== 'admin' && user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'Você não tem permissão para acessar este recurso.' });
+    }
+
     next();
   };
 
-  // Middleware para verificar permissão de estudante - MODO DE EMERGÊNCIA 
+  // Middleware para verificar permissão de estudante
   const requireStudent = (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔥 MODO DE EMERGÊNCIA: Permitindo acesso estudante aos recursos protegidos');
-    
-    // Permitir acesso sem verificar autenticação
-    if (!req.session || !req.session.user) {
-      // MODO DE EMERGÊNCIA: Simular usuário estudante para todas as requisições
-      req.session = req.session || {} as any;
-      req.session.user = { 
-        id: 99, 
-        username: 'estudante', 
-        portalType: 'student',
-        role: 'student'
-      };
-      req.session.authenticated = true;
-      req.user = req.session.user;
+    // Verificação de autenticação padrão
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
-    
+
+    const user = req.user as any;
+    if (user.role !== 'student') {
+      return res.status(403).json({ message: 'Este recurso é exclusivo para estudantes.' });
+    }
+
     next();
   };
 

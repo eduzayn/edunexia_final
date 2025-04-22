@@ -2,11 +2,9 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
-import { requireAuth } from "./middleware/auth";
+import { comparePasswords, hashPassword } from "./auth-utils";
 
 declare global {
   namespace Express {
@@ -14,57 +12,37 @@ declare global {
   }
 }
 
-// Exportação do middleware centralizado para verificar se o usuário está autenticado
-export { requireAuth };
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-import bcrypt from 'bcrypt';
-
-async function comparePasswords(supplied: string, stored: string) {
-  try {
-    // Verificar se é uma senha no formato bcrypt
-    if (stored.startsWith('$2b$') || stored.startsWith('$2a$')) {
-      console.log('Detectado formato bcrypt, usando bcrypt.compare');
-      return bcrypt.compare(supplied, stored);
-    }
-    
-    // Formato antigo com hash.salt
-    if (stored.includes('.')) {
-      console.log('Detectado formato hash.salt, usando comparação manual');
-      const [hashed, salt] = stored.split(".");
-      if (!hashed || !salt) {
-        console.log('Hash ou salt não encontrados na senha armazenada');
-        return false;
-      }
-      
-      const hashedBuf = Buffer.from(hashed, "hex");
-      const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-      
-      // Verificar se os buffers têm o mesmo tamanho
-      if (hashedBuf.length !== suppliedBuf.length) {
-        console.log(`Tamanhos diferentes: hash=${hashedBuf.length}, supplied=${suppliedBuf.length}`);
-        return false;
-      }
-      
-      return timingSafeEqual(hashedBuf, suppliedBuf);
-    }
-    
-    console.log('Formato de senha não reconhecido');
-    return false;
-  } catch (error) {
-    console.error('Erro ao comparar senhas:', error);
-    return false;
+/**
+ * Middleware para verificar se o usuário está autenticado
+ */
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
   }
-}
+  next();
+};
 
+/**
+ * Middleware para verificar se o usuário tem permissão de administrador
+ */
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
+  }
+  
+  const user = req.user as SelectUser;
+  if (user.portalType !== 'admin') {
+    return res.status(403).json({ message: 'Você não tem permissão para acessar este recurso.' });
+  }
+  
+  next();
+};
+
+/**
+ * Configura a autenticação para o aplicativo Express
+ */
 export function setupAuth(app: Express) {
+  // Configurações da sessão
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "edunexia-secret-key",
     resave: false,
@@ -73,44 +51,63 @@ export function setupAuth(app: Express) {
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
-      sameSite: 'lax', // Isso permitirá que o cookie seja enviado quando o usuário clicar em um link para o site
+      sameSite: 'lax',
       path: '/',
+      secure: false // Definir como true em produção
     }
   };
 
+  // Configurar a sessão e o passport
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Configurar a estratégia local do passport
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      try {
+        // Buscar o usuário pelo nome de usuário
+        const user = await storage.getUserByUsername(username);
+        
+        // Verificar se o usuário existe e se a senha está correta
+        if (!user || !(await comparePasswords(password, user.password))) {
+          console.log(`Login falhou para ${username}: usuário não encontrado ou senha incorreta`);
+          return done(null, false);
+        }
+        
+        console.log(`Login bem-sucedido para ${username}`);
         return done(null, user);
+      } catch (error) {
+        console.error(`Erro durante autenticação para ${username}:`, error);
+        return done(error);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  // Serializar e deserializar o usuário para a sessão
+  passport.serializeUser((user, done) => {
+    console.log(`Serializando usuário: ${user.id}`);
+    done(null, user.id);
+  });
+  
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
       if (!user) {
         console.log(`Usuário com id ${id} não encontrado. Invalidando sessão.`);
-        // Em vez de um erro, retorna null sem erro para invalidar a sessão silenciosamente
         return done(null, null);
       }
+      
+      console.log(`Desserializando usuário: ${user.id} (${user.username})`);
       return done(null, user);
     } catch (error) {
-      console.error("Error deserializing user:", error);
-      // Em caso de erro, também invalidamos a sessão silenciosamente
+      console.error("Erro ao desserializar usuário:", error);
       return done(null, null);
     }
   });
 
+  // Rota para registro de usuário
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -125,14 +122,14 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) return next(err);
-        res.status(201).json(user);
+        
+        // Não retornar a senha
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       res.status(400).json({ message: errorMessage });
     }
   });
-
-  // Observação: As rotas de autenticação agora estão definidas em server/routes/auth-route.ts
-  // e são registradas em server/routes.ts
 }
