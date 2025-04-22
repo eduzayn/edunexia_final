@@ -287,6 +287,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Asaas CRM
   app.post('/api/v2/crm/asaas-customers', requireAuth, createAsaasCustomer);
   app.get('/api/v2/crm/search-customer-by-cpf', requireAuth, searchAsaasCustomerByCpfCnpj);
+  
+  // Rota para buscar clientes do Asaas por nome (para o componente de autocompletar)
+  app.get('/api-json/crm/asaas-customers-search', async (req, res) => {
+    try {
+      const { name } = req.query;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Nome de busca é obrigatório'
+        });
+      }
+      
+      const customers = await asaasCustomersService.searchCustomersByName(name);
+      
+      res.json({
+        success: true,
+        data: customers
+      });
+    } catch (error) {
+      console.error('[API] Erro ao buscar clientes do Asaas por nome:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar clientes',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Matrículas Simplificadas
   app.post('/api/v2/simplified-enrollments', requireAuth, createSimplifiedEnrollment);

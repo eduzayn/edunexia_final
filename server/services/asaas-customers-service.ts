@@ -169,11 +169,39 @@ export async function deleteCustomer(id: string) {
   }
 }
 
+/**
+ * Busca clientes pelo nome
+ * @param name Nome ou parte do nome para buscar
+ * @returns Lista de clientes que correspondem ao nome
+ */
+export async function searchCustomersByName(name: string) {
+  try {
+    logger.info(`[AsaasCustomersService] Buscando clientes pelo nome: ${name}`);
+    
+    // Parâmetros de busca para a API do Asaas
+    const params = {
+      name,
+      limit: 10 // Limitar a 10 resultados para o componente de autocompletar
+    };
+    
+    const response = await asaasApi.get('/customers', { params });
+    
+    // Retorna os dados dos clientes encontrados
+    logger.info(`[AsaasCustomersService] Clientes encontrados: ${response.data.data.length}`);
+    return response.data.data;
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Erro desconhecido';
+    logger.error(`[AsaasCustomersService] Erro ao buscar clientes pelo nome ${name}: ${errorMessage}`);
+    throw new Error(`Erro ao buscar clientes pelo nome: ${errorMessage}`);
+  }
+}
+
 export default {
   getAllCustomers,
   getCustomerById,
   getCustomerByCpfCnpj,
   createCustomer,
   updateCustomer,
-  deleteCustomer
+  deleteCustomer,
+  searchCustomersByName
 };
