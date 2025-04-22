@@ -594,11 +594,11 @@ export default function DisciplineContentPage() {
     if (ebook) progress++; // E-book
     
     // Simulado com pelo menos 30 questões
-    const simulado = assessments?.find(a => a.type === "simulado");
+    const simulado = assessments?.find((a: any) => a.type === "simulado");
     if (simulado && (simulado.questionCount || 0) >= 30) progress++;
     
     // Avaliação final com pelo menos 10 questões
-    const avaliacao = assessments?.find(a => a.type === "avaliacao_final");
+    const avaliacao = assessments?.find((a: any) => a.type === "avaliacao_final");
     if (avaliacao && (avaliacao.questionCount || 0) >= 10) progress++;
     
     setCompletionProgress(Math.floor((progress / totalItems) * 100));
@@ -861,7 +861,7 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     <div className="space-y-2">
                       {(() => {
-                        const simulado = assessments?.find(a => a.type === "simulado");
+                        const simulado = assessments?.find((a: any) => a.type === "simulado");
                         const questionCount = simulado?.questionCount || 0;
                         const progress = Math.min(questionCount / 30 * 100, 100);
                         
@@ -885,7 +885,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some(a => a.type === "simulado") 
+                      {assessments?.some((a: any) => a.type === "simulado") 
                         ? "Gerenciar Simulado" 
                         : "Adicionar Simulado"}
                     </Button>
@@ -903,7 +903,7 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     <div className="space-y-2">
                       {(() => {
-                        const avaliacao = assessments?.find(a => a.type === "avaliacao_final");
+                        const avaliacao = assessments?.find((a: any) => a.type === "avaliacao_final");
                         const questionCount = avaliacao?.questionCount || 0;
                         const progress = Math.min(questionCount / 10 * 100, 100);
                         
@@ -927,7 +927,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some(a => a.type === "avaliacao_final") 
+                      {assessments?.some((a: any) => a.type === "avaliacao_final") 
                         ? "Gerenciar Avaliação" 
                         : "Adicionar Avaliação"}
                     </Button>
