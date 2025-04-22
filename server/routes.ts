@@ -26,6 +26,7 @@ import { registerEnrollmentRoutes } from "./routes/enrollments";
 import integrationsRoutes from "./routes/integrations";
 import poloRoutes from "./routes/polo-routes";
 import poloEnrollmentsRoutes from "./routes/polo-enrollments";
+import enrollmentIntegrationRouter from "./routes/enrollment-integration-routes";
 import { aiServicesRouter } from "./routes/ai-services";
 import { createPaymentGateway } from "./services/payment-gateways";
 import certificatesRoutes from "./routes/certificates";
@@ -3174,12 +3175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas avançadas para e-books com recursos aprimorados de IA
   app.use("/api/advanced-ebooks", advancedEbooksRoutes);
 
-  // Import routers using ESM syntax
-  import poloEnrollmentsRouter from './routes/polo-enrollments';
-  app.use('/api/polo', poloEnrollmentsRouter);
+  // Use the routers imported at the top
+  app.use('/api/polo', poloEnrollmentsRoutes);
 
-  // Rotas de integração de matrículas
-  import enrollmentIntegrationRouter from './routes/enrollment-integration-routes';
+  // Use the enrollment integration router
   app.use('/api', enrollmentIntegrationRouter);
 
   const httpServer = createServer(app);
