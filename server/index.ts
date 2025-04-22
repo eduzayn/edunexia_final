@@ -11,7 +11,7 @@ const app = express();
 
 // Configurar CORS para permitir requisições do cliente
 app.use(cors({
-  origin: ['http://localhost:5000', 'https://localhost:5000', 'http://0.0.0.0:5000'],
+  origin: true, // Permite qualquer origem, mas mantém credenciais
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true // Importante: permite envio de cookies

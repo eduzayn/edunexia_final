@@ -69,8 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Simular sessão com cookie
       res.cookie('auth_token', token, { 
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        httpOnly: false, // Permitir acesso via JavaScript
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
+        path: '/',
+        sameSite: 'lax'
       });
       
       console.log(`Login bem-sucedido para ${username}`);
@@ -104,8 +106,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Simular sessão com cookie
         res.cookie('auth_token', token, { 
-          httpOnly: true,
-          maxAge: 24 * 60 * 60 * 1000 // 24 horas
+          httpOnly: false, // Permitir acesso via JavaScript
+          maxAge: 24 * 60 * 60 * 1000, // 24 horas
+          path: '/',
+          sameSite: 'lax'
         });
         
         console.log(`Login via DB bem-sucedido para ${username}`);
@@ -135,8 +139,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Simular sessão com cookie
           res.cookie('auth_token', token, { 
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000 // 24 horas
+            httpOnly: false, // Permitir acesso via JavaScript
+            maxAge: 24 * 60 * 60 * 1000, // 24 horas
+            path: '/',
+            sameSite: 'lax'
           });
           
           console.log(`Login de emergência para ${username}`);
@@ -162,7 +168,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       delete activeUsers[token];
     }
     
-    res.clearCookie('auth_token');
+    res.clearCookie('auth_token', {
+      path: '/',
+      sameSite: 'lax'
+    });
     res.status(200).json({
       success: true,
       message: "Logout realizado com sucesso"
