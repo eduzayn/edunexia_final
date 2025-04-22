@@ -32,8 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
 import { createSimplifiedEnrollment } from '../../../services/new-simplified-enrollment-service';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Esquema de validação
 const formSchema = z.object({
@@ -47,7 +50,20 @@ const formSchema = z.object({
       const cpfNumbers = cpf.replace(/\D/g, '');
       return cpfNumbers.length === 11;
     }, { message: 'CPF inválido' }),
-  studentPhone: z.string().optional(),
+  studentPhone: z.string()
+    .min(10, { message: 'Telefone deve ter pelo menos 10 dígitos' })
+    .refine((phone) => {
+      // Remove caracteres não numéricos
+      const phoneNumbers = phone.replace(/\D/g, '');
+      return phoneNumbers.length >= 10 && phoneNumbers.length <= 11;
+    }, { message: 'Telefone inválido' }),
+  studentAddress: z.string().optional(),
+  studentAddressNumber: z.string().optional(),
+  studentAddressComplement: z.string().optional(),
+  studentNeighborhood: z.string().optional(),
+  studentCity: z.string().optional(),
+  studentState: z.string().optional(),
+  studentPostalCode: z.string().optional(),
   courseId: z.string().min(1, { message: 'Selecione um curso' }).transform(Number),
   institutionId: z.string().min(1, { message: 'Selecione uma instituição' }).transform(Number),
   amount: z.string()
@@ -55,6 +71,18 @@ const formSchema = z.object({
     .transform((val) => parseFloat(val.replace(',', '.'))),
   poloId: z.string().optional().transform((val) => val ? Number(val) : null),
   sourceChannel: z.string().optional(),
+  billingType: z.enum(['UNDEFINED', 'BOLETO', 'CREDIT_CARD', 'PIX'], { 
+    message: 'Selecione uma forma de pagamento válida' 
+  }).default('UNDEFINED'),
+  maxInstallmentCount: z.string()
+    .transform((val) => val ? parseInt(val) : 1)
+    .optional(),
+  dueDateLimitDays: z.string()
+    .transform((val) => val ? parseInt(val) : 7)
+    .optional(),
+  allowInstallments: z.boolean().default(true),
+  interestRate: z.string().optional(),
+  fine: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,6 +92,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Buscar cursos
   const { data: coursesResponse } = useQuery({
@@ -107,11 +136,24 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       studentEmail: '',
       studentCpf: '',
       studentPhone: '',
+      studentAddress: '',
+      studentAddressNumber: '',
+      studentAddressComplement: '',
+      studentNeighborhood: '',
+      studentCity: '',
+      studentState: '',
+      studentPostalCode: '',
       courseId: '',
       institutionId: '',
       amount: '',
       poloId: '',
       sourceChannel: 'admin-portal',
+      billingType: 'UNDEFINED',
+      maxInstallmentCount: '12',
+      dueDateLimitDays: '30',
+      allowInstallments: true,
+      interestRate: '0',
+      fine: '0',
     },
   });
 
@@ -147,12 +189,26 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       studentName: values.studentName,
       studentEmail: values.studentEmail,
       studentCpf: values.studentCpf.replace(/\D/g, ''), // Remover formatação
-      studentPhone: values.studentPhone,
+      studentPhone: values.studentPhone.replace(/\D/g, ''), // Remover formatação
       courseId: values.courseId,
       institutionId: values.institutionId,
       amount: values.amount,
       poloId: values.poloId,
       sourceChannel: values.sourceChannel || 'admin-portal',
+      // Adicionar dados adicionais para o Asaas
+      billingType: values.billingType,
+      maxInstallmentCount: values.maxInstallmentCount,
+      dueDateLimitDays: values.dueDateLimitDays,
+      studentAddress: values.studentAddress,
+      studentAddressNumber: values.studentAddressNumber,
+      studentAddressComplement: values.studentAddressComplement,
+      studentNeighborhood: values.studentNeighborhood,
+      studentCity: values.studentCity,
+      studentState: values.studentState,
+      studentPostalCode: values.studentPostalCode?.replace(/\D/g, ''),
+      allowInstallments: values.allowInstallments,
+      interestRate: parseFloat(values.interestRate || '0'),
+      fine: parseFloat(values.fine || '0'),
     });
   };
 
@@ -164,6 +220,28 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       .replace(/(\d{3})(\d)/, '$1.$2')
       .replace(/(\d{3})(\d{1,2})/, '$1-$2')
       .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
+  // Formatação de telefone
+  const formatPhone = (value: string) => {
+    value = value.replace(/\D/g, '');
+    if (value.length <= 10) {
+      return value
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    } else {
+      return value
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2');
+    }
+  };
+
+  // Formatação de CEP
+  const formatCEP = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .replace(/(-\d{3})\d+?$/, '$1');
   };
 
   return (
@@ -196,181 +274,552 @@ export default function NewSimplifiedEnrollmentCreatePage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Dados do Aluno</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="studentName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome Completo*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Nome completo do aluno" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="studentEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="E-mail do aluno" type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="studentCpf"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CPF*</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="CPF do aluno"
-                            {...field}
-                            value={formatCPF(field.value)}
-                            maxLength={14}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="studentPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Telefone do aluno" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Formato recomendado: (XX) XXXXX-XXXX
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+              <Tabs defaultValue="basic" className="w-full">
+                <TabsList className="mb-6">
+                  <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
+                  <TabsTrigger value="payment">Opções de Pagamento</TabsTrigger>
+                  <TabsTrigger value="address">Endereço</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="basic" className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Dados do Aluno</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="studentName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nome Completo*</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Nome completo do aluno" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="studentEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-mail*</FormLabel>
+                            <FormControl>
+                              <Input placeholder="E-mail do aluno" type="email" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="studentCpf"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CPF*</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="CPF do aluno"
+                                {...field}
+                                value={formatCPF(field.value)}
+                                maxLength={14}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="studentPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Telefone*</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="(00) 00000-0000"
+                                {...field}
+                                value={formatPhone(field.value)}
+                                maxLength={15}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Formato: (XX) XXXXX-XXXX
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Dados do Curso</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="courseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Curso*</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Dados do Curso</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="courseId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Curso*</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um curso" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {courses.map((course: any) => (
+                                  <SelectItem key={course.id} value={course.id.toString()}>
+                                    {course.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="institutionId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Instituição*</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma instituição" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {institutions.map((institution: any) => (
+                                  <SelectItem key={institution.id} value={institution.id.toString()}>
+                                    {institution.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="poloId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Polo (opcional)</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um polo (opcional)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {polos.map((polo: any) => (
+                                  <SelectItem key={polo.id} value={polo.id.toString()}>
+                                    {polo.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Valor*</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Valor da matrícula"
+                                {...field}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9,.]/g, '');
+                                  field.onChange(value);
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Informe o valor em reais (ex: 1200,00)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="payment" className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Opções de Pagamento</h3>
+                    
+                    <FormField
+                      control={form.control}
+                      name="billingType"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Forma de Pagamento</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um curso" />
-                            </SelectTrigger>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="flex flex-col space-y-1"
+                            >
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="UNDEFINED" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Múltiplas opções (o aluno escolhe)
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="BOLETO" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Apenas Boleto
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="CREDIT_CARD" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Apenas Cartão de Crédito
+                                </FormLabel>
+                              </FormItem>
+                              <FormItem className="flex items-center space-x-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="PIX" />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  Apenas PIX
+                                </FormLabel>
+                              </FormItem>
+                            </RadioGroup>
                           </FormControl>
-                          <SelectContent>
-                            {courses.map((course: any) => (
-                              <SelectItem key={course.id} value={course.id.toString()}>
-                                {course.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="institutionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Instituição*</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="allowInstallments"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma instituição" />
-                            </SelectTrigger>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            {institutions.map((institution: any) => (
-                              <SelectItem key={institution.id} value={institution.id.toString()}>
-                                {institution.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="poloId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Polo (opcional)</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Permitir parcelamento
+                            </FormLabel>
+                            <FormDescription>
+                              Permite que o aluno escolha pagar em parcelas
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {form.watch("allowInstallments") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="maxInstallmentCount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número máximo de parcelas</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="12"
+                                  min="1"
+                                  max="24"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Máximo de parcelas permitidas (máx. 24)
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="dueDateLimitDays"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Prazo limite para pagamento (dias)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="30"
+                                  min="1"
+                                  max="365"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Número de dias para vencimento do pagamento
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                          className="col-span-full"
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um polo (opcional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {polos.map((polo: any) => (
-                              <SelectItem key={polo.id} value={polo.id.toString()}>
-                                {polo.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                          {showAdvancedOptions ? "Ocultar" : "Mostrar"} Opções Avançadas
+                        </Button>
+                        
+                        {showAdvancedOptions && (
+                          <>
+                            <FormField
+                              control={form.control}
+                              name="interestRate"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Taxa de juros (%)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="5"
+                                      placeholder="0"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Taxa de juros mensal (%) para atraso
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={form.control}
+                              name="fine"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Multa por atraso (%)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="10"
+                                      placeholder="0"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Percentual de multa por atraso (%)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        )}
+                      </div>
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Valor*</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Valor da matrícula"
-                            {...field}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^0-9,.]/g, '');
-                              field.onChange(value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Informe o valor em reais (ex: 1200,00)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="address" className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Endereço do Aluno</h3>
+                    <FormDescription className="mb-4">
+                      Os dados de endereço são opcionais, mas recomendados para facilitar a criação do cliente no Asaas.
+                    </FormDescription>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="studentPostalCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CEP</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="00000-000"
+                                {...field}
+                                value={formatCEP(field.value || '')}
+                                maxLength={9}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentAddress"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Endereço</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Rua, Avenida, etc."
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentAddressNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Número</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Número"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentAddressComplement"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Complemento</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Apto, Bloco, etc."
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentNeighborhood"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bairro</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Bairro"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentCity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cidade</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Cidade"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="studentState"
+                        render={({ field }) => (
+                          <FormItem className="col-span-1">
+                            <FormLabel>Estado</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value || ""}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o estado" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="AC">Acre</SelectItem>
+                                <SelectItem value="AL">Alagoas</SelectItem>
+                                <SelectItem value="AP">Amapá</SelectItem>
+                                <SelectItem value="AM">Amazonas</SelectItem>
+                                <SelectItem value="BA">Bahia</SelectItem>
+                                <SelectItem value="CE">Ceará</SelectItem>
+                                <SelectItem value="DF">Distrito Federal</SelectItem>
+                                <SelectItem value="ES">Espírito Santo</SelectItem>
+                                <SelectItem value="GO">Goiás</SelectItem>
+                                <SelectItem value="MA">Maranhão</SelectItem>
+                                <SelectItem value="MT">Mato Grosso</SelectItem>
+                                <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                                <SelectItem value="MG">Minas Gerais</SelectItem>
+                                <SelectItem value="PA">Pará</SelectItem>
+                                <SelectItem value="PB">Paraíba</SelectItem>
+                                <SelectItem value="PR">Paraná</SelectItem>
+                                <SelectItem value="PE">Pernambuco</SelectItem>
+                                <SelectItem value="PI">Piauí</SelectItem>
+                                <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                                <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                                <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                                <SelectItem value="RO">Rondônia</SelectItem>
+                                <SelectItem value="RR">Roraima</SelectItem>
+                                <SelectItem value="SC">Santa Catarina</SelectItem>
+                                <SelectItem value="SP">São Paulo</SelectItem>
+                                <SelectItem value="SE">Sergipe</SelectItem>
+                                <SelectItem value="TO">Tocantins</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button
