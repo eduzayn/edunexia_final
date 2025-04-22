@@ -94,31 +94,31 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
-  // Buscar cursos
+  // Buscar cursos (usando API JSON direta para contornar o middleware Vite)
   const { data: coursesResponse } = useQuery({
-    queryKey: ['/api/courses'],
+    queryKey: ['/api-json/courses'],
     queryFn: async () => {
-      const response = await fetch('/api/courses');
+      const response = await fetch('/api-json/courses');
       if (!response.ok) throw new Error('Falha ao carregar cursos');
       return response.json();
     },
   });
 
-  // Buscar instituições
+  // Buscar instituições (usando API JSON direta para contornar o middleware Vite)
   const { data: institutionsResponse } = useQuery({
-    queryKey: ['/api/institutions'],
+    queryKey: ['/api-json/institutions'],
     queryFn: async () => {
-      const response = await fetch('/api/institutions');
+      const response = await fetch('/api-json/institutions');
       if (!response.ok) throw new Error('Falha ao carregar instituições');
       return response.json();
     },
   });
 
-  // Buscar polos
+  // Buscar polos (usando API JSON direta para contornar o middleware Vite)
   const { data: polosResponse } = useQuery({
-    queryKey: ['/api/polos'],
+    queryKey: ['/api-json/polos'],
     queryFn: async () => {
-      const response = await fetch('/api/polos');
+      const response = await fetch('/api-json/polos');
       if (!response.ok) throw new Error('Falha ao carregar polos');
       return response.json();
     },
