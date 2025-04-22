@@ -57,37 +57,50 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
       query = query.where(eq(simplifiedEnrollments.status, status as string));
     }
     
-    // Consulta para contar o total
-    const countQuery = db.select({ count: db.count() })
-      .from(simplifiedEnrollments)
-      .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
-      .leftJoin(institutions, eq(simplifiedEnrollments.institutionId, institutions.id))
-      .leftJoin(polos, eq(simplifiedEnrollments.poloId, polos.id));
+    // Consulta para contar o total usando SQL diretamente
+    let whereClause = '';
+    const params: any[] = [];
     
-    // Aplicar os mesmos filtros à consulta de contagem
     if (search) {
       const searchTerm = `%${search}%`;
-      countQuery.where(
-        or(
-          like(simplifiedEnrollments.studentName, searchTerm),
-          like(simplifiedEnrollments.studentCpf, searchTerm),
-          like(simplifiedEnrollments.studentEmail, searchTerm),
-          like(courses.name, searchTerm)
+      whereClause += `
+        WHERE (
+          "simplified_enrollments"."student_name" LIKE $${params.length + 1} OR
+          "simplified_enrollments"."student_cpf" LIKE $${params.length + 1} OR
+          "simplified_enrollments"."student_email" LIKE $${params.length + 1} OR
+          "courses"."name" LIKE $${params.length + 1}
         )
-      );
+      `;
+      params.push(searchTerm);
     }
     
     if (status) {
-      countQuery.where(eq(simplifiedEnrollments.status, status as string));
+      if (whereClause === '') {
+        whereClause = 'WHERE ';
+      } else {
+        whereClause += ' AND ';
+      }
+      whereClause += `"simplified_enrollments"."status" = $${params.length + 1}`;
+      params.push(status);
     }
     
+    // Construir consulta SQL para contagem
+    const countSql = `
+      SELECT COUNT(*) as total 
+      FROM "simplified_enrollments"
+      LEFT JOIN "courses" ON "simplified_enrollments"."course_id" = "courses"."id"
+      LEFT JOIN "institutions" ON "simplified_enrollments"."institution_id" = "institutions"."id"
+      LEFT JOIN "polos" ON "simplified_enrollments"."polo_id" = "polos"."id"
+      ${whereClause}
+    `;
+    
     // Executar consulta paginada
-    const [enrollmentsResults, countResults] = await Promise.all([
+    const [enrollmentsResults, countResult] = await Promise.all([
       query.limit(pageSize).offset(offset),
-      countQuery
+      pool.query(countSql, params)
     ]);
     
-    const totalItems = countResults[0]?.count || 0;
+    const totalItems = parseInt(countResult.rows[0]?.total || '0');
     const totalPages = Math.ceil(totalItems / pageSize);
     
     // Processar resultados para o formato adequado
