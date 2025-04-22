@@ -14,21 +14,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { AsaasCustomer } from "@/pages/admin/crm/asaas-clients-page";
 
-// Schema para validação dos dados do formulário
+// Schema para validação dos dados do formulário - simplificado conforme exigências do Asaas
 const customerSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   email: z.string().email("Email inválido"),
   cpfCnpj: z.string().min(11, "CPF deve ter 11 dígitos").max(14, "CNPJ deve ter 14 dígitos"),
   personType: z.enum(["FISICA", "JURIDICA"]),
   mobilePhone: z.string().optional(),
-  phone: z.string().optional(),
-  postalCode: z.string().optional(),
-  address: z.string().optional(),
-  addressNumber: z.string().optional(),
-  complement: z.string().optional(),
-  province: z.string().optional(),
-  city: z.number().optional(),
-  state: z.string().optional(),
 });
 
 // Tipo derivado do schema
@@ -58,13 +50,6 @@ export default function NewAsaasCustomerDialog({
       cpfCnpj: "",
       personType: "FISICA",
       mobilePhone: "",
-      phone: "",
-      postalCode: "",
-      address: "",
-      addressNumber: "",
-      complement: "",
-      province: "",
-      state: "",
     },
   });
 
@@ -124,7 +109,6 @@ export default function NewAsaasCustomerDialog({
       ...data,
       cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),
       mobilePhone: data.mobilePhone ? data.mobilePhone.replace(/\D/g, '') : undefined,
-      phone: data.phone ? data.phone.replace(/\D/g, '') : undefined,
     };
     
     mutation.mutate(formattedData);
@@ -134,9 +118,9 @@ export default function NewAsaasCustomerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Novo Cliente Asaas</DialogTitle>
+          <DialogTitle>Adicionar cliente</DialogTitle>
           <DialogDescription>
-            Preencha os dados para adicionar um novo cliente no Asaas e no sistema.
+            Preencha os campos abaixo para adicionar o seu cliente.
           </DialogDescription>
         </DialogHeader>
         
@@ -169,15 +153,15 @@ export default function NewAsaasCustomerDialog({
               )}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome Completo</FormLabel>
+                    <FormLabel>Nome</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nome completo" {...field} />
+                      <Input placeholder="Informe o nome do cliente" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -190,11 +174,11 @@ export default function NewAsaasCustomerDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {form.watch("personType") === "FISICA" ? "CPF" : "CNPJ"}
+                      {form.watch("personType") === "FISICA" ? "CPF" : "CNPJ"} (Opcional)
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder={form.watch("personType") === "FISICA" ? "CPF (apenas números)" : "CNPJ (apenas números)"} 
+                        placeholder={`Informe o ${form.watch("personType") === "FISICA" ? "CPF" : "CNPJ"} do cliente`} 
                         {...field} 
                       />
                     </FormControl>
@@ -202,23 +186,21 @@ export default function NewAsaasCustomerDialog({
                   </FormItem>
                 )}
               />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="email@exemplo.com" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Informe o email do cliente" type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="mobilePhone"
@@ -226,123 +208,13 @@ export default function NewAsaasCustomerDialog({
                   <FormItem>
                     <FormLabel>Celular</FormLabel>
                     <FormControl>
-                      <Input placeholder="DDD + Número" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone Fixo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="DDD + Número (opcional)" {...field} />
+                      <Input placeholder="(00) 00000-0000" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
-            <details className="pb-2">
-              <summary className="cursor-pointer text-sm font-medium mb-2">
-                Informações de Endereço (opcional)
-              </summary>
-              
-              <div className="pt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="postalCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CEP</FormLabel>
-                        <FormControl>
-                          <Input placeholder="CEP" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estado</FormLabel>
-                        <FormControl>
-                          <Input placeholder="UF" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Endereço</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Rua/Avenida" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="addressNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Número" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="complement"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Complemento</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Apto, Bloco, etc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="province"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bairro</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Bairro" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </details>
             
             <DialogFooter>
               <Button
@@ -356,10 +228,10 @@ export default function NewAsaasCustomerDialog({
               <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adicionando...
                   </>
                 ) : (
-                  "Salvar Cliente"
+                  "Adicionar cliente"
                 )}
               </Button>
             </DialogFooter>
