@@ -28,7 +28,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Middleware para verificar autenticação
+  // No modo de desenvolvimento, permite bypass para facilitar testes
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    // Durante o desenvolvimento, concede acesso sem verificar autenticação
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment) {
+      console.log("[DEV MODE] Autenticação ignorada para facilitar o desenvolvimento");
+      // Simular um usuário administrador para testes
+      if (!req.user) {
+        (req as any).user = {
+          id: 1,
+          name: 'Admin Teste',
+          email: 'admin@edunexia.com',
+          role: 'admin'
+        };
+      }
+      next();
+      return;
+    }
+    
+    // Em produção, verifica autenticação normalmente
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
@@ -37,6 +56,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware para verificar permissão de administrador
   const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    // Durante o desenvolvimento, concede acesso sem verificar autenticação
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment) {
+      console.log("[DEV MODE] Permissão de administrador concedida para facilitar o desenvolvimento");
+      // Simular um usuário administrador para testes
+      if (!req.user) {
+        (req as any).user = {
+          id: 1,
+          name: 'Admin Teste',
+          email: 'admin@edunexia.com',
+          role: 'admin'
+        };
+      }
+      next();
+      return;
+    }
+    
+    // Em produção, verifica autenticação e permissão normalmente
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
@@ -51,6 +88,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware para verificar permissão de estudante
   const requireStudent = (req: Request, res: Response, next: NextFunction) => {
+    // Durante o desenvolvimento, concede acesso sem verificar autenticação
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    if (isDevelopment) {
+      console.log("[DEV MODE] Permissão de estudante concedida para facilitar o desenvolvimento");
+      // Simular um usuário estudante para testes
+      if (!req.user) {
+        (req as any).user = {
+          id: 2,
+          name: 'Estudante Teste',
+          email: 'aluno@edunexia.com',
+          role: 'student'
+        };
+      }
+      next();
+      return;
+    }
+    
+    // Em produção, verifica autenticação e permissão normalmente
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Você precisa estar autenticado para acessar este recurso.' });
     }
