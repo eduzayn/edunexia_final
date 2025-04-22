@@ -118,7 +118,7 @@ export default function EnrollmentsPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [location, setLocation] = useLocation();
-  
+
   // Estados para controle da UI
   const [isLoading, setIsLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -131,7 +131,7 @@ export default function EnrollmentsPage() {
   const [selectedStatus, setSelectedStatus] = useState("");
   const [statusReason, setStatusReason] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Definir o formulário de filtro
   const filterForm = useForm<FilterFormValues>({
     resolver: zodResolver(filterFormSchema),
@@ -143,16 +143,16 @@ export default function EnrollmentsPage() {
       endDate: "",
     },
   });
-  
+
   // Capturar valores do formulário de filtro
   const filterValues = filterForm.watch();
-  
+
   // Lidar com a aplicação do filtro
   const handleFilterSubmit = (values: FilterFormValues) => {
     setCurrentPage(1); // Reset para a primeira página quando aplicar o filtro
     setIsFilterOpen(false);
   };
-  
+
   // Limpar todos os filtros
   const clearFilters = () => {
     filterForm.reset({
@@ -165,7 +165,7 @@ export default function EnrollmentsPage() {
     setCurrentPage(1);
     setIsFilterOpen(false);
   };
-  
+
   // Query para obter a lista de matrículas (com filtros)
   const {
     data: enrollments = [],
@@ -176,37 +176,83 @@ export default function EnrollmentsPage() {
     queryFn: async () => {
       // Construir a URL com parâmetros de consulta
       const queryParams = new URLSearchParams();
-      
+
       // Adicionar os filtros aos parâmetros de consulta
       if (filterValues.status) queryParams.append("status", filterValues.status);
       if (filterValues.studentName) queryParams.append("studentName", filterValues.studentName);
       if (filterValues.courseName) queryParams.append("courseName", filterValues.courseName);
       if (filterValues.startDate) queryParams.append("startDate", filterValues.startDate);
       if (filterValues.endDate) queryParams.append("endDate", filterValues.endDate);
-      
+
       // Adicionar paginação
       queryParams.append("page", currentPage.toString());
       queryParams.append("limit", itemsPerPage.toString());
-      
+
       const response = await fetch("/api/enrollments?" + queryParams.toString());
-      
+
       if (!response.ok) {
         throw new Error("Erro ao buscar matrículas");
       }
-      
+
       return response.json();
     },
+    onSuccess: async (data) => {
+      if (data && data.enrollments) {
+        const enrollmentsWithIntegrity = await Promise.all(
+          data.enrollments.map(async (enrollment) => {
+            try {
+              const integrationResponse = await apiRequest(
+                "GET",
+                `/api/enrollments/${enrollment.id}/verify-integration`
+              );
+              if (integrationResponse.ok) {
+                const integrationData = await integrationResponse.json();
+                return {
+                  ...enrollment,
+                  _isIntegrated: integrationData.isIntegrated,
+                  _integrationIssues: integrationData.issues,
+                };
+              } else {
+                console.warn(`Integration check failed for enrollment ${enrollment.id}: ${integrationResponse.status} ${integrationResponse.statusText}`);
+              }
+            } catch (error) {
+              console.error(`Erro ao verificar integração da matrícula ${enrollment.id}:`, error);
+            }
+            return enrollment;
+          })
+        );
+        const nonIntegratedCount = enrollmentsWithIntegrity.filter((e) => !e._isIntegrated).length;
+        if (nonIntegratedCount > 0) {
+          toast({
+            title: "Atenção",
+            description: `${nonIntegratedCount} matrículas apresentam problemas de integração`,
+            variant: "warning",
+          });
+        }
+        setIsLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error("Error fetching enrollments:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar as matrículas",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    },
+
   });
-  
+
   // Função para buscar o histórico de status de uma matrícula
   const fetchStatusHistory = async (enrollmentId: number) => {
     try {
       const response = await fetch("/api/enrollments/" + enrollmentId + "/status-history");
-      
+
       if (!response.ok) {
         throw new Error("Erro ao buscar histórico de status");
       }
-      
+
       const data = await response.json();
       setStatusHistory(data);
     } catch (error) {
@@ -218,20 +264,20 @@ export default function EnrollmentsPage() {
       });
     }
   };
-  
+
   // Função para mostrar o diálogo de histórico de status
   const showStatusHistory = async (id: number) => {
     setSelectedId(id);
     await fetchStatusHistory(id);
     setIsDetailsDialogOpen(true);
   };
-  
+
   // Função para mostrar o diálogo de atualização de status
   const showStatusUpdateDialog = (id: number) => {
     setSelectedId(id);
     setIsStatusDialogOpen(true);
   };
-  
+
   // Mutação para atualizar o status da matrícula
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, reason }: { id: number; status: string; reason: string }) => {
@@ -255,12 +301,12 @@ export default function EnrollmentsPage() {
       });
     },
   });
-  
+
   // Efeito para setar o loading com base na query
   useEffect(() => {
     setIsLoading(isLoadingEnrollments);
   }, [isLoadingEnrollments]);
-  
+
   // Função para renderizar o status com badge
   const renderStatus = (status: string) => {
     const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -270,14 +316,14 @@ export default function EnrollmentsPage() {
       cancelled: { label: "Cancelada", variant: "destructive" },
       suspended: { label: "Suspensa", variant: "outline" },
     };
-    
+
     const statusInfo = statusMap[status] || { label: status, variant: "outline" };
-    
+
     return (
       <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
     );
   };
-  
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
@@ -289,7 +335,7 @@ export default function EnrollmentsPage() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      
+
       {/* Main content */}
       <div className="flex-1">
         <main className="flex-1 p-4 md:p-6">
@@ -327,6 +373,7 @@ export default function EnrollmentsPage() {
                           <TableHead>Polo</TableHead>
                           <TableHead>Data</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Integração</TableHead>
                           <TableHead>Valor</TableHead>
                           <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
@@ -340,6 +387,13 @@ export default function EnrollmentsPage() {
                             <TableCell>{enrollment.poloName || '-'}</TableCell>
                             <TableCell>{new Date(enrollment.enrollmentDate).toLocaleDateString('pt-BR')}</TableCell>
                             <TableCell>{renderStatus(enrollment.status)}</TableCell>
+                            <TableCell>
+                              {enrollment._isIntegrated ? (
+                                <Badge variant="success">Integrada</Badge>
+                              ) : (
+                                <Badge variant="danger">Não Integrada</Badge>
+                              )}
+                            </TableCell>
                             <TableCell>R$ {enrollment.amount.toFixed(2).replace('.', ',')}</TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
@@ -373,12 +427,12 @@ export default function EnrollmentsPage() {
                     <PaginationPrevious 
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     />
-                    
+
                     {/* Lógica de paginação simplificada */}
                     {[...Array(3)].map((_, i) => {
                       const pageNumber = currentPage - 1 + i;
                       if (pageNumber < 1) return null;
-                      
+
                       return (
                         <PaginationItem key={i}>
                           <PaginationLink
@@ -390,7 +444,7 @@ export default function EnrollmentsPage() {
                         </PaginationItem>
                       );
                     })}
-                    
+
                     <PaginationNext 
                       onClick={() => setCurrentPage(p => p + 1)}
                     />

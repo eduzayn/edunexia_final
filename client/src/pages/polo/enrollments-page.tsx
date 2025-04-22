@@ -153,17 +153,55 @@ export default function PoloEnrollmentsPage() {
   const handleViewDetails = (enrollment: Enrollment) => {
     setSelectedEnrollment(enrollment);
     setIsEnrollmentDetailsOpen(true);
+    
+    // Verificar integração com o sistema central
+    apiRequest("GET", `/api/enrollments/${enrollment.id}/verify-integration`)
+      .then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.isIntegrated) {
+            toast({
+              title: "Atenção",
+              description: "Esta matrícula precisa ser sincronizada com o sistema central",
+              variant: "warning"
+            });
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao verificar integração:", error);
+      });
   };
 
   const handleGenerateDocument = (enrollment: Enrollment, documentType: string) => {
     setSelectedEnrollment(enrollment);
     setIsGenerateDocumentOpen(true);
     
-    // Na implementação real, aqui faria a requisição para gerar o documento
-    toast({
-      title: "Gerando documento",
-      description: `Preparando ${documentType} para ${enrollment.studentName}`,
-    });
+    // Verificar se a matrícula está corretamente atribuída antes de gerar documentos
+    apiRequest("GET", `/api/enrollments/${enrollment.id}/validate`)
+      .then(async (response) => {
+        if (response.ok) {
+          toast({
+            title: "Gerando documento",
+            description: `Preparando ${documentType} para ${enrollment.studentName}`,
+          });
+        } else {
+          const error = await response.json();
+          toast({
+            title: "Erro de validação",
+            description: error.message || "A matrícula apresenta inconsistências e precisa ser verificada",
+            variant: "destructive"
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao validar matrícula:", error);
+        toast({
+          title: "Erro ao validar matrícula",
+          description: "Não foi possível validar a integridade da matrícula",
+          variant: "destructive"
+        });
+      });
   };
   
   // Funções para manipulação de link de pagamento
