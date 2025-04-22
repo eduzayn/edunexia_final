@@ -786,6 +786,7 @@ export const disciplinesRelations = relations(disciplines, ({ many, one }) => ({
 export const coursesRelations = relations(courses, ({ many, one }) => ({
   courseDisciplines: many(courseDisciplines),
   enrollments: many(enrollments),
+  simplifiedEnrollments: many(simplifiedEnrollments),
   createdBy: one(users, {
     fields: [courses.createdById],
     references: [users.id],
@@ -896,6 +897,22 @@ export const enrollmentAuditsRelations = relations(enrollmentAudits, ({ one }) =
   polo: one(polos, {
     fields: [enrollmentAudits.poloId],
     references: [polos.id],
+  }),
+}));
+
+// Relações de Matrículas Simplificadas
+export const simplifiedEnrollmentsRelations = relations(simplifiedEnrollments, ({ one }) => ({
+  course: one(courses, {
+    fields: [simplifiedEnrollments.courseId],
+    references: [courses.id],
+  }),
+  polo: one(polos, {
+    fields: [simplifiedEnrollments.poloId],
+    references: [polos.id],
+  }),
+  convertedEnrollment: one(enrollments, {
+    fields: [simplifiedEnrollments.convertedEnrollmentId],
+    references: [enrollments.id],
   }),
 }));
 
@@ -1284,6 +1301,24 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).pick({
 });
 export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 export type Enrollment = typeof enrollments.$inferSelect;
+
+// Schema e tipo para Matrículas Simplificadas
+export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments).pick({
+  courseId: true,
+  studentName: true,
+  studentEmail: true,
+  studentPhone: true,
+  studentCpf: true,
+  poloId: true,
+  status: true,
+  externalReference: true,
+  paymentGateway: true,
+  paymentUrl: true,
+  amount: true,
+  expiresAt: true,
+});
+export type InsertSimplifiedEnrollment = z.infer<typeof insertSimplifiedEnrollmentSchema>;
+export type SimplifiedEnrollment = typeof simplifiedEnrollments.$inferSelect;
 
 // Schemas e tipos para Histórico de Status de Matrículas
 export const insertEnrollmentStatusHistorySchema = createInsertSchema(enrollmentStatusHistory).pick({
