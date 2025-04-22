@@ -129,7 +129,7 @@ const assessmentFormSchema = z.object({
 
 type VideoFormValues = z.infer<typeof videoFormSchema>;
 type MaterialFormValues = z.infer<typeof materialFormSchema>;
-// Tipo EbookFormValues removido - usando interface completa em /admin/ebooks/generate
+type EbookLinkFormValues = z.infer<typeof ebookLinkFormSchema>;
 type QuestionFormValues = z.infer<typeof questionFormSchema>;
 type AssessmentFormValues = z.infer<typeof assessmentFormSchema>;
 
@@ -147,6 +147,7 @@ export default function DisciplineContentPage() {
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isVideoEditDialogOpen, setIsVideoEditDialogOpen] = useState(false);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
+  const [isEbookLinkDialogOpen, setIsEbookLinkDialogOpen] = useState(false);
   // Estado isEbookDialogOpen removido - usando interface completa em /admin/ebooks/generate
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [isAssessmentDialogOpen, setIsAssessmentDialogOpen] = useState(false);
@@ -320,7 +321,29 @@ export default function DisciplineContentPage() {
     },
   });
   
-  // Mutation para adicionar e-book removida - usando interface completa em /admin/ebooks/generate
+  // Mutation para adicionar link de e-book externo
+  const addEbookLinkMutation = useMutation({
+    mutationFn: async (data: EbookLinkFormValues) => {
+      const response = await apiRequest("POST", `/api/admin/discipline-ebook/${disciplineId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "E-book adicionado com sucesso!",
+        description: "O link para o e-book externo foi vinculado à disciplina.",
+      });
+      refetchEbook();
+      setIsEbookLinkDialogOpen(false);
+      ebookLinkForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao adicionar e-book",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
   
   // Mutation para adicionar questão
   const addQuestionMutation = useMutation({
@@ -422,7 +445,15 @@ export default function DisciplineContentPage() {
     },
   });
   
-  // Formulário ebookForm removido - usando interface completa em /admin/ebooks/generate
+  // Formulário para inserir link de e-book externo
+  const ebookLinkForm = useForm<EbookLinkFormValues>({
+    resolver: zodResolver(ebookLinkFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      url: "",
+    },
+  });
   
   const questionForm = useForm<QuestionFormValues>({
     resolver: zodResolver(questionFormSchema),
@@ -467,7 +498,11 @@ export default function DisciplineContentPage() {
     setIsMaterialDialogOpen(true);
   };
   
-  // Manipulador removido - usando interface completa em /admin/ebooks/generate
+  // Manipulador para abrir o diálogo de link de e-book
+  const handleOpenEbookLinkDialog = () => {
+    ebookLinkForm.reset();
+    setIsEbookLinkDialogOpen(true);
+  };
   
   const handleOpenQuestionDialog = () => {
     questionForm.reset();
@@ -504,7 +539,10 @@ export default function DisciplineContentPage() {
     addMaterialMutation.mutate(data);
   };
   
-  // Função onEbookSubmit removida - usando interface completa em /admin/ebooks/generate
+  // Função para submeter o formulário de link de e-book
+  const onEbookLinkSubmit = (data: EbookLinkFormValues) => {
+    addEbookLinkMutation.mutate(data);
+  };
   
   const onQuestionSubmit = (data: QuestionFormValues) => {
     addQuestionMutation.mutate({ ...data, disciplineId });
