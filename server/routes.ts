@@ -126,8 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Content-Type', 'application/json');
     
     try {
-      // Consultar diretamente da base de dados
-      storage.getAllDisciplines()
+      // Consultar diretamente da base de dados sem paginação
+      storage.getDisciplines()
         .then(disciplines => {
           return res.status(200).json(disciplines);
         })
