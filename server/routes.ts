@@ -972,7 +972,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description: "",
             videoSource: discipline[sourceField],
             url: discipline[urlField],
-            duration: "45:00" // Duração padrão
+            duration: (discipline[`videoAula${i}Duration` as keyof typeof discipline] as string) || "00:00" // Usar duração salva ou zero
           });
         }
       }
@@ -1029,7 +1029,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Criar objeto de atualização
       const updateData = {
         [`videoAula${nextVideoId}Url`]: videoData.url,
-        [`videoAula${nextVideoId}Source`]: videoData.videoSource
+        [`videoAula${nextVideoId}Source`]: videoData.videoSource,
+        [`videoAula${nextVideoId}Duration`]: videoData.duration
       };
       
       // Atualizar a disciplina
@@ -1092,7 +1093,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Atualizar dados usando campos dinâmicos para suportar 10 vídeos
       const updateData = {
         [`videoAula${videoId}Url`]: videoData.url,
-        [`videoAula${videoId}Source`]: videoData.videoSource
+        [`videoAula${videoId}Source`]: videoData.videoSource,
+        [`videoAula${videoId}Duration`]: videoData.duration
       };
       
       // Atualizar a disciplina
@@ -1146,7 +1148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Atualizar dados usando campos dinâmicos
       const updateData = {
         [`videoAula${videoId}Url`]: null,
-        [`videoAula${videoId}Source`]: null
+        [`videoAula${videoId}Source`]: null,
+        [`videoAula${videoId}Duration`]: null
       };
       
       // Atualizar a disciplina
