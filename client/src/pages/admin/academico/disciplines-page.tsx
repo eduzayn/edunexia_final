@@ -376,7 +376,7 @@ export default function DisciplinesPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/admin/disciplines/${discipline.id}/content`)}
+                                onClick={() => navigate(`/admin/academico/disciplines/${discipline.id}/content`)}
                               >
                                 <FileTextIcon className="h-4 w-4" />
                                 <span className="sr-only md:not-sr-only md:ml-2">Conteúdo</span>

@@ -629,7 +629,7 @@ export default function DisciplineContentPage() {
             </AlertDescription>
           </Alert>
           <Button
-            onClick={() => navigate("/admin/disciplines")}
+            onClick={() => navigate("/admin/academico/disciplines")}
             className="mt-4"
             variant="outline"
           >
@@ -662,7 +662,7 @@ export default function DisciplineContentPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate("/admin/disciplines")}
+                  onClick={() => navigate("/admin/academico/disciplines")}
                   className="mr-2"
                 >
                   <ArrowLeftIcon className="h-4 w-4" />
