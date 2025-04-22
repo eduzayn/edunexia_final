@@ -91,9 +91,15 @@ export const listSimplifiedEnrollments = async (
       queryParams.append('status', status);
     }
     
-    const response = await apiRequest(`/api/v2/simplified-enrollments?${queryParams.toString()}`);
+    console.log(`Realizando requisição GET /api/v2/simplified-enrollments?${queryParams.toString()}`);
     
-    return response;
+    // A ordem correta é: método, URL, data, headers
+    const response = await apiRequest(
+      'GET',
+      `/api/v2/simplified-enrollments?${queryParams.toString()}`
+    );
+    
+    return await response.json();
   } catch (error) {
     console.error('Erro ao listar matrículas simplificadas:', error);
     throw error;
@@ -107,8 +113,11 @@ export const getSimplifiedEnrollmentById = async (
   id: number
 ): Promise<{ success: boolean; data: NewSimplifiedEnrollment }> => {
   try {
-    const response = await apiRequest(`/api/v2/simplified-enrollments/${id}`);
-    return response;
+    const response = await apiRequest(
+      'GET',
+      `/api/v2/simplified-enrollments/${id}`
+    );
+    return await response.json();
   } catch (error) {
     console.error(`Erro ao buscar matrícula com ID ${id}:`, error);
     throw error;
@@ -122,15 +131,13 @@ export const createSimplifiedEnrollment = async (
   enrollmentData: CreateSimplifiedEnrollmentData
 ): Promise<{ success: boolean; data: NewSimplifiedEnrollment }> => {
   try {
-    const response = await apiRequest('/api/v2/simplified-enrollments', {
-      method: 'POST',
-      body: JSON.stringify(enrollmentData),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await apiRequest(
+      'POST',
+      '/api/v2/simplified-enrollments',
+      enrollmentData
+    );
     
-    return response;
+    return await response.json();
   } catch (error) {
     console.error('Erro ao criar matrícula simplificada:', error);
     throw error;
@@ -144,11 +151,12 @@ export const generatePaymentLink = async (
   enrollmentId: number
 ): Promise<{ success: boolean; data: { paymentLinkId: string; paymentLinkUrl: string } }> => {
   try {
-    const response = await apiRequest(`/api/v2/simplified-enrollments/${enrollmentId}/generate-payment-link`, {
-      method: 'POST'
-    });
+    const response = await apiRequest(
+      'POST',
+      `/api/v2/simplified-enrollments/${enrollmentId}/generate-payment-link`
+    );
     
-    return response;
+    return await response.json();
   } catch (error) {
     console.error(`Erro ao gerar link de pagamento para matrícula ${enrollmentId}:`, error);
     throw error;
@@ -162,11 +170,12 @@ export const updatePaymentStatus = async (
   enrollmentId: number
 ): Promise<{ success: boolean; data: { status: string } }> => {
   try {
-    const response = await apiRequest(`/api/v2/simplified-enrollments/${enrollmentId}/update-payment-status`, {
-      method: 'POST'
-    });
+    const response = await apiRequest(
+      'POST',
+      `/api/v2/simplified-enrollments/${enrollmentId}/update-payment-status`
+    );
     
-    return response;
+    return await response.json();
   } catch (error) {
     console.error(`Erro ao atualizar status de pagamento da matrícula ${enrollmentId}:`, error);
     throw error;
@@ -180,11 +189,12 @@ export const cancelEnrollment = async (
   enrollmentId: number
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await apiRequest(`/api/v2/simplified-enrollments/${enrollmentId}/cancel`, {
-      method: 'POST'
-    });
+    const response = await apiRequest(
+      'POST',
+      `/api/v2/simplified-enrollments/${enrollmentId}/cancel`
+    );
     
-    return response;
+    return await response.json();
   } catch (error) {
     console.error(`Erro ao cancelar matrícula ${enrollmentId}:`, error);
     throw error;
