@@ -21,9 +21,10 @@ export const enrollmentStatusEnum = pgEnum("enrollment_status", ["pending_paymen
 export const paymentGatewayEnum = pgEnum("payment_gateway", ["asaas", "lytex"]);
 export const integrationTypeEnum = pgEnum("integration_type", ["asaas", "lytex", "openai", "elevenlabs", "zapi"]);
 
-// Enums para o módulo CRM e Gestão
+// Enums para o módulo CRM e Gestão e Matrículas
 // Enums para outros módulos
 export const clientTypeEnum = pgEnum("client_type", ["pf", "pj"]);  // Pessoa Física ou Pessoa Jurídica
+export const simplifiedEnrollmentStatusEnum = pgEnum("simplified_enrollment_status", ["pending", "converted", "expired", "cancelled"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "pending", "paid", "overdue", "cancelled", "partial"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["completed", "pending", "failed", "refunded"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["credit_card", "debit_card", "bank_slip", "bank_transfer", "pix", "cash", "other"]);
@@ -281,6 +282,26 @@ export const enrollmentStatusHistory = pgTable("enrollment_status_history", {
   sourceChannel: text("source_channel"), // Canal de origem da operação (admin, polo, website)
   ipAddress: text("ip_address"), // Endereço IP de onde veio a requisição
   userAgent: text("user_agent"), // Informações do navegador/dispositivo
+});
+
+// Matrículas simplificadas (fluxo de captação rápida)
+export const simplifiedEnrollments = pgTable("simplified_enrollments", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  studentName: text("student_name").notNull(),
+  studentEmail: text("student_email").notNull(),
+  studentPhone: text("student_phone").notNull(),
+  studentCpf: text("student_cpf"),
+  poloId: integer("polo_id").references(() => polos.id),
+  status: simplifiedEnrollmentStatusEnum("status").default("pending").notNull(),
+  externalReference: text("external_reference"), // ID para integração com sistemas externos
+  paymentGateway: paymentGatewayEnum("payment_gateway"),
+  paymentUrl: text("payment_url"), // URL para pagamento
+  amount: doublePrecision("amount"), // Valor da matrícula
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Data de expiração da matrícula simplificada
+  convertedEnrollmentId: integer("converted_enrollment_id").references(() => enrollments.id), // Referência à matrícula completa quando convertida
 });
 
 // Auditoria de matrículas (mais abrangente que o histórico de status)
