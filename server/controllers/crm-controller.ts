@@ -1,114 +1,172 @@
 /**
- * Controlador para operações CRM relacionadas ao Asaas
+ * Controlador para operações de CRM, incluindo clientes e contatos
  */
 
 import { Request, Response } from 'express';
-import asaasCustomersService from '../services/asaas-customers-service';
+import { db } from '../db';
+import { clients } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
+import { AsaasDirectPaymentService } from '../services/asaas-direct-payment-service';
 
 /**
- * Cria um novo cliente no Asaas
+ * Cria um novo cliente no Asaas e no sistema local
  */
 export async function createAsaasCustomer(req: Request, res: Response) {
   try {
-    console.log('Criando novo cliente no Asaas:', req.body);
-    
-    // Validar os dados mínimos necessários
-    const { name, email, cpfCnpj } = req.body;
-    
+    const { name, email, cpfCnpj, phone, mobilePhone, address, addressNumber, complement, province, postalCode } = req.body;
+
+    // Validação básica
     if (!name || !email || !cpfCnpj) {
       return res.status(400).json({
         success: false,
         message: 'Dados incompletos. Nome, email e CPF/CNPJ são obrigatórios.'
       });
     }
-    
-    try {
-      // Verificar se já existe um cliente com este CPF/CNPJ
-      const existingCustomer = await asaasCustomersService.getCustomerByCpfCnpj(cpfCnpj);
-      
-      if (existingCustomer) {
-        return res.status(409).json({
-          success: false,
-          message: 'Já existe um cliente cadastrado com este CPF/CNPJ',
-          data: existingCustomer
-        });
-      }
-      
-      // Criar cliente no Asaas
-      const newCustomer = await asaasCustomersService.createCustomer(req.body);
-      
-      res.status(201).json({
-        success: true,
-        message: 'Cliente criado com sucesso',
-        data: newCustomer
-      });
-    } catch (apiError: any) {
-      console.error('Erro na API do Asaas ao criar cliente:', apiError.message);
-      
-      res.status(500).json({
+
+    // Verificar se o cliente já existe no sistema local
+    const existingClient = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.document, cpfCnpj))
+      .limit(1);
+
+    if (existingClient.length) {
+      return res.status(409).json({
         success: false,
-        message: 'Erro ao criar cliente no Asaas',
-        error: apiError.message
+        message: 'Cliente com este CPF/CNPJ já existe no sistema.',
+        data: existingClient[0]
       });
     }
-  } catch (error: any) {
-    console.error('Erro ao processar a criação de cliente:', error);
-    
+
+    // Verificar se o cliente já existe no Asaas
+    try {
+      const existingAsaasCustomer = await AsaasDirectPaymentService.findCustomerByCpfCnpj(cpfCnpj);
+      
+      if (existingAsaasCustomer) {
+        // Cliente já existe no Asaas, mas não no sistema local
+        // Criar no sistema local com o ID do Asaas
+        const newClient = await db.insert(clients).values({
+          name,
+          email,
+          document: cpfCnpj,
+          phone: phone || mobilePhone,
+          address: address ? `${address}, ${addressNumber || 'S/N'}${complement ? `, ${complement}` : ''}` : null,
+          city: province || null,
+          zipCode: postalCode || null,
+          type: cpfCnpj.length > 11 ? 'pj' : 'pf',
+          status: 'active',
+          asaasId: existingAsaasCustomer.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdById: req.user?.id || null
+        }).returning();
+
+        return res.status(200).json({
+          success: true,
+          message: 'Cliente já existia no Asaas e foi sincronizado com o sistema local.',
+          data: {
+            client: newClient[0],
+            asaasCustomer: existingAsaasCustomer
+          }
+        });
+      }
+    } catch (error) {
+      // Ignorar erro de cliente não encontrado e seguir com a criação
+      console.log('Cliente não encontrado no Asaas, prosseguindo com criação:', error);
+    }
+
+    // Criar o cliente no Asaas
+    const asaasCustomer = await AsaasDirectPaymentService.createCustomer({
+      name,
+      email,
+      cpfCnpj,
+      phone,
+      mobilePhone,
+      address,
+      addressNumber,
+      complement,
+      province,
+      postalCode
+    });
+
+    // Criar o cliente no sistema local
+    const newClient = await db.insert(clients).values({
+      name,
+      email,
+      document: cpfCnpj,
+      phone: phone || mobilePhone,
+      address: address ? `${address}, ${addressNumber || 'S/N'}${complement ? `, ${complement}` : ''}` : null,
+      city: province || null,
+      zipCode: postalCode || null,
+      type: cpfCnpj.length > 11 ? 'pj' : 'pf',
+      status: 'active',
+      asaasId: asaasCustomer.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdById: req.user?.id || null
+    }).returning();
+
+    res.status(201).json({
+      success: true,
+      message: 'Cliente criado com sucesso no Asaas e no sistema local.',
+      data: {
+        client: newClient[0],
+        asaasCustomer
+      }
+    });
+  } catch (error) {
+    console.error('[CRM] Erro ao criar cliente Asaas:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro interno ao processar a requisição',
-      error: error.message
+      message: 'Erro ao criar cliente no Asaas.',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
 }
 
 /**
- * Busca um cliente no Asaas pelo CPF/CNPJ
+ * Busca um cliente pelo CPF/CNPJ no Asaas
  */
 export async function searchAsaasCustomerByCpfCnpj(req: Request, res: Response) {
   try {
     const { cpfCnpj } = req.query;
-    
-    if (!cpfCnpj || typeof cpfCnpj !== 'string') {
+
+    if (!cpfCnpj) {
       return res.status(400).json({
         success: false,
-        message: 'CPF/CNPJ é obrigatório'
+        message: 'CPF/CNPJ não informado'
       });
     }
-    
-    // Formatar o CPF/CNPJ removendo caracteres não numéricos
-    const formattedCpfCnpj = cpfCnpj.replace(/[^\d]/g, '');
-    
-    try {
-      const customer = await asaasCustomersService.getCustomerByCpfCnpj(formattedCpfCnpj);
-      
-      if (!customer) {
-        return res.status(404).json({
-          success: false,
-          message: 'Cliente não encontrado'
-        });
-      }
-      
-      res.json({
-        success: true,
-        data: customer
-      });
-    } catch (apiError: any) {
-      console.error('Erro na API do Asaas ao buscar cliente:', apiError.message);
-      
-      res.status(500).json({
+
+    const customer = await AsaasDirectPaymentService.findCustomerByCpfCnpj(cpfCnpj as string);
+
+    if (!customer) {
+      return res.status(404).json({
         success: false,
-        message: 'Erro ao buscar cliente no Asaas',
-        error: apiError.message
+        message: 'Cliente não encontrado no Asaas'
       });
     }
-  } catch (error: any) {
-    console.error('Erro ao processar a busca de cliente:', error);
-    
+
+    // Verificar se o cliente existe no sistema local
+    const localClient = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.document, cpfCnpj as string))
+      .limit(1);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        asaasCustomer: customer,
+        localClient: localClient.length ? localClient[0] : null
+      }
+    });
+  } catch (error) {
+    console.error('[CRM] Erro ao buscar cliente por CPF/CNPJ:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro interno ao processar a requisição',
-      error: error.message
+      message: 'Erro ao buscar cliente no Asaas.',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
 }

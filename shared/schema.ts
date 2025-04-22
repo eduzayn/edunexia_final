@@ -288,18 +288,29 @@ export const enrollmentStatusHistory = pgTable("enrollment_status_history", {
 export const simplifiedEnrollments = pgTable("simplified_enrollments", {
   id: serial("id").primaryKey(),
   courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  institutionId: integer("institution_id").notNull().references(() => institutions.id),
   studentName: text("student_name").notNull(),
   studentEmail: text("student_email").notNull(),
-  studentPhone: text("student_phone").notNull(),
+  studentPhone: text("student_phone"),
   studentCpf: text("student_cpf"),
   poloId: integer("polo_id").references(() => polos.id),
   status: simplifiedEnrollmentStatusEnum("status").default("pending").notNull(),
   externalReference: text("external_reference"), // ID para integração com sistemas externos
   paymentGateway: paymentGatewayEnum("payment_gateway"),
   paymentUrl: text("payment_url"), // URL para pagamento
+  paymentLinkId: text("payment_link_id"), // ID do link de pagamento (Asaas)
+  paymentLinkUrl: text("payment_link_url"), // URL do link de pagamento (Asaas)
+  paymentId: text("payment_id"), // ID da cobrança/pagamento (Asaas)
+  asaasCustomerId: text("asaas_customer_id"), // ID do cliente no Asaas
   amount: doublePrecision("amount"), // Valor da matrícula
+  errorDetails: text("error_details"), // Detalhes do erro em caso de falha
+  sourceChannel: text("source_channel"), // Canal de origem (web, app, etc.)
+  processedAt: timestamp("processed_at"), // Data de processamento
+  processedById: integer("processed_by_id").references(() => users.id), // Usuário que processou
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdById: integer("created_by_id").references(() => users.id), // Usuário que criou
+  updatedById: integer("updated_by_id").references(() => users.id), // Usuário que atualizou
   expiresAt: timestamp("expires_at"), // Data de expiração da matrícula simplificada
   convertedEnrollmentId: integer("converted_enrollment_id").references(() => enrollments.id), // Referência à matrícula completa quando convertida
 });
@@ -906,6 +917,10 @@ export const simplifiedEnrollmentsRelations = relations(simplifiedEnrollments, (
     fields: [simplifiedEnrollments.courseId],
     references: [courses.id],
   }),
+  institution: one(institutions, {
+    fields: [simplifiedEnrollments.institutionId],
+    references: [institutions.id],
+  }),
   polo: one(polos, {
     fields: [simplifiedEnrollments.poloId],
     references: [polos.id],
@@ -913,6 +928,18 @@ export const simplifiedEnrollmentsRelations = relations(simplifiedEnrollments, (
   convertedEnrollment: one(enrollments, {
     fields: [simplifiedEnrollments.convertedEnrollmentId],
     references: [enrollments.id],
+  }),
+  createdBy: one(users, {
+    fields: [simplifiedEnrollments.createdById],
+    references: [users.id],
+  }),
+  updatedBy: one(users, {
+    fields: [simplifiedEnrollments.updatedById],
+    references: [users.id],
+  }),
+  processedBy: one(users, {
+    fields: [simplifiedEnrollments.processedById],
+    references: [users.id],
   }),
 }));
 
@@ -1302,20 +1329,28 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).pick({
 export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 export type Enrollment = typeof enrollments.$inferSelect;
 
-// Schema e tipo para Matrículas Simplificadas
+// Schemas e tipos para Matrículas Simplificadas
 export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments).pick({
-  courseId: true,
   studentName: true,
   studentEmail: true,
   studentPhone: true,
   studentCpf: true,
+  courseId: true,
+  institutionId: true,
   poloId: true,
-  status: true,
+  amount: true,
+  sourceChannel: true,
   externalReference: true,
+  status: true,
   paymentGateway: true,
   paymentUrl: true,
-  amount: true,
+  paymentLinkId: true,
+  paymentLinkUrl: true,
+  paymentId: true,
+  asaasCustomerId: true,
+  errorDetails: true,
   expiresAt: true,
+  createdById: true,
 });
 export type InsertSimplifiedEnrollment = z.infer<typeof insertSimplifiedEnrollmentSchema>;
 export type SimplifiedEnrollment = typeof simplifiedEnrollments.$inferSelect;
