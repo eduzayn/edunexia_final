@@ -46,6 +46,9 @@ import LeadsV2Page from "@/pages/admin/crm/leads-v2-page";
 import NewLeadV2Page from "@/pages/admin/crm/new-lead-v2-page";
 import LeadDetailV2Page from "@/pages/admin/crm/lead-detail-v2-page";
 import AsaasClientsPage from "@/pages/admin/crm/asaas-clients-page";
+import NewSimplifiedEnrollmentPage from "@/pages/admin/crm/new-simplified-enrollment-page";
+import NewSimplifiedEnrollmentCreatePage from "@/pages/admin/crm/new-simplified-enrollment-create-page";
+import NewSimplifiedEnrollmentDetailsPage from "@/pages/admin/crm/new-simplified-enrollment-details-page";
 import ProductsPage from "@/pages/admin/finance/products-page";
 import NewProductPage from "@/pages/admin/finance/new-product-page";
 import ChargesPage from "@/pages/admin/finance/charges-page";
@@ -293,6 +296,19 @@ function Router() {
       
       <Route path="/admin/financeiro-empresarial/assinaturas">
         {() => user?.portalType === "admin" ? <AssinaturasPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      {/* Rotas do Módulo CRM - Matrículas Simplificadas */}
+      <Route path="/admin/crm/new-simplified-enrollments">
+        {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/crm/new-simplified-enrollments/create">
+        {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentCreatePage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/crm/new-simplified-enrollments/:id">
+        {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentDetailsPage /> : <Redirect to="/admin" />}
       </Route>
       
       {/* Rotas do Módulo de Matrículas */}
