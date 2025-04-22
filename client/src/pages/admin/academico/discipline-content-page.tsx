@@ -106,7 +106,12 @@ const materialFormSchema = z.object({
   url: z.string().url({ message: "URL inválida" }),
 });
 
-// E-book schema removido - usando interface completa em /admin/ebooks/generate
+// Schema para inserção de link de e-book externo
+const ebookLinkFormSchema = z.object({
+  title: z.string().min(3, { message: "Título deve ter pelo menos 3 caracteres" }),
+  description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
+  url: z.string().url({ message: "URL inválida" }),
+});
 
 const questionFormSchema = z.object({
   statement: z.string().min(5, { message: "Enunciado deve ter pelo menos 5 caracteres" }),
@@ -1112,16 +1117,25 @@ export default function DisciplineContentPage() {
                         Adicione um e-book interativo para complementar o aprendizado
                       </CardDescription>
                     </div>
-                    <Button
-                      asChild
-                      className="mt-4 md:mt-0"
-                      disabled={ebook !== null && ebook !== undefined}
-                    >
-                      <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                        <BookIcon className="mr-1 h-4 w-4" />
-                        {ebook ? "Substituir E-book" : "Gerar E-book com IA"}
-                      </Link>
-                    </Button>
+                    <div className="flex gap-2 mt-4 md:mt-0">
+                      <Button
+                        asChild
+                        disabled={ebook !== null && ebook !== undefined}
+                      >
+                        <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
+                          <EditIcon className="mr-1 h-4 w-4" />
+                          Gerador Avançado
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setIsEbookLinkDialogOpen(true)}
+                        disabled={ebook !== null && ebook !== undefined}
+                      >
+                        <LinkIcon className="mr-1 h-4 w-4" />
+                        Inserir Link
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1140,12 +1154,18 @@ export default function DisciplineContentPage() {
                       <p className="mt-1 text-gray-500">
                         Adicione um e-book interativo para proporcionar uma experiência rica de aprendizado.
                       </p>
-                      <Button asChild className="mt-4">
-                        <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                          <BookIcon className="mr-1 h-4 w-4" />
-                          Gerar E-book com IA
-                        </Link>
-                      </Button>
+                      <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                        <Button asChild>
+                          <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
+                            <EditIcon className="mr-1 h-4 w-4" />
+                            Gerador Avançado
+                          </Link>
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsEbookLinkDialogOpen(true)}>
+                          <LinkIcon className="mr-1 h-4 w-4" />
+                          Inserir Link de E-book
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <Card>
