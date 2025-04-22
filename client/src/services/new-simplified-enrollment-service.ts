@@ -50,6 +50,21 @@ export interface CreateSimplifiedEnrollmentData {
   poloId?: number | null;
   amount: number;
   sourceChannel?: string;
+  // Dados de endereço do aluno
+  studentAddress?: string;
+  studentAddressNumber?: string;
+  studentAddressComplement?: string;
+  studentNeighborhood?: string;
+  studentCity?: string;
+  studentState?: string;
+  studentPostalCode?: string;
+  // Configurações de pagamento Asaas
+  billingType?: 'UNDEFINED' | 'BOLETO' | 'CREDIT_CARD' | 'PIX';
+  maxInstallmentCount?: number;
+  dueDateLimitDays?: number;
+  allowInstallments?: boolean;
+  interestRate?: number;
+  fine?: number;
 }
 
 /**

@@ -227,7 +227,21 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       poloId, 
       amount,
       sourceChannel,
-      externalReference
+      externalReference,
+      // Novos campos para Asaas
+      studentAddress,
+      studentAddressNumber,
+      studentAddressComplement,
+      studentNeighborhood,
+      studentCity,
+      studentState,
+      studentPostalCode,
+      billingType,
+      maxInstallmentCount,
+      dueDateLimitDays,
+      allowInstallments,
+      interestRate,
+      fine
     } = req.body;
     
     // Verificar se o curso existe
@@ -287,6 +301,26 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
       externalReference,
+      
+      // Armazenar metadados adicionais para Asaas
+      metadata: JSON.stringify({
+        billingType: billingType || 'UNDEFINED',
+        maxInstallmentCount: maxInstallmentCount || 12,
+        dueDateLimitDays: dueDateLimitDays || 30,
+        allowInstallments: allowInstallments !== undefined ? allowInstallments : true,
+        interestRate: interestRate || 0,
+        fine: fine || 0,
+        
+        // Dados de endereço
+        studentAddress,
+        studentAddressNumber,
+        studentAddressComplement,
+        studentNeighborhood,
+        studentCity,
+        studentState,
+        studentPostalCode
+      }),
+      
       createdAt: new Date(),
       updatedAt: new Date(),
       createdById: req.user?.id || null
@@ -372,12 +406,29 @@ export async function generatePaymentLink(req: Request, res: Response) {
         if (existingCustomer) {
           asaasCustomerId = existingCustomer.id;
         } else {
-          // Criar novo cliente
+          // Obter os metadados armazenados para recuperar informações de endereço
+          let metadata = {};
+          try {
+            if (enrollmentData.metadata) {
+              metadata = JSON.parse(enrollmentData.metadata);
+            }
+          } catch (error) {
+            console.error('[API] Erro ao converter metadados:', error);
+          }
+          
+          // Criar novo cliente com dados completos incluindo endereço
           const customer = await AsaasDirectPaymentService.createCustomer({
             name: enrollmentData.studentName,
             email: enrollmentData.studentEmail,
             cpfCnpj: enrollmentData.studentCpf,
-            mobilePhone: enrollmentData.studentPhone || undefined
+            mobilePhone: enrollmentData.studentPhone || undefined,
+            address: metadata.studentAddress,
+            addressNumber: metadata.studentAddressNumber,
+            complement: metadata.studentAddressComplement,
+            province: metadata.studentNeighborhood,
+            city: metadata.studentCity,
+            state: metadata.studentState,
+            postalCode: metadata.studentPostalCode
           });
           
           asaasCustomerId = customer.id;
@@ -402,14 +453,31 @@ export async function generatePaymentLink(req: Request, res: Response) {
       const courseName = enrollment[0].courseName || 'Curso';
       const description = `Matrícula no curso: ${courseName}`;
       
+      // Obter os metadados armazenados para recuperar informações de pagamento
+      let metadata = {};
+      try {
+        if (enrollmentData.metadata) {
+          metadata = JSON.parse(enrollmentData.metadata);
+        }
+      } catch (error) {
+        console.error('[API] Erro ao converter metadados:', error);
+      }
+      
+      // Usar as configurações do formulário ou valores padrão
       const paymentLink = await AsaasDirectPaymentService.createPaymentLink({
         name: `Matrícula #${enrollmentId} - ${enrollmentData.studentName}`,
         description,
         value: enrollmentData.amount,
-        billingType: 'UNDEFINED', // Permitir que o cliente escolha a forma de pagamento
+        billingType: metadata.billingType || 'UNDEFINED',
         chargeType: 'DETACHED',
-        dueDateLimitDays: 30,
-        maxInstallmentCount: 12
+        dueDateLimitDays: metadata.dueDateLimitDays || 30,
+        maxInstallmentCount: metadata.maxInstallmentCount || 12,
+        interestSettings: {
+          value: metadata.interestRate || 0
+        },
+        fineSettings: {
+          value: metadata.fine || 0
+        }
       });
       
       // Atualizar a matrícula com os dados do link de pagamento
