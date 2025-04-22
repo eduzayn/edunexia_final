@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api-json/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
@@ -107,9 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Limpar o cache de usuário antes de tentar o login
       // para evitar conflitos de estado entre logins
-      queryClient.removeQueries({ queryKey: ["/api/user"] });
+      queryClient.removeQueries({ queryKey: ["/api-json/user"] });
       
-      const response = await apiRequest("POST", "/api/login", data);
+      const response = await apiRequest("POST", "/api-json/login", data);
       return await response.json();
     },
     onSuccess: async (user: SelectUser) => {

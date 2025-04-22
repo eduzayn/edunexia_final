@@ -7,7 +7,25 @@
 
 import { Router } from 'express';
 import passport from 'passport';
+import { Strategy as LocalStrategy } from "passport-local";
 import { storage } from '../storage';
+import { comparePasswords } from '../auth-utils';
+
+// Configurar a estratégia local no mesmo arquivo para garantir que esteja disponível
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await storage.getUserByUsername(username);
+      if (!user || !(await comparePasswords(password, user.password))) {
+        return done(null, false);
+      } else {
+        return done(null, user);
+      }
+    } catch (error) {
+      return done(error);
+    }
+  }),
+);
 
 const router = Router();
 
@@ -95,18 +113,45 @@ router.post('/logout', (req, res, next) => {
   });
 });
 
+// Middleware para verificar se o usuário está autenticado
+const isAuthenticated = (req, res, next) => {
+  // Verificamos se o usuário está autenticado usando a sessão
+  if (req.session && req.session.passport && req.session.passport.user) {
+    return next();
+  }
+  
+  // Definir o cabeçalho como JSON
+  res.setHeader('Content-Type', 'application/json');
+  return res.status(401).send(JSON.stringify({ message: "Unauthorized" }));
+};
+
 // Rota para obter o usuário atual
 router.get('/user', (req, res) => {
   // Sempre definir o cabeçalho content-type para application/json
   res.setHeader('Content-Type', 'application/json');
   
-  if (!req.isAuthenticated()) {
+  if (req.session && req.session.passport && req.session.passport.user) {
+    // Obtem o ID do usuário a partir da sessão
+    const userId = req.session.passport.user;
+    
+    // Buscar o usuário pelo ID
+    storage.getUser(userId)
+      .then(user => {
+        if (!user) {
+          return res.status(401).send(JSON.stringify({ message: "User not found" }));
+        }
+        
+        // Remover a senha antes de enviar
+        const safeUser = { ...user, password: undefined };
+        return res.status(200).send(JSON.stringify(safeUser));
+      })
+      .catch(error => {
+        console.error("Erro ao buscar usuário:", error);
+        return res.status(500).send(JSON.stringify({ message: "Internal server error" }));
+      });
+  } else {
     return res.status(401).send(JSON.stringify({ message: "Unauthorized" }));
   }
-  
-  // Remover a senha antes de enviar
-  const safeUser = { ...req.user, password: undefined };
-  return res.status(200).send(JSON.stringify(safeUser));
 });
 
 export default router;
