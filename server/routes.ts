@@ -8,9 +8,13 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import debugRouter from './routes/debug-route';
 import authRouter from './routes/auth-route';
 import asaasCustomersService from './services/asaas-customers-service';
+import { setupAuth } from './auth';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
+  
+  // Configurar autenticação
+  setupAuth(app);
 
   // Middleware para verificar autenticação
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
