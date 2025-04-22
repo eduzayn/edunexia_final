@@ -21,9 +21,10 @@ export const enrollmentStatusEnum = pgEnum("enrollment_status", ["pending_paymen
 export const paymentGatewayEnum = pgEnum("payment_gateway", ["asaas", "lytex"]);
 export const integrationTypeEnum = pgEnum("integration_type", ["asaas", "lytex", "openai", "elevenlabs", "zapi"]);
 
-// Enums para o módulo CRM e Gestão
+// Enums para o módulo CRM e Gestão e Matrículas
 // Enums para outros módulos
 export const clientTypeEnum = pgEnum("client_type", ["pf", "pj"]);  // Pessoa Física ou Pessoa Jurídica
+export const simplifiedEnrollmentStatusEnum = pgEnum("simplified_enrollment_status", ["pending", "converted", "expired", "cancelled"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "pending", "paid", "overdue", "cancelled", "partial"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["completed", "pending", "failed", "refunded"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["credit_card", "debit_card", "bank_slip", "bank_transfer", "pix", "cash", "other"]);
@@ -83,6 +84,22 @@ export const disciplines = pgTable("disciplines", {
   videoAula1Source: videoSourceEnum("video_aula1_source"), // Fonte do vídeo 1
   videoAula2Url: text("video_aula2_url"), // URL do vídeo 2
   videoAula2Source: videoSourceEnum("video_aula2_source"), // Fonte do vídeo 2
+  videoAula3Url: text("video_aula3_url"), // URL do vídeo 3
+  videoAula3Source: videoSourceEnum("video_aula3_source"), // Fonte do vídeo 3
+  videoAula4Url: text("video_aula4_url"), // URL do vídeo 4
+  videoAula4Source: videoSourceEnum("video_aula4_source"), // Fonte do vídeo 4
+  videoAula5Url: text("video_aula5_url"), // URL do vídeo 5
+  videoAula5Source: videoSourceEnum("video_aula5_source"), // Fonte do vídeo 5
+  videoAula6Url: text("video_aula6_url"), // URL do vídeo 6
+  videoAula6Source: videoSourceEnum("video_aula6_source"), // Fonte do vídeo 6
+  videoAula7Url: text("video_aula7_url"), // URL do vídeo 7
+  videoAula7Source: videoSourceEnum("video_aula7_source"), // Fonte do vídeo 7
+  videoAula8Url: text("video_aula8_url"), // URL do vídeo 8
+  videoAula8Source: videoSourceEnum("video_aula8_source"), // Fonte do vídeo 8
+  videoAula9Url: text("video_aula9_url"), // URL do vídeo 9
+  videoAula9Source: videoSourceEnum("video_aula9_source"), // Fonte do vídeo 9
+  videoAula10Url: text("video_aula10_url"), // URL do vídeo 10
+  videoAula10Source: videoSourceEnum("video_aula10_source"), // Fonte do vídeo 10
   apostilaPdfUrl: text("apostila_pdf_url"), // URL da apostila PDF
   ebookInterativoUrl: text("ebook_interativo_url"), // URL do e-book interativo
   
@@ -265,6 +282,26 @@ export const enrollmentStatusHistory = pgTable("enrollment_status_history", {
   sourceChannel: text("source_channel"), // Canal de origem da operação (admin, polo, website)
   ipAddress: text("ip_address"), // Endereço IP de onde veio a requisição
   userAgent: text("user_agent"), // Informações do navegador/dispositivo
+});
+
+// Matrículas simplificadas (fluxo de captação rápida)
+export const simplifiedEnrollments = pgTable("simplified_enrollments", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  studentName: text("student_name").notNull(),
+  studentEmail: text("student_email").notNull(),
+  studentPhone: text("student_phone").notNull(),
+  studentCpf: text("student_cpf"),
+  poloId: integer("polo_id").references(() => polos.id),
+  status: simplifiedEnrollmentStatusEnum("status").default("pending").notNull(),
+  externalReference: text("external_reference"), // ID para integração com sistemas externos
+  paymentGateway: paymentGatewayEnum("payment_gateway"),
+  paymentUrl: text("payment_url"), // URL para pagamento
+  amount: doublePrecision("amount"), // Valor da matrícula
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Data de expiração da matrícula simplificada
+  convertedEnrollmentId: integer("converted_enrollment_id").references(() => enrollments.id), // Referência à matrícula completa quando convertida
 });
 
 // Auditoria de matrículas (mais abrangente que o histórico de status)
@@ -749,6 +786,7 @@ export const disciplinesRelations = relations(disciplines, ({ many, one }) => ({
 export const coursesRelations = relations(courses, ({ many, one }) => ({
   courseDisciplines: many(courseDisciplines),
   enrollments: many(enrollments),
+  simplifiedEnrollments: many(simplifiedEnrollments),
   createdBy: one(users, {
     fields: [courses.createdById],
     references: [users.id],
@@ -859,6 +897,22 @@ export const enrollmentAuditsRelations = relations(enrollmentAudits, ({ one }) =
   polo: one(polos, {
     fields: [enrollmentAudits.poloId],
     references: [polos.id],
+  }),
+}));
+
+// Relações de Matrículas Simplificadas
+export const simplifiedEnrollmentsRelations = relations(simplifiedEnrollments, ({ one }) => ({
+  course: one(courses, {
+    fields: [simplifiedEnrollments.courseId],
+    references: [courses.id],
+  }),
+  polo: one(polos, {
+    fields: [simplifiedEnrollments.poloId],
+    references: [polos.id],
+  }),
+  convertedEnrollment: one(enrollments, {
+    fields: [simplifiedEnrollments.convertedEnrollmentId],
+    references: [enrollments.id],
   }),
 }));
 
@@ -1247,6 +1301,24 @@ export const insertEnrollmentSchema = createInsertSchema(enrollments).pick({
 });
 export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
 export type Enrollment = typeof enrollments.$inferSelect;
+
+// Schema e tipo para Matrículas Simplificadas
+export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments).pick({
+  courseId: true,
+  studentName: true,
+  studentEmail: true,
+  studentPhone: true,
+  studentCpf: true,
+  poloId: true,
+  status: true,
+  externalReference: true,
+  paymentGateway: true,
+  paymentUrl: true,
+  amount: true,
+  expiresAt: true,
+});
+export type InsertSimplifiedEnrollment = z.infer<typeof insertSimplifiedEnrollmentSchema>;
+export type SimplifiedEnrollment = typeof simplifiedEnrollments.$inferSelect;
 
 // Schemas e tipos para Histórico de Status de Matrículas
 export const insertEnrollmentStatusHistorySchema = createInsertSchema(enrollmentStatusHistory).pick({

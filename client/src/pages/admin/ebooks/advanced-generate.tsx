@@ -120,7 +120,7 @@ interface ContentAnalysis {
 }
 
 // Tipos de materiais de referência
-type ReferenceType = 'text' | 'link' | 'file';
+type ReferenceType = 'text' | 'link' | 'file' | 'video' | 'image';
 
 interface Reference {
   id: string;
@@ -128,6 +128,13 @@ interface Reference {
   content: string;
   name?: string;
   selected: boolean;
+  thumbnail?: string;
+  processed?: boolean;
+  analysis?: {
+    summary?: string;
+    keywords?: string[];
+    sentiment?: string;
+  };
 }
 
 const AdvancedGenerateEBookPage: React.FC = () => {
@@ -182,7 +189,8 @@ const AdvancedGenerateEBookPage: React.FC = () => {
           topic: values.title,
           disciplineId: parseInt(values.disciplineId),
           additionalContext: values.description,
-          referenceMaterials: selectedReferences.length > 0 ? selectedReferences : undefined
+          referenceMaterials: selectedReferences.length > 0 ? selectedReferences : undefined,
+          model: aiModel // Incluir o modelo selecionado
         }),
       });
       
@@ -476,9 +484,104 @@ const AdvancedGenerateEBookPage: React.FC = () => {
     });
   };
 
+  // Adicionar uma referência de vídeo (YouTube, Vimeo, etc.)
+  const addVideoReference = (url: string) => {
+    if (!url.trim() || !isValidVideoUrl(url)) return;
+    
+    const newReference: Reference = {
+      id: `video-${Date.now()}`,
+      type: 'video',
+      content: url,
+      name: extractVideoTitle(url) || 'Vídeo',
+      selected: true,
+      thumbnail: extractVideoThumbnail(url),
+    };
+    
+    setReferences(prev => [...prev, newReference]);
+    setReferencesTab("list");
+    setVideoReferenceValue("");
+  };
+
+  // Adicionar uma referência de imagem
+  const addImageReference = (url: string) => {
+    if (!url.trim() || !isValidImageUrl(url)) return;
+    
+    const newReference: Reference = {
+      id: `image-${Date.now()}`,
+      type: 'image',
+      content: url,
+      name: 'Imagem',
+      selected: true,
+      thumbnail: url,
+    };
+    
+    setReferences(prev => [...prev, newReference]);
+    setReferencesTab("list");
+    setImageReferenceValue("");
+  };
+
+  // Funções auxiliares para validação
+  const isValidVideoUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      return (
+        parsedUrl.hostname.includes('youtube.com') ||
+        parsedUrl.hostname.includes('youtu.be') ||
+        parsedUrl.hostname.includes('vimeo.com')
+      );
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const isValidImageUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      return url.match(/\.(jpeg|jpg|gif|png)$/) !== null;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Extrair título e thumbnail de vídeos
+  const extractVideoTitle = (url: string): string | null => {
+    try {
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        return 'Vídeo do YouTube';
+      } else if (url.includes('vimeo.com')) {
+        return 'Vídeo do Vimeo';
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const extractVideoThumbnail = (url: string): string | undefined => {
+    try {
+      let videoId = '';
+      
+      if (url.includes('youtube.com')) {
+        const urlParams = new URLSearchParams(new URL(url).search);
+        videoId = urlParams.get('v') || '';
+        return videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : undefined;
+      } else if (url.includes('youtu.be')) {
+        videoId = url.split('/').pop() || '';
+        return videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : undefined;
+      }
+      
+      return undefined;
+    } catch (e) {
+      return undefined;
+    }
+  };
+
   // Estados dos componentes de referência
   const [textReferenceValue, setTextReferenceValue] = useState("");
   const [linkReferenceValue, setLinkReferenceValue] = useState("");
+  const [videoReferenceValue, setVideoReferenceValue] = useState("");
+  const [imageReferenceValue, setImageReferenceValue] = useState("");
+  const [aiModel, setAiModel] = useState<"gpt" | "claude">("gpt");
   
   if (isDisciplinesLoading) {
     return (
@@ -570,11 +673,27 @@ const AdvancedGenerateEBookPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Informações do E-Book</CardTitle>
-              <CardDescription>
-                Forneça os detalhes básicos para gerar o conteúdo do e-book com IA avançada.
-              </CardDescription>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Informações do E-Book</CardTitle>
+                  <CardDescription>
+                    Forneça os detalhes básicos para gerar o conteúdo do e-book com IA avançada.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="ai-model" className="text-sm font-medium">Modelo de IA:</Label>
+                  <select 
+                    id="ai-model"
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value as "gpt" | "claude")}
+                    className="border rounded-md p-1 text-sm"
+                  >
+                    <option value="gpt">OpenAI GPT-4o</option>
+                    <option value="claude">Anthropic Claude</option>
+                  </select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <Form {...form}>
@@ -700,10 +819,12 @@ const AdvancedGenerateEBookPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <Tabs value={referencesTab} onValueChange={setReferencesTab}>
-                <TabsList className="grid grid-cols-4">
+                <TabsList className="grid grid-cols-6">
                   <TabsTrigger value="text">Texto</TabsTrigger>
                   <TabsTrigger value="link">Link</TabsTrigger>
                   <TabsTrigger value="file">Arquivo</TabsTrigger>
+                  <TabsTrigger value="video">Vídeo</TabsTrigger>
+                  <TabsTrigger value="image">Imagem</TabsTrigger>
                   <TabsTrigger value="list">Lista ({references.length})</TabsTrigger>
                 </TabsList>
 
@@ -783,6 +904,56 @@ const AdvancedGenerateEBookPage: React.FC = () => {
                   </div>
                 </TabsContent>
 
+                <TabsContent value="video" className="pt-4">
+                  <div className="space-y-4">
+                    <Input 
+                      type="url" 
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={videoReferenceValue}
+                      onChange={(e) => setVideoReferenceValue(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Adicione URLs de vídeos do YouTube ou Vimeo. O sistema processará o conteúdo
+                      do vídeo para usar como referência na geração do e-book.
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        addVideoReference(videoReferenceValue);
+                      }}
+                      disabled={!videoReferenceValue.trim() || !isValidVideoUrl(videoReferenceValue)}
+                      className="w-full"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Adicionar Vídeo de Referência
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="image" className="pt-4">
+                  <div className="space-y-4">
+                    <Input 
+                      type="url" 
+                      placeholder="https://exemplo.com/imagem.jpg"
+                      value={imageReferenceValue}
+                      onChange={(e) => setImageReferenceValue(e.target.value)}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Adicione URLs de imagens para análise e contextualização.
+                      As imagens serão processadas usando a visão computacional da IA.
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        addImageReference(imageReferenceValue);
+                      }}
+                      disabled={!imageReferenceValue.trim() || !isValidImageUrl(imageReferenceValue)}
+                      className="w-full"
+                    >
+                      <Image className="mr-2 h-4 w-4" />
+                      Adicionar Imagem de Referência
+                    </Button>
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="list" className="py-4">
                   {references.length > 0 ? (
                     <ScrollArea className="h-[250px]">
@@ -803,6 +974,8 @@ const AdvancedGenerateEBookPage: React.FC = () => {
                                   {ref.type === 'text' && <FileText className="h-4 w-4 text-blue-500" />}
                                   {ref.type === 'link' && <LinkIcon className="h-4 w-4 text-green-500" />}
                                   {ref.type === 'file' && <FileText className="h-4 w-4 text-orange-500" />}
+                                  {ref.type === 'video' && <BookOpenText className="h-4 w-4 text-red-500" />}
+                                  {ref.type === 'image' && <Image className="h-4 w-4 text-purple-500" />}
                                 </div>
                                 <span className="ml-2 font-medium truncate max-w-[180px]">
                                   {ref.name || (ref.type === 'text' ? 'Texto' : ref.content.substring(0, 30))}
@@ -841,6 +1014,39 @@ const AdvancedGenerateEBookPage: React.FC = () => {
                               <p className="text-xs text-muted-foreground line-clamp-2 ml-7">
                                 Arquivo: {ref.name} ({(ref.content.length / 1024).toFixed(1)}KB)
                               </p>
+                            )}
+                            {ref.type === 'video' && (
+                              <div className="ml-7 mt-1">
+                                <p className="text-xs text-red-500 underline mb-1">{ref.content}</p>
+                                {ref.thumbnail && (
+                                  <div className="relative w-full h-24 overflow-hidden rounded-md">
+                                    <div 
+                                      className="absolute inset-0 bg-contain bg-center bg-no-repeat"
+                                      style={{ 
+                                        backgroundImage: `url(${ref.thumbnail})`,
+                                        filter: 'brightness(0.85)'
+                                      }}
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="h-10 w-10 rounded-full bg-red-600 flex items-center justify-center">
+                                        <div className="ml-1 h-0 w-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-white border-b-[8px] border-b-transparent" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {ref.type === 'image' && (
+                              <div className="ml-7 mt-1">
+                                <p className="text-xs text-purple-500 underline mb-1">{ref.content}</p>
+                                {ref.thumbnail && (
+                                  <img 
+                                    src={ref.thumbnail} 
+                                    alt="Imagem de referência" 
+                                    className="h-24 w-auto object-cover rounded-md"
+                                  />
+                                )}
+                              </div>
                             )}
                           </div>
                         ))}

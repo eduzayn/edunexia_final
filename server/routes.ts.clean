@@ -1,0 +1,482 @@
+import type { Express, Request, Response, NextFunction } from "express";
+import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import debugRoutes from "./routes/debug-route";
+import emailRoutes from "./routes/email-routes";
+import { 
+  insertDisciplineSchema, 
+  insertCourseSchema, 
+  insertCourseDisciplineSchema,
+  insertQuestionSchema,
+  insertAssessmentSchema,
+  insertAssessmentQuestionSchema,
+  insertInstitutionSchema,
+  // Schemas para CRM
+  insertClientSchema,
+  insertContactSchema,
+  // Schemas para Finanças
+  insertProductSchema,
+  insertInvoiceSchema,
+  insertInvoiceItemSchema,
+  insertPaymentSchema
+} from "@shared/schema";
+import { z } from "zod";
+import { registerEnrollmentRoutes } from "./routes/enrollments";
+import integrationsRoutes from "./routes/integrations";
+import poloRoutes from "./routes/polo-routes";
+import { aiServicesRouter } from "./routes/ai-services";
+import { createPaymentGateway } from "./services/payment-gateways";
+import certificatesRoutes from "./routes/certificates";
+import certificateTemplatesRoutes from "./routes/certificate-templates";
+import certificateSignersRoutes from "./routes/certificate-signers";
+import { WebhookController } from "./controllers/webhook-controller";
+import { checkoutSuccessCallback, checkoutNotificationCallback, checkAndConvertPendingLeads } from "./controllers/checkout-callback-controller";
+import subscriptionPlansRoutes from "./routes/subscription-plans";
+import subscriptionsRoutes from "./routes/subscriptions";
+import publicRegisterRouter from "./routes/public-register";
+import permissionsRoutes from "./routes/permissions-routes";
+import abacPermissionsRoutes from "./routes/abac-permissions-routes";
+import auditRoutes from "./routes/audit-routes";
+// Importação das novas rotas para os módulos CRM, Financeiro e Contratos
+import crmRoutes from "./routes/crm-routes";
+import financeRoutes from "./routes/finance-routes";
+import contractsRoutes from "./routes/contracts-routes";
+// Remoção do módulo de leads
+import checkoutRoutes from "./routes/checkout-routes";
+// Importação das rotas de configurações
+import institutionSettingsRoutes from "./routes/institution-settings-routes";
+import settingsRoutes from "./routes/settings-routes";
+import { asaasCheckoutService } from "./services/asaas-checkout-service";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+import studentChargesRoutes from "./routes/student-charges-routes";
+import ebooksRoutes from "./routes/ebooks";
+import advancedEbooksRoutes from "./routes/advanced-ebooks";
+import poloEnrollmentsRouter from './routes/polo-enrollments'; // Added import
+import enrollmentIntegrationRouter from './routes/enrollment-integration-routes';
+
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication routes
+  setupAuth(app);
+
+  // Registro das rotas de matrícula
+  registerEnrollmentRoutes(app);
+
+  // Registro das rotas de integrações
+  app.use("/api/integrations", integrationsRoutes);
+
+  // Registro das rotas de serviços de IA
+  app.use("/api/ai", aiServicesRouter);
+
+  // Registro das rotas do Portal do Polo
+  app.use("/api/polo", poloRoutes);
+
+  // Registro das rotas de planos e assinaturas
+  app.use("/api/subscription-plans", subscriptionPlansRoutes);
+  app.use("/api/subscriptions", subscriptionsRoutes);
+
+  // Registro das rotas de permissões e papéis (roles)
+  app.use("/api/permissions", permissionsRoutes);
+
+  // Registro das rotas de permissões contextuais (ABAC)
+  app.use("/api/permissions/abac", abacPermissionsRoutes);
+
+  // Rota pública para obter planos de assinatura
+  app.use("/api/public/subscription-plans", subscriptionPlansRoutes);
+
+  // Registro das rotas de matrículas do Portal do Polo
+  app.use("/api/polo", poloEnrollmentsRouter); // Using the imported router
+
+  // Registro das rotas do sistema de certificação
+  app.use("/api/admin/certificates", certificatesRoutes);
+  app.use("/api/admin/certificate-templates", certificateTemplatesRoutes);
+  app.use("/api/admin/certificate-signers", certificateSignersRoutes);
+
+  // Rotas públicas para instituições e polos (necessárias para o formulário de matrícula)
+
+  // Listar instituições (versão pública)
+  app.get("/api/institutions", async (req, res) => {
+    try {
+      const search = req.query.search?.toString();
+      const status = req.query.status?.toString() || "active"; // Por padrão, apenas instituições ativas
+      const limit = parseInt(req.query.limit?.toString() || "50");
+      const offset = parseInt(req.query.offset?.toString() || "0");
+
+      const institutions = await storage.getInstitutions(search, status, limit, offset);
+      res.json(institutions);
+    } catch (error) {
+      console.error("Error fetching public institutions:", error);
+      res.status(500).json({ message: "Erro ao buscar instituições" });
+    }
+  });
+
+  // Listar polos (versão pública)
+  app.get("/api/polos", async (req, res) => {
+    try {
+      const search = req.query.search?.toString();
+      const status = req.query.status?.toString() || "active"; // Por padrão, apenas polos ativos
+      const institutionId = req.query.institutionId ? parseInt(req.query.institutionId.toString()) : undefined;
+      const limit = parseInt(req.query.limit?.toString() || "50");
+      const offset = parseInt(req.query.offset?.toString() || "0");
+
+      const polos = await storage.getPolos(search, status, institutionId, limit, offset);
+      res.json(polos);
+    } catch (error) {
+      console.error("Error fetching public polos:", error);
+      res.status(500).json({ message: "Erro ao buscar polos" });
+    }
+  });
+
+  // Listar cursos (versão pública)
+  app.get("/api/courses", async (req, res) => {
+    try {
+      const search = req.query.search?.toString();
+      const status = req.query.status?.toString() || "published"; // Por padrão, apenas cursos publicados
+      const limit = parseInt(req.query.limit?.toString() || "50");
+      const offset = parseInt(req.query.offset?.toString() || "0");
+
+      const courses = await storage.getCourses(search, status, limit, offset);
+      res.json(courses);
+    } catch (error) {
+      console.error("Error fetching public courses:", error);
+      res.status(500).json({ message: "Erro ao buscar cursos" });
+    }
+  });
+
+  // Listar modelos de contrato (versão pública)
+  app.get("/api/contract-templates", async (req, res) => {
+    try {
+      const institutionId = req.query.institutionId ? parseInt(req.query.institutionId.toString()) : undefined;
+
+      const contractTemplates = await storage.getContractTemplates(institutionId);
+      res.json(contractTemplates);
+    } catch (error) {
+      console.error("Error fetching public contract templates:", error);
+      res.status(500).json({ message: "Erro ao buscar modelos de contrato" });
+    }
+  });
+
+  // Rota pública para verificação de certificados
+  app.get("/api/certificates/verify/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+
+      if (!code) {
+        return res.status(400).json({ 
+          valid: false,
+          message: "É necessário fornecer o código do certificado" 
+        });
+      }
+
+      // Utiliza a rota específica para verificação 
+      return certificatesRoutes.handle(req, res);
+    } catch (error) {
+      console.error("Erro ao verificar certificado:", error);
+      return res.status(500).json({
+        valid: false,
+        message: "Erro ao verificar certificado",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // Middleware para garantir que o usuário esteja autenticado
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Não autorizado" });
+    }
+    next();
+  };
+
+  // Middleware para garantir que o usuário seja um administrador
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated() || req.user.portalType !== "admin") {
+      return res.status(403).json({ message: "Acesso restrito a administradores" });
+    }
+    next();
+  };
+
+  // Portal-specific API routes
+  app.get("/api/dashboard/:portalType", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const portalType = req.params.portalType;
+    const user = req.user;
+
+    if (user.portalType !== portalType) {
+      return res.status(403).json({ 
+        message: "Access forbidden: You don't have permission to access this portal" 
+      });
+    }
+
+    // Return dashboard data based on portal type
+    let dashboardData: any = {
+      user: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        portalType: user.portalType,
+      }
+    };
+
+    // We would add specific data for each portal type here
+    // This is just the basic structure
+    switch (portalType) {
+      case "student":
+        dashboardData = {
+          ...dashboardData,
+          stats: {
+            progress: 78,
+            activeCourses: 3,
+            nextPayment: "15/07/2023",
+          },
+          courses: []
+        };
+        break;
+      case "partner":
+        dashboardData = {
+          ...dashboardData,
+          stats: {
+            students: 42,
+            commission: 1250.00,
+            pendingPayment: 750.00,
+          },
+          referrals: []
+        };
+        break;
+      case "polo":
+        dashboardData = {
+          ...dashboardData,
+          stats: {
+            activeStudents: 126,
+            newEnrollments: 15,
+            revenue: 24680.00,
+          },
+          locations: []
+        };
+        break;
+      case "admin":
+        dashboardData = {
+          ...dashboardData,
+          stats: {
+            totalUsers: 1528,
+            totalInstitutions: 23,
+            monthlyRevenue: 156400.00,
+          },
+          recentActivity: []
+        };
+        break;
+    }
+
+    res.json(dashboardData);
+  });
+
+  // 
+      }
+
+      res.json(videos);
+    } catch (error) {
+      console.error("Error fetching discipline videos:", error);
+      res.status(500).json({ message: "Erro ao buscar vídeos da disciplina" });
+    }
+  });
+
+  // Adicionar vídeo a uma disciplina
+  app.post("/api/admin/discipline-videos/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const discipline = await storage.getDiscipline(id);
+
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+
+      // Validar dados do vídeo
+      const videoData = z.object({
+        title: z.string().min(3),
+        description: z.string().optional(),
+        videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
+        url: z.string().url(),
+        duration: z.string().regex(/^\d+:\d+$/)
+      }).parse(req.body);
+
+      
+      // Verificar todos os slots de vídeo disponíveis (1 a 10)
+      const existingVideos = [];
+      for (let i = 1; i <= 10; i++) {
+        const urlField = `videoAula${i}Url` as keyof typeof discipline;
+        if (discipline[urlField]) {
+          existingVideos.push({
+            id: i,
+            url: discipline[urlField]
+          });
+        }
+      }
+      
+      // Verificar se já atingiu o limite de 10 vídeos
+      if (existingVideos.length >= 10) {
+        return res.status(400).json({ message: "Esta disciplina já possui 10 vídeos. Remova um existente para adicionar um novo." });
+      }
+      
+      // Encontrar o próximo slot disponível
+      let nextVideoId = 1;
+      while (discipline[`videoAula${nextVideoId}Url` as keyof typeof discipline] && nextVideoId <= 10) {
+        nextVideoId++;
+      }
+      
+      // Criar objeto de atualização
+      const updateData = {
+        [`videoAula${nextVideoId}Url`]: videoData.url,
+        [`videoAula${nextVideoId}Source`]: videoData.videoSource,
+        [`videoAula${nextVideoId}Duration`]: videoData.duration
+      };
+      
+
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(id, updateData);
+
+      // Criar objeto de resposta
+      const newVideo = {
+        id: nextVideoId,
+        disciplineId: discipline.id,
+        title: videoData.title,
+        description: videoData.description || "",
+        videoSource: videoData.videoSource,
+        url: videoData.url,
+        duration: videoData.duration
+      };
+
+      res.status(201).json(newVideo);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error adding discipline video:", error);
+      res.status(500).json({ message: "Erro ao adicionar vídeo à disciplina" });
+    }
+  });
+
+  // Atualizar um vídeo de disciplina
+  app.put("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const videoId = parseInt(req.params.videoId);
+
+      
+      if (videoId < 1 || videoId > 10) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser um número entre 1 e 10." });
+
+      }
+
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+
+      // Verificar se o vídeo existe
+      const urlField = `videoAula${videoId}Url` as keyof typeof discipline;
+      if (!discipline[urlField]) {
+        return res.status(404).json({ message: "Vídeo não encontrado" });
+      }
+
+      // Validar dados
+      const videoData = z.object({
+        title: z.string().min(3),
+        description: z.string().optional(),
+        videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
+        url: z.string().url(),
+        duration: z.string().regex(/^\d+:\d+$/)
+      }).parse(req.body);
+
+      
+      // Atualizar dados usando campos dinâmicos para suportar 10 vídeos
+      const updateData = {
+        [`videoAula${videoId}Url`]: videoData.url,
+        [`videoAula${videoId}Source`]: videoData.videoSource,
+        [`videoAula${videoId}Duration`]: videoData.duration
+      };
+      
+
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
+
+      // Objeto de resposta
+      const updatedVideo = {
+        id: videoId,
+        disciplineId: disciplineId,
+        title: videoData.title,
+        description: videoData.description || "",
+        videoSource: videoData.videoSource,
+        url: videoData.url,
+        duration: videoData.duration
+      };
+
+      res.json(updatedVideo);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error updating discipline video:", error);
+      res.status(500).json({ message: "Erro ao atualizar vídeo da disciplina" });
+    }
+  });
+
+  // Excluir um vídeo de disciplina
+  app.delete("/api/admin/discipline-videos/:disciplineId/:videoId", requireAdmin, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const videoId = parseInt(req.params.videoId);
+
+      
+      if (videoId < 1 || videoId > 10) {
+        return res.status(400).json({ message: "ID de vídeo inválido. Deve ser um número entre 1 e 10." });
+
+      }
+
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+
+      // Verificar se o vídeo existe
+      const urlField = `videoAula${videoId}Url` as keyof typeof discipline;
+      if (!discipline[urlField]) {
+        return res.status(404).json({ message: "Vídeo não encontrado" });
+      }
+
+      
+      // Atualizar dados usando campos dinâmicos
+      const updateData = {
+        [`videoAula${videoId}Url`]: null,
+        [`videoAula${videoId}Source`]: null,
+        [`videoAula${videoId}Duration`]: null
+      };
+      
+
+      // Atualizar a disciplina
+      const updatedDiscipline = await storage.updateDiscipline(disciplineId, updateData);
+
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting discipline video:", error);
+      res.status(500).json({ message: "Erro ao excluir vídeo da disciplina" });
+    }
+  });
+
+  // 
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}

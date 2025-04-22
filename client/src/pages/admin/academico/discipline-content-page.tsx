@@ -969,13 +969,13 @@ export default function DisciplineContentPage() {
                     <div>
                       <CardTitle>Vídeo-aulas</CardTitle>
                       <CardDescription>
-                        Adicione até 2 vídeo-aulas para a disciplina
+                        Adicione até 10 vídeo-aulas para a disciplina
                       </CardDescription>
                     </div>
                     <Button
                       onClick={handleOpenVideoDialog}
                       className="mt-4 md:mt-0"
-                      disabled={videos && videos.length >= 2}
+                      disabled={videos && videos.length >= 10}
                     >
                       <PlusIcon className="mr-1 h-4 w-4" />
                       Adicionar Vídeo
@@ -985,7 +985,7 @@ export default function DisciplineContentPage() {
                 <CardContent>
                   {isVideosLoading ? (
                     <div className="space-y-4">
-                      {Array(2)
+                      {Array(10)
                         .fill(0)
                         .map((_, index) => (
                           <div key={index} className="flex flex-col space-y-2">

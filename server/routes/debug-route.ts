@@ -453,6 +453,61 @@ router.post('/asaas-charges/bulk/cancel', async (req, res) => {
   }
 });
 
+// Rota para criar um novo cliente no Asaas
+router.post('/asaas-customers', async (req, res) => {
+  try {
+    console.log('Criando novo cliente no Asaas:', req.body);
+    
+    // Validar os dados mínimos necessários
+    const { name, email, cpfCnpj, personType } = req.body;
+    
+    if (!name || !email || !cpfCnpj) {
+      return res.status(400).json({
+        success: false,
+        message: 'Dados incompletos. Nome, email e CPF/CNPJ são obrigatórios.'
+      });
+    }
+    
+    try {
+      // Verificar se já existe um cliente com este CPF/CNPJ
+      const existingCustomer = await asaasCustomersService.getCustomerByCpfCnpj(cpfCnpj);
+      
+      if (existingCustomer) {
+        return res.status(409).json({
+          success: false,
+          message: 'Já existe um cliente cadastrado com este CPF/CNPJ',
+          data: existingCustomer
+        });
+      }
+      
+      // Criar cliente no Asaas
+      const newCustomer = await asaasCustomersService.createCustomer(req.body);
+      
+      res.status(201).json({
+        success: true,
+        message: 'Cliente criado com sucesso',
+        data: newCustomer
+      });
+    } catch (apiError) {
+      console.error('Erro na API do Asaas ao criar cliente:', apiError.message);
+      
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao criar cliente no Asaas',
+        error: apiError.message
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao processar a criação de cliente:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno ao processar a requisição',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // Rota para buscar clientes do Asaas diretamente
 router.get('/asaas-customers', async (req, res) => {
   try {

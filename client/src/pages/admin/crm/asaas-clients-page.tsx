@@ -4,12 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCcw, Search } from "lucide-react";
+import { RefreshCcw, Search, UserPlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { queryClient } from "@/lib/queryClient";
 import AdminLayout from "@/components/layout/admin-layout";
 import { useToast } from "@/hooks/use-toast";
+import NewAsaasCustomerDialog from "@/components/crm/new-asaas-customer-dialog";
 
 
 // Define a interface para clientes do Asaas
@@ -39,6 +40,7 @@ export default function AsaasClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
+  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const itemsPerPage = 10;
 
   // Consulta para buscar clientes Asaas
@@ -103,21 +105,29 @@ export default function AsaasClientsPage() {
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Clientes Asaas</h1>
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> Atualizando...
-              </>
-            ) : (
-              <>
-                <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar
-              </>
-            )}
-          </Button>
+          <div className="flex space-x-2">
+            <Button 
+              onClick={() => setShowNewCustomerDialog(true)}
+              disabled={isLoading}
+            >
+              <UserPlus className="mr-2 h-4 w-4" /> Novo Cliente
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <RefreshCcw className="mr-2 h-4 w-4 animate-spin" /> Atualizando...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="mr-2 h-4 w-4" /> Atualizar
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -284,6 +294,20 @@ export default function AsaasClientsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Diálogo para adicionar novo cliente */}
+      <NewAsaasCustomerDialog 
+        open={showNewCustomerDialog} 
+        onOpenChange={setShowNewCustomerDialog}
+        onSuccess={(customer) => {
+          toast({
+            title: "Cliente adicionado com sucesso",
+            description: `${customer.name} foi adicionado ao Asaas e ao sistema.`,
+          });
+          // Atualizar a lista de clientes
+          handleRefresh();
+        }}
+      />
     </AdminLayout>
   );
 }
