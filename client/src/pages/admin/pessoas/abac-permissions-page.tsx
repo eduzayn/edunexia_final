@@ -218,8 +218,7 @@ export default function AbacPermissionsPage() {
   // Mutação para criar regra de permissão de fase de instituição
   const createInstitutionPhaseMutation = useMutation({
     mutationFn: (data: InstitutionPhaseFormValues) => 
-      apiRequest('/api/permissions/abac/institution-phase', { 
-        method: 'POST',
+      apiRequest('POST', '/api/permissions/abac/institution-phase', { 
         data
       }),
     onSuccess: () => {
@@ -242,8 +241,7 @@ export default function AbacPermissionsPage() {
   // Mutação para criar regra de permissão de período
   const createPeriodPermissionMutation = useMutation({
     mutationFn: (data: PeriodPermissionFormValues) => 
-      apiRequest('/api/permissions/abac/period-rules', { 
-        method: 'POST',
+      apiRequest('POST', '/api/permissions/abac/period-rules', { 
         data
       }),
     onSuccess: () => {
@@ -266,8 +264,7 @@ export default function AbacPermissionsPage() {
   // Mutação para criar regra de permissão de status de pagamento
   const createPaymentStatusMutation = useMutation({
     mutationFn: (data: PaymentStatusFormValues) => 
-      apiRequest('/api/permissions/abac/payment-status', { 
-        method: 'POST',
+      apiRequest('POST', '/api/permissions/abac/payment-status', { 
         data
       }),
     onSuccess: () => {
@@ -290,7 +287,7 @@ export default function AbacPermissionsPage() {
   // Mutação para excluir permissão por fase de instituição
   const deleteInstitutionPhaseMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/permissions/abac/institution-phase/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/permissions/abac/institution-phase/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/abac/institution-phase'] });
       toast({
@@ -310,7 +307,7 @@ export default function AbacPermissionsPage() {
   // Mutação para excluir regra de período
   const deletePeriodRuleMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/permissions/abac/period-rules/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/permissions/abac/period-rules/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/abac/period-rules'] });
       toast({
@@ -330,7 +327,7 @@ export default function AbacPermissionsPage() {
   // Mutação para excluir regra de status de pagamento
   const deletePaymentStatusMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/permissions/abac/payment-status/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/permissions/abac/payment-status/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/abac/payment-status'] });
       toast({
