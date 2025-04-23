@@ -43,6 +43,7 @@ import {
   FacebookIcon,
   TelegramIcon,
   WidgetIcon,
+  UnlockIcon,
 } from "@/components/ui/icons";
 import { CircleDollarSign, ShieldIcon, CreditCardIcon, GraduationCap } from "lucide-react";
 
@@ -488,17 +489,18 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           active: currentPath === "/admin/sistema/settings" || (currentPath && currentPath.includes("/admin/sistema/settings"))
         },
         { 
+          name: "Portal do Aluno - Acesso", 
+          icon: <UnlockIcon />, 
+          href: "/admin/sistema/portal-access-control",
+          active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+        },
+        { 
           name: "Configurações da Instituição", 
           icon: <Settings2Icon />, 
           href: "/admin/sistema/institution-settings",
           active: currentPath === "/admin/sistema/institution-settings" || (currentPath && currentPath.includes("/admin/sistema/institution-settings"))
         },
-        { 
-          name: "Contrl. Acesso ao Portal do Aluno", 
-          icon: <GraduationCapAltIcon />, 
-          href: "/admin/sistema/portal-access-control",
-          active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
-        },
+
       ]
     }, currentPath),
     items: [
@@ -533,7 +535,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         active: currentPath === "/admin/sistema/institution-settings" || (currentPath && currentPath.includes("/admin/sistema/institution-settings"))
       },
       { 
-        name: "Contrl. Acesso ao Portal do Aluno", 
+        name: "Portal do Aluno - Acesso", 
         icon: <GraduationCapAltIcon />, 
         href: "/admin/sistema/portal-access-control",
         active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
