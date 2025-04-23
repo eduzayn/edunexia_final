@@ -290,6 +290,9 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       poloName = poloExists[0].name;
     }
     
+    // Gerar um ID de referência externa único se não foi fornecido
+    const generatedExternalReference = externalReference || `enroll-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+
     // Criar a matrícula simplificada
     const [newEnrollment] = await db.insert(simplifiedEnrollments).values({
       studentName,
@@ -302,7 +305,7 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       amount,
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
-      externalReference,
+      externalReference: generatedExternalReference, // Usar o valor gerado ou o fornecido
       
       // Se tiver um ID de cliente Asaas, usar
       asaasCustomerId: asaasCustomerId || null,
