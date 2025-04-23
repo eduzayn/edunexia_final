@@ -86,25 +86,31 @@ export function AsaasCustomerSearch({
   // Função para criar um novo cliente quando nenhum é encontrado
   const handleCreateNewCustomer = useCallback(() => {
     if (debouncedSearch && debouncedSearch.length >= 3) {
+      // Preservar o nome exato digitado pelo usuário
+      const name = inputValue.trim();
+      
       // Criar um cliente fictício com os dados da busca para continuar o fluxo
       const newCustomer: AsaasCustomer = {
-        id: 'new_customer', // Será substituído quando criar no backend
-        name: debouncedSearch, // Usar o termo de busca como nome
+        id: 'new_customer_' + Date.now(), // Será substituído quando criar no backend, adicionando timestamp para evitar colisões
+        name: name, // Usar o valor exato do input, não o debounced
         email: '', // Serão preenchidos pelo usuário no formulário
         cpfCnpj: '',
       };
       
+      console.log('Criando novo cliente com nome:', name);
+      
       // Notificar o usuário sobre o que está acontecendo
       toast({
         title: "Criando novo cliente",
-        description: `Preencha os dados do novo cliente: ${debouncedSearch}`,
+        description: `Preencha os dados do novo cliente: ${name}`,
       });
       
-      onChange(debouncedSearch);
+      // Usar o valor exato do input para garantir que o nome não será alterado
+      onChange(name);
       onCustomerSelect(newCustomer);
       setOpen(false);
     }
-  }, [debouncedSearch, onChange, onCustomerSelect, toast]);
+  }, [debouncedSearch, inputValue, onChange, onCustomerSelect, toast]);
   
   // Função para tratar o pressionamento da tecla Enter no diálogo
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
