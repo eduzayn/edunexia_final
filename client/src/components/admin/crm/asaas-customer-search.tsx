@@ -11,6 +11,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { DialogTitle } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { FormDescription } from '@/components/ui/form';
@@ -148,6 +149,7 @@ export function AsaasCustomerSearch({
       )}
       
       <CommandDialog open={open} onOpenChange={setOpen}>
+        <DialogTitle className="sr-only">Buscar clientes no Asaas</DialogTitle>
         <CommandInput
           placeholder="Buscar clientes no Asaas..."
           value={inputValue}
