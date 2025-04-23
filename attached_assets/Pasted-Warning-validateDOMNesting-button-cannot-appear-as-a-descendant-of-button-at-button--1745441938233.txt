@@ -1,0 +1,25 @@
+Warning: validateDOMNesting(...): <button> cannot appear as a descendant of <button>.
+    at button
+    at _c (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/button.tsx:49:11)
+    at PaginationLink (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/pagination.tsx:55:3)
+    at PaginationPrevious (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/pagination.tsx:81:3)
+    at button
+    at _c (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/button.tsx:49:11)
+    at li
+    at PaginationItem (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/pagination.tsx:44:3)
+    at ul
+    at PaginationContent (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/pagination.tsx:21:3)
+    at nav
+    at Pagination (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/pagination.tsx:177:11)
+    at div
+    at _c11 (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/card.tsx:123:13)
+    at div
+    at _c (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at NewSimplifiedEnrollmentPage (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/pages/admin/crm/new-simplified-enrollment-page.tsx:61:27)
+    at Route (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:191:16)
+    at Switch (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:247:17)
+    at Router (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/App.tsx?t=1745441627025&v=l1BPK0TsYAUZrXoeEyXr9:117:31)
+    at AuthProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/hooks/use-auth.tsx:93:32)
+    at App
+    at QueryClientProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a42d076b:2805:3)
