@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Card,
   CardContent,
@@ -27,11 +28,22 @@ import {
   BanknoteIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  LayoutDashboard as DashboardIcon,
+  BookOpen,
+  GraduationCap,
+  FileQuestion as FileQuestionIcon,
+  BriefcaseBusiness,
+  Handshake,
+  Banknote,
+  Calendar,
+  MessagesSquare,
+  User,
+  BookMarked
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { Spinner } from "@/components/ui/spinner";
-import StudentLayout from "@/components/layout/student-layout";
+import { Sidebar } from "@/components/layout/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Pagination } from "@/components/ui/pagination";
@@ -63,9 +75,26 @@ interface Charge {
 
 export default function FinancialPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<Charge | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Número de itens por página
+  
+  // Definir itens da sidebar igual ao modelo do portal do polo
+  const sidebarItems = [
+    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard" },
+    { name: "Meus Cursos", icon: <BookOpen size={18} />, href: "/student/courses" },
+    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library" },
+    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial" },
+    { name: "Avaliações", icon: <FileQuestionIcon size={18} />, href: "/student/assessments" },
+    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships" },
+    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts" },
+    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: true },
+    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar" },
+    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
+    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
+  ];
 
   // Consulta as cobranças do aluno
   const {
@@ -74,7 +103,7 @@ export default function FinancialPage() {
     isError,
     error,
   } = useQuery<Charge[]>({
-    queryKey: ["/api/student/charges"],
+    queryKey: ["/api-json/student/charges"],
     queryFn: async () => {
       try {
         console.log("Tentando carregar cobranças do aluno...");
@@ -428,155 +457,173 @@ export default function FinancialPage() {
   }
 
   return (
-    <StudentLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <CreditCardIcon className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle className="text-xl">Pagamentos</CardTitle>
-                <CardDescription>Visão geral dos seus pagamentos</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between py-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total de cobranças</p>
-                  <p className="text-2xl font-bold">{charges?.length || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Cobranças pendentes</p>
-                  <p className="text-2xl font-bold">
-                    {charges?.filter((charge: Charge) => 
-                      charge.status === "PENDING" || 
-                      charge.status === "AWAITING_RISK_ANALYSIS" || 
-                      charge.status === "DUNNING_REQUESTED"
-                    ).length || 0}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        items={sidebarItems}
+        user={user}
+        portalType="student"
+        portalColor="#0891B2"
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+
+      <div className="flex-1 overflow-auto">
+        <div className="px-4 py-20 md:py-6 md:px-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
+            <p className="text-gray-600">Acompanhe e gerencie seus pagamentos</p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <CheckCircleIcon className="h-5 w-5 text-green-500" />
-              <div>
-                <CardTitle className="text-xl">Pagos</CardTitle>
-                <CardDescription>Pagamentos confirmados</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="py-4">
-                <p className="text-sm text-muted-foreground">Total de pagamentos confirmados</p>
-                <p className="text-2xl font-bold">
-                  {charges?.filter((charge: Charge) => 
-                    charge.status === "RECEIVED" || 
-                    charge.status === "CONFIRMED" || 
-                    charge.status === "RECEIVED_IN_CASH" ||
-                    charge.status === "DUNNING_RECEIVED"
-                  ).length || 0}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 pb-2">
-              <XCircleIcon className="h-5 w-5 text-red-500" />
-              <div>
-                <CardTitle className="text-xl">Vencidos</CardTitle>
-                <CardDescription>Pagamentos em atraso</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="py-4">
-                <p className="text-sm text-muted-foreground">Total de pagamentos vencidos</p>
-                <p className="text-2xl font-bold">
-                  {charges?.filter((charge: Charge) => 
-                    charge.status === "OVERDUE"
-                  ).length || 0}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium text-gray-900">Visão Geral</h2>
+            </div>
         
-        {content}
-        
-        {/* Modal de detalhes (simplificado) */}
-        {selectedBilling && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Detalhes da Cobrança</CardTitle>
-              <CardDescription>
-                Informações detalhadas sobre a cobrança selecionada
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">ID da Cobrança</dt>
-                  <dd className="mt-1 text-sm">{selectedBilling.id}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Descrição</dt>
-                  <dd className="mt-1 text-sm">{selectedBilling.description || "Mensalidade"}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Data de Vencimento</dt>
-                  <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dueDate))}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Valor</dt>
-                  <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.value)}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Data de Criação</dt>
-                  <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dateCreated))}</dd>
-                </div>
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Status</dt>
-                  <dd className="mt-1 text-sm">
-                    <Badge variant={getBillingStatusBadge(selectedBilling.status).variant as any}>
-                      {getBillingStatusBadge(selectedBilling.status).label}
-                    </Badge>
-                  </dd>
-                </div>
-                {selectedBilling.paymentDate && (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <CreditCardIcon className="h-5 w-5 text-primary" />
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Data de Pagamento</dt>
-                    <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.paymentDate))}</dd>
+                    <CardTitle className="text-xl">Pagamentos</CardTitle>
+                    <CardDescription>Visão geral dos seus pagamentos</CardDescription>
                   </div>
-                )}
-                {selectedBilling.fine && (
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Multa</dt>
-                    <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.fine)}</dd>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between py-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total de cobranças</p>
+                      <p className="text-2xl font-bold">{charges?.length || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Cobranças pendentes</p>
+                      <p className="text-2xl font-bold">
+                        {charges?.filter((charge: Charge) => 
+                          charge.status === "PENDING" || 
+                          charge.status === "AWAITING_RISK_ANALYSIS" || 
+                          charge.status === "DUNNING_REQUESTED"
+                        ).length || 0}
+                      </p>
+                    </div>
                   </div>
-                )}
-                {selectedBilling.interest && (
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Juros</dt>
-                    <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.interest)}</dd>
-                  </div>
-                )}
-              </dl>
+                </CardContent>
+              </Card>
               
-              <div className="mt-6 flex justify-end">
-                <Button variant="outline" onClick={() => setSelectedBilling(null)}>
-                  Fechar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                  <div>
+                    <CardTitle className="text-xl">Pagos</CardTitle>
+                    <CardDescription>Pagamentos confirmados</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground">Total de pagamentos confirmados</p>
+                    <p className="text-2xl font-bold">
+                      {charges?.filter((charge: Charge) => 
+                        charge.status === "RECEIVED" || 
+                        charge.status === "CONFIRMED" || 
+                        charge.status === "RECEIVED_IN_CASH" ||
+                        charge.status === "DUNNING_RECEIVED"
+                      ).length || 0}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center gap-2 pb-2">
+                  <XCircleIcon className="h-5 w-5 text-red-500" />
+                  <div>
+                    <CardTitle className="text-xl">Vencidos</CardTitle>
+                    <CardDescription>Pagamentos em atraso</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground">Total de pagamentos vencidos</p>
+                    <p className="text-2xl font-bold">
+                      {charges?.filter((charge: Charge) => 
+                        charge.status === "OVERDUE"
+                      ).length || 0}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {content}
+            
+            {/* Modal de detalhes */}
+            {selectedBilling && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Detalhes da Cobrança</CardTitle>
+                  <CardDescription>
+                    Informações detalhadas sobre a cobrança selecionada
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">ID da Cobrança</dt>
+                      <dd className="mt-1 text-sm">{selectedBilling.id}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Descrição</dt>
+                      <dd className="mt-1 text-sm">{selectedBilling.description || "Mensalidade"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Data de Vencimento</dt>
+                      <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dueDate))}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Valor</dt>
+                      <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.value)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Data de Criação</dt>
+                      <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dateCreated))}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Status</dt>
+                      <dd className="mt-1 text-sm">
+                        <Badge variant={getBillingStatusBadge(selectedBilling.status).variant as any}>
+                          {getBillingStatusBadge(selectedBilling.status).label}
+                        </Badge>
+                      </dd>
+                    </div>
+                    {selectedBilling.paymentDate && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Data de Pagamento</dt>
+                        <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.paymentDate))}</dd>
+                      </div>
+                    )}
+                    {selectedBilling.fine && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Multa</dt>
+                        <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.fine)}</dd>
+                      </div>
+                    )}
+                    {selectedBilling.interest && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Juros</dt>
+                        <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.interest)}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  
+                  <div className="mt-6 flex justify-end">
+                    <Button variant="outline" onClick={() => setSelectedBilling(null)}>
+                      Fechar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
-    </StudentLayout>
+    </div>
   );
 }

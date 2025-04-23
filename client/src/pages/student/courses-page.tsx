@@ -37,7 +37,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { StudentLayout } from "@/components/layout/student-layout";
+import { Sidebar } from "@/components/layout/sidebar";
+import {
+  LayoutDashboard as DashboardIcon,
+  BookOpen,
+  GraduationCap,
+  FileQuestion,
+  BriefcaseBusiness,
+  Handshake,
+  Banknote,
+  Calendar,
+  MessagesSquare,
+  User,
+  BookMarked
+} from "lucide-react";
 
 // Definindo a interface para os cursos
 interface StudentCourse {
@@ -54,18 +67,30 @@ interface StudentCourse {
 
 export default function StudentCoursesPage() {
   const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterStatus, setFilterStatus] = useState("all");
-  // Não precisamos mais gerenciar o estado do menu mobile, o StudentLayout cuida disso
 
   const { data: courses = [], isLoading } = useQuery<StudentCourse[]>({
     queryKey: ["/api-json/student/courses"],
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  // Já não precisamos mais recuperar os itens da sidebar aqui
-  // O StudentLayout cuida disso internamente
+  // Definir itens da sidebar igual ao modelo do portal do polo
+  const sidebarItems = [
+    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard" },
+    { name: "Meus Cursos", icon: <BookOpen size={18} />, href: "/student/courses", active: true },
+    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library" },
+    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial" },
+    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments" },
+    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships" },
+    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts" },
+    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial" },
+    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar" },
+    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
+    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
+  ];
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -118,11 +143,25 @@ export default function StudentCoursesPage() {
   };
 
   return (
-    <StudentLayout
-      title="Meus Cursos"
-      subtitle="Gerencie e acesse todos os seus cursos"
-    >
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        items={sidebarItems}
+        user={user}
+        portalType="student"
+        portalColor="#0891B2"
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <div className="px-4 py-20 md:py-6 md:px-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Meus Cursos</h1>
+            <p className="text-gray-600">Gerencie e acesse todos os seus cursos</p>
+          </div>
+          
           {/* Filters and Search */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <Input
@@ -242,6 +281,9 @@ export default function StudentCoursesPage() {
                 ))
               )}
           </div>
-    </StudentLayout>
+          
+        </div>
+      </div>
+    </div>
   );
 }
