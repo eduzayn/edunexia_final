@@ -532,6 +532,12 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         href: "/admin/sistema/institution-settings",
         active: currentPath === "/admin/sistema/institution-settings" || (currentPath && currentPath.includes("/admin/sistema/institution-settings"))
       },
+      { 
+        name: "Contrl. Acesso ao Portal do Aluno", 
+        icon: <GraduationCapAltIcon />, 
+        href: "/admin/sistema/portal-access-control",
+        active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+      },
     ]
   };
 

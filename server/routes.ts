@@ -42,6 +42,13 @@ import {
   unblockAccess,
   checkAccessStatus
 } from './controllers/student-portal-access-controller';
+import {
+  getInstitutionAccessConfig,
+  updateInstitutionAccessConfig
+} from './controllers/institution-access-config-controller';
+import {
+  getPortalAccessReport
+} from './controllers/portal-access-report-controller';
 
 // Armazenamento de sessão simplificado (em memória)
 const activeUsers: Record<string, any> = {};
