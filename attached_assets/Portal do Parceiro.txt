@@ -1,0 +1,255 @@
+Portal do Parceiro
+
+Este documento detalha os requisitos para o desenvolvimento do módulo de certificação dentro do Portal do Parceiro Edunéxia. O objetivo principal é automatizar o processo de solicitação de certificação de alunos vinculados a cursos ativos, permitindo que as instituições parceiras gerenciem esse fluxo de forma eficiente. O sistema deverá contemplar a submissão de alunos (individual e em lote), a integração com o módulo financeiro para cobrança do valor de certificação (definido por categoria de curso), a emissão automática de certificado e histórico escolar após a quitação, e a geração de indicadores e logs detalhados para acompanhamento. Este módulo substituirá os processos manuais existentes, garantindo segurança, rastreabilidade e integração com os dados acadêmicos dos cursos. Já existe um botão no seletor de portais ao clicar login no site principal da aplicação que deverá direcionar para o portal do parceiro. É importante ressaltar que os alunos do parceiro não tem acesso ao portal do aluno edunéxia, esses alunos já fizeram os cursos em plataformas externas e a função do sistema é tão somente controlar e emitir certificações válidas por um a das faculdades parceriras da edunéxia como a faculdade dynamus de campinas FADYC, POR EXEMPLO.
+
+2. 🎯 Objetivos da Tarefa
+Criar o sistema de submissão de alunos para certificação: Permitir que parceiros enviem solicitações de certificação individualmente ou em lote através de arquivos CSV ou formulários com múltiplos campos.
+Garantir a vinculação com cursos ativos: Assegurar que a solicitação de certificação seja possível apenas para alunos matriculados em cursos previamente cadastrados e ativos no sistema, com disciplinas e corpo docente definidos.
+Implementar a integração com o Módulo Financeiro Empresarial: Conectar o módulo de certificação ao sistema financeiro para gerar cobranças (boletos, Pix, cartão) com base na categoria do curso e controlar o status dos pagamentos.
+Automatizar a geração de certificado e histórico escolar: Após a confirmação do pagamento, o sistema deverá gerar automaticamente os documentos em formato PDF, incluindo QR Code para validação externa.
+Gerar indicadores e logs detalhados: Desenvolver um painel administrativo com filtros e dashboards para acompanhamento das operações de certificação por parceiro, além de registrar logs de todas as ações relevantes.
+Criar interface administrativa para gerenciamento: Implementar uma interface robusta para a equipe da Educnéxia gerenciar as solicitações, validar documentos, emitir certificados (quando necessário), configurar cursos e valores, acompanhar pagamentos e gerar relatórios.
+3. 🧱 Requisitos Técnicos Detalhados
+3.1. 📚 Vinculação com Cursos Ativos
+O Portal do Parceiro deverá exibir apenas os cursos marcados como "ativos" no sistema para a seleção durante o processo de solicitação de certificação.
+Para cada curso ativo, o sistema deverá garantir que as seguintes informações estejam cadastradas:
+Disciplinas: Cada disciplina deve possuir um nome, carga horária total e corpo docente (professor responsável) vinculado.
+Critérios de Avaliação: Os critérios de aprovação e reprovação devem estar definidos no cadastro do curso.
+No momento da solicitação de certificação, ao selecionar um curso, o sistema deverá carregar automaticamente a lista de disciplinas vinculadas para a geração do histórico escolar do aluno.
+3.2. 🧾 Submissão para Certificação (Portal do Parceiro)
+Página de Submissão: Criar uma página intuitiva dentro do Portal do Parceiro com as seguintes opções:
+Submissão Individual: Formulário online com os seguintes campos obrigatórios:
+Nome completo do aluno (text input)
+Seleção do curso ativo (dropdown populado dinamicamente)
+Upload de documentos comprobatórios (RG, histórico escolar anterior, declaração de conclusão – permitir múltiplos uploads com extensões JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Submissão em Lote:
+Opção para upload de arquivo CSV (especificar o formato esperado do CSV, incluindo cabeçalhos obrigatórios: Nome do Aluno, Código do Curso).
+Opção para preenchimento de formulário com múltiplos campos para informações de diversos alunos simultaneamente (com botão para adicionar mais alunos).
+Validações:
+Validar se o curso selecionado está ativo.
+Validar o preenchimento de todos os campos obrigatórios.
+Validar o formato e tamanho dos arquivos de documentação.
+Para submissão em lote via CSV, realizar validação da estrutura do arquivo e dos dados (existência do curso).
+Processamento da Solicitação:
+Após a submissão, o sistema deverá gerar um registro da solicitação de certificação, vinculando o aluno ao curso e armazenando os documentos enviados.
+O parceiro deverá receber uma confirmação da submissão com um número de protocolo.
+3.3. 💳 Lógica Financeira Integrada
+Cadastro de Categorias e Valores: No Módulo Financeiro Empresarial, deverá haver um cadastro de categorias de cursos (ex: Pós-graduação, Extensão, Formação Livre, Segunda Licenciatura) e um valor de certificação associado a cada categoria.
+Consulta de Valor: No momento da submissão da solicitação de certificação, o sistema deverá consultar o Módulo Financeiro Empresarial para obter o valor da certificação correspondente à categoria do curso selecionado.
+Geração de Cobrança: Após o envio da solicitação de certificação pelo parceiro:
+O sistema deverá gerar automaticamente uma cobrança no Módulo Financeiro Empresarial com o valor correto, descrição ("Taxa de Certificação - [Nome do Aluno] - [Nome do Curso]"), e vincular essa cobrança à solicitação de certificação.
+O sistema deverá permitir a geração de diferentes formas de pagamento (boleto bancário, Pix, cartão de crédito – a serem definidos).
+Definir um prazo de vencimento padrão para as cobranças ou permitir configuração.
+Visualização do Status da Cobrança (Portal do Parceiro):
+O parceiro deverá ter uma área no portal para visualizar o status de pagamento de suas solicitações de certificação (Pendente, Pago, Vencido).
+Disponibilizar o link ou código para pagamento (boleto, Pix) quando o status for "Pendente".
+Bloqueio da Emissão: O sistema não deverá permitir a geração do certificado e histórico escolar até que o Módulo Financeiro Empresarial confirme a quitação da cobrança correspondente.
+3.4. 📤 Emissão Automática
+Geração de Certificado (PDF):
+Após a confirmação do pagamento, o sistema deverá gerar automaticamente o certificado em formato PDF, contendo no mínimo:
+Nome completo do aluno
+Nome do curso concluído
+Carga horária total do curso
+Data de conclusão (a ser definida – pode ser a data da solicitação ou outra lógica)
+Assinatura digital da instituição certificadora (ou imagem da assinatura).
+Logotipo da Educnéxia e da instituição parceira (se aplicável).
+Geração de Histórico Escolar (PDF):
+Com base nas disciplinas vinculadas ao curso, o sistema deverá gerar automaticamente o histórico escolar em formato PDF, contendo no mínimo:
+Nome completo do aluno
+Nome do curso
+Lista de disciplinas cursadas com suas respectivas cargas horárias.
+Resultado final em cada disciplina (se aplicável).
+Data de conclusão do curso.
+Assinatura digital da instituição certificadora (ou imagem da assinatura).
+Logotipo da Educnéxia e da instituição parceira (se aplicável).
+QR Code para Validação:
+Inserir um QR Code único em ambos os documentos (certificado e histórico) que, ao ser escaneado, direcione para uma página de validação online contendo os dados do certificado/histórico para confirmação de autenticidade.
+Disponibilização para Download (Portal do Parceiro):
+Após a geração, os documentos (certificado e histórico) deverão ser disponibilizados para download em formato PDF na área da solicitação dentro do Portal do Parceiro.
+Enviar uma notificação (por e-mail e/ou no portal) ao parceiro informando que os documentos estão disponíveis para download.
+3.5. 📊 Indicadores e Logs (Interface Administrativa)
+Painel de Controle: Criar um painel administrativo para a equipe da Educnéxia com as seguintes funcionalidades de filtro:
+Filtrar por instituição parceira (dropdown).
+Filtrar por curso (dropdown).
+Filtrar por status da solicitação (Aguardando análise, Aguardando pagamento, Aprovado, Recusado, Emitido - checkboxes ou dropdown).
+Filtrar por status financeiro (Pago, Pendente, Atrasado - checkboxes ou dropdown).
+Filtrar por período (data de solicitação, data de pagamento, data de emissão - seletores de data).
+Dashboard: Exibir visualmente os seguintes indicadores:
+Total de certificações emitidas (número).
+Valor total gerado com as taxas de certificação (R$).
+Número de parcelas em atraso (número).
+Gráfico de certificações emitidas por mês (linha ou barra).
+Ranking dos parceiros com mais certificações emitidas (barra).
+Log de Operações: Registrar detalhadamente cada operação realizada no módulo de certificação, incluindo:
+Quem solicitou (parceiro e/ou usuário administrativo).
+Quando a ação ocorreu (timestamp).
+Qual foi a ação realizada (submissão, aprovação, rejeição, emissão, pagamento confirmado, etc.).
+Status da certificação em cada etapa.
+Status do pagamento em cada etapa.
+Informações relevantes sobre a operação (ex: ID da solicitação, ID da fatura).
+3.6. 🖥️ Interface Administrativa (Visão da Certificadora)
+Acesso Restrito: A interface administrativa deverá ser acessível apenas por usuários autenticados com permissões específicas de "administrador de certificações".
+Navegação: Organizar a interface em sessões claras e intuitivas:
+Solicitações de Certificação:
+Tabela com todas as solicitações de certificação, exibindo as seguintes colunas: Nome do aluno, Curso, Instituição parceira, Status da solicitação, Status financeiro, Data da solicitação.
+Opção de filtrar e ordenar as solicitações por diferentes critérios (colunas).
+Botão "Visualizar detalhes" para cada solicitação.
+Botão "Emitir certificado" habilitado apenas para solicitações com status "Pago".
+Tela de Detalhamento da Solicitação:
+Exibição completa dos dados do aluno, curso e instituição parceira.
+Visualização dos documentos anexados pelo parceiro.
+Pré-visualização do certificado e do histórico a serem emitidos (com os dados que serão gerados).
+Campos para a equipe administrativa:
+Validar os documentos enviados (com opções de "Aprovado" ou "Rejeitado" para cada documento).
+Adicionar observações internas ou solicitar correções ao parceiro (campo de texto).
+Ações de "Aprovar Solicitação" ou "Rejeitar Solicitação" (com justificativa obrigatória para rejeição).
+Histórico de ações realizadas na solicitação (quem realizou, qual ação e quando).
+Cursos e Valores:
+Listagem de todos os cursos ativos no sistema, exibindo nome, categoria e valor de certificação associado.
+Funcionalidade para cadastrar novas categorias de cursos com um valor padrão de certificação.
+Funcionalidade para atualizar os valores de certificação por tipo de curso.
+Opção para habilitar/desabilitar cursos para a solicitação de certificação pelos parceiros.
+Tabela que liste os cursos aprovados para cada instituição parceira (permitindo gerenciar quais cursos cada parceiro pode certificar).
+Cobranças e Pagamentos:
+Listagem de todas as faturas geradas para as solicitações de certificação dos parceiros.
+Filtros avançados por parceiro, status do pagamento (Pago, Em aberto, Vencido), curso, mês de emissão/vencimento.
+Colunas exibindo: ID da fatura, Instituição parceira, Nome do aluno, Curso, Valor total, Status do pagamento, Data de vencimento, Link/código de pagamento.
+Botão para exportar relatórios financeiros em formato CSV ou Excel, com opções de seleção de período e parceiro.
+Relatórios e Indicadores:
+Exibição dos gráficos e indicadores definidos na seção 3.5.
+Opção para exportar os dados dos relatórios em formato CSV ou Excel.
+Seção de Logs com a listagem de todas as atividades registradas, com opções de filtro por usuário (interno e parceiro), tipo de ação e período.
+3.7. 🔐 Segurança e Permissões
+Restrição de Acesso: Os parceiros só poderão visualizar e solicitar certificações para os alunos vinculados aos seus próprios cursos e matrículas. A identificação do vínculo será feita através do login do parceiro no sistema.
+Registro de Auditoria: Todas as alterações de status das solicitações, aprovações, emissões e pagamentos deverão ser registradas em logs, incluindo o usuário responsável pela alteração e o timestamp.
+Relatórios de Auditoria: A interface administrativa deverá permitir a geração de relatórios de auditoria em formatos PDF e Excel, contendo o histórico completo das operações por parceiro e por período.
+Segurança dos Documentos: Garantir a segurança dos documentos (RG, histórico, certificado) armazenados no sistema, implementando medidas de proteção contra acesso não autorizado.
+3.8. 📎 Observações Adicionais
+O desenvolvimento deste módulo deve priorizar a alta segurança, rastreabilidade de todas as operações e integração nativa com os dados acadêmicos dos cursos já cadastrados no sistema Educnéxia.
+Considerar a escalabilidade do sistema para um grande volume de solicitações e parceiros.
+A interface do Portal do Parceiro deve ser intuitiva e de fácil utilização.
+Prever um fluxo de notificações (via e-mail e/ou dentro do portal) para manter os parceiros informados sobre o status de suas solicitações e pagamentos.
+Documentar detalhadamente a API de integração com o Módulo Financeiro Empresarial.
+Próximos Passos
+Com este detalhamento da tarefa, o time de desenvolvimento possui as informações necessárias para iniciar a implementação do Módulo de Certificação via Portal do Parceiro Educnéxia. Solicitamos que o time analise os requisitos, levante quaisquer dúvidas e apresente um plano de desenvolvimento com prazos estimados para cada etapa.
+
+
+
+
+
+
+As certificações só podem ser emitidas mediante aprovação da documentação pessoal, e academica do aluno:
+
+
+
+RG
+
+CPF
+
+Comp. Endereço
+
+Diploma Graduação (para pós-graduação e segunda graduação)
+
+histórico graduação
+
+certificado de ensino médio
+
+outros
+
+
+
+precisamos incluir um sistema de upload no portal do parceiro e aprovação de documentos na interface administrativa
+
+
+
+Tarefa Técnica Detalhada – Módulo de Certificação via Portal do Parceiro Ecossistema Educnéxia (Atualização)
+Produto: Portal do Parceiro Educnéxia
+Módulo: Certificação de Alunos
+Responsável: [Nome do Gestor do Projeto]
+Data de Início: [Data de Início]
+Data de Entrega Prevista: [Data de Entrega]
+
+1. 🧭 Visão Geral
+Este documento detalha os requisitos para o desenvolvimento do módulo de certificação dentro do Portal do Parceiro Educnéxia. O objetivo principal é automatizar o processo de solicitação de certificação de alunos vinculados a cursos ativos, permitindo que as instituições parceiras gerenciem esse fluxo de forma eficiente. O sistema deverá contemplar a submissão de alunos (individual e em lote), o upload obrigatório de documentação pessoal e acadêmica, a aprovação desses documentos pela equipe administrativa da Educnéxia, a integração com o módulo financeiro para cobrança do valor de certificação (definido por categoria de curso), a emissão automática de certificado e histórico escolar após a quitação e aprovação dos documentos, e a geração de indicadores e logs detalhados para acompanhamento. Este módulo substituirá os processos manuais existentes, garantindo segurança, rastreabilidade e integração com os dados acadêmicos dos cursos.
+
+2. 🎯 Objetivos da Tarefa (Atualizado)
+Criar o sistema de submissão de alunos para certificação: Permitir que parceiros enviem solicitações de certificação individualmente ou em lote através de arquivos CSV ou formulários com múltiplos campos, incluindo o upload obrigatório de documentos.
+Garantir a vinculação com cursos ativos: Assegurar que a solicitação de certificação seja possível apenas para alunos matriculados em cursos previamente cadastrados e ativos no sistema, com disciplinas e corpo docente definidos.
+Implementar o sistema de upload de documentos: Permitir que os parceiros anexem os documentos necessários (RG, CPF, Comprovante de Endereço, Diploma de Graduação, Histórico de Graduação, Certificado de Ensino Médio e outros definidos por curso) durante a submissão.
+Implementar a interface de aprovação de documentos: Desenvolver uma interface administrativa para a equipe da Educnéxia revisar e aprovar (ou rejeitar) os documentos submetidos para cada solicitação de certificação.
+Implementar a integração com o Módulo Financeiro Empresarial: Conectar o módulo de certificação ao sistema financeiro para gerar cobranças (boletos, Pix, cartão) com base na categoria do curso e controlar o status dos pagamentos.
+Automatizar a geração de certificado e histórico escolar: Após a confirmação do pagamento e a aprovação de todos os documentos, o sistema deverá gerar automaticamente os documentos em formato PDF, incluindo QR Code para validação externa.
+Gerar indicadores e logs detalhados: Desenvolver um painel administrativo com filtros e dashboards para acompanhamento das operações de certificação por parceiro, além de registrar logs de todas as ações relevantes, incluindo o status da aprovação dos documentos.
+Criar interface administrativa completa para gerenciamento: Implementar uma interface robusta para a equipe da Educnéxia gerenciar as solicitações, aprovar/rejeitar documentos, emitir certificados (quando necessário), configurar cursos e valores, acompanhar pagamentos e gerar relatórios.
+3. 🧱 Requisitos Técnicos Detalhados (Atualizado)
+3.2. 🧾 Submissão para Certificação (Portal do Parceiro)
+Página de Submissão: Criar uma página intuitiva dentro do Portal do Parceiro com as seguintes opções:
+Submissão Individual: Formulário online com os seguintes campos obrigatórios:
+Nome completo do aluno (text input)
+Seleção do curso ativo (dropdown populado dinamicamente)
+Upload de Documentos Obrigatórios:
+RG (upload obrigatório - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+CPF (upload obrigatório - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Comprovante de Endereço (upload obrigatório - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Diploma de Graduação (upload condicionalmente obrigatório para cursos de Pós-graduação e Segunda Graduação - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Histórico de Graduação (upload condicionalmente obrigatório para cursos de Pós-graduação e Segunda Graduação - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Certificado de Ensino Médio (upload obrigatório - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Outros documentos específicos por curso (a serem definidos e configuráveis na interface administrativa - permitir formatos JPG, PNG, PDF e tamanho máximo por arquivo a ser definido).
+Submissão em Lote:
+Opção para upload de arquivo CSV (especificar o formato esperado do CSV, incluindo cabeçalhos obrigatórios: Nome do Aluno, Código do Curso, e colunas indicando o caminho para os arquivos dos documentos - RG, CPF, etc.).
+Opção para preenchimento de formulário com múltiplos campos para informações de diversos alunos simultaneamente, com campos de upload para os documentos de cada aluno.
+Validações:
+Validar se o curso selecionado está ativo.
+Validar o preenchimento de todos os campos obrigatórios.
+Validar se todos os documentos obrigatórios foram anexados para o curso selecionado.
+Validar o formato e tamanho dos arquivos de documentação.
+Para submissão em lote via CSV, realizar validação da estrutura do arquivo e dos dados (existência do curso, caminhos dos arquivos).
+Processamento da Solicitação:
+Após a submissão, o sistema deverá gerar um registro da solicitação de certificação, vinculando o aluno ao curso e armazenando os documentos enviados.
+O parceiro deverá receber uma confirmação da submissão com um número de protocolo e informações sobre o status da análise documental.
+3.6. 🖥️ Interface Administrativa (Visão da Certificadora)
+Acesso Restrito: A interface administrativa deverá ser acessível apenas por usuários autenticados com permissões específicas de "administrador de certificações".
+Navegação: Organizar a interface em sessões claras e intuitivas:
+Solicitações de Certificação:
+Tabela com todas as solicitações de certificação, exibindo as seguintes colunas: Nome do aluno, Curso, Instituição parceira, Status da solicitação (Aguardando Análise Documental, Aguardando Pagamento, Documentos Aprovados, Recusado, Emitido), Status financeiro, Data da solicitação.
+Opção de filtrar e ordenar as solicitações por diferentes critérios (colunas), incluindo o status da análise documental.
+Botão "Visualizar detalhes" para cada solicitação.
+Botão "Emitir certificado" habilitado apenas para solicitações com status "Pago" e "Documentos Aprovados".
+Tela de Detalhamento da Solicitação:
+Exibição completa dos dados do aluno, curso e instituição parceira.
+Listagem dos documentos anexados pelo parceiro, com opção de visualização de cada arquivo.
+Status de cada documento (Pendente, Aprovado, Rejeitado).
+Campos para a equipe administrativa:
+Opção para aprovar ou rejeitar cada documento individualmente (com campo para justificativa de rejeição).
+Adicionar observações internas ou solicitar correções ao parceiro (campo de texto).
+Ações de "Aprovar Solicitação" (após todos os documentos serem aprovados e o pagamento confirmado) ou "Rejeitar Solicitação" (em caso de problemas com a documentação ou outras inconsistências - com justificativa obrigatória).
+Histórico de ações realizadas na solicitação (quem realizou, qual ação e quando), incluindo o histórico de aprovação/rejeição de cada documento.
+Cursos e Valores:
+Listagem de todos os cursos ativos no sistema, exibindo nome, categoria e valor de certificação associado.
+Funcionalidade para cadastrar novas categorias de cursos com um valor padrão de certificação.
+Funcionalidade para atualizar os valores de certificação por tipo de curso.
+Opção para habilitar/desabilitar cursos para a solicitação de certificação pelos parceiros.
+Tabela que liste os cursos aprovados para cada instituição parceira (permitindo gerenciar quais cursos cada parceiro pode certificar).
+Configuração de Documentos Obrigatórios por Curso: Permitir que a equipe administrativa defina quais documentos serão obrigatórios para a solicitação de certificação de cada curso (ex: para Pós-graduação, Diploma e Histórico de Graduação são obrigatórios).
+Cobranças e Pagamentos:
+Listagem de todas as faturas geradas para as solicitações de certificação dos parceiros.
+Filtros avançados por parceiro, status do pagamento (Pago, Em aberto, Vencido), curso, mês de emissão/vencimento.
+Colunas exibindo: ID da fatura, Instituição parceira, Nome do aluno, Curso, Valor total, Status do pagamento, Data de vencimento, Link/código de pagamento.
+Botão para exportar relatórios financeiros em formato CSV ou Excel, com opções de seleção de período e parceiro.
+Relatórios e Indicadores:
+Exibição dos gráficos e indicadores definidos na seção 3.5, incluindo indicadores relacionados ao status da análise documental (ex: número de documentos pendentes de análise, tempo médio de aprovação documental).
+Opção para exportar os dados dos relatórios em formato CSV ou Excel.
+Seção de Logs com a listagem de todas as atividades registradas, com opções de filtro por usuário (interno e parceiro), tipo de ação e período, incluindo ações de aprovação/rejeição de documentos.
+3.7. 🔐 Segurança e Permissões
+Restrição de Acesso: Os parceiros só poderão visualizar e solicitar certificações para os alunos vinculados aos seus próprios cursos e matrículas. A identificação do vínculo será feita através do login do parceiro no sistema.
+Registro de Auditoria: Todas as alterações de status das solicitações, aprovações, rejeições, emissões e pagamentos, bem como as aprovações e rejeições de documentos, deverão ser registradas em logs, incluindo o usuário responsável pela alteração e o timestamp.
+Relatórios de Auditoria: A interface administrativa deverá permitir a geração de relatórios de auditoria em formatos PDF e Excel, contendo o histórico completo das operações por parceiro e por período, incluindo o histórico da análise documental.
+Segurança dos Documentos: Garantir a segurança dos documentos (RG, histórico, certificado) armazenados no sistema, implementando medidas de proteção contra acesso não autorizado. Definir políticas de retenção e descarte seguro dos documentos.
+3.8. 📎 Observações Adicionais
+O desenvolvimento deste módulo deve priorizar a alta segurança, rastreabilidade de todas as operações (incluindo a análise documental) e integração nativa com os dados acadêmicos dos cursos já cadastrados no sistema Educnéxia.
+Considerar a escalabilidade do sistema para um grande volume de solicitações e parceiros.
+A interface do Portal do Parceiro deve ser intuitiva e de fácil utilização, com instruções claras sobre os documentos necessários.
+A interface administrativa para análise documental deve ser organizada e eficiente, permitindo uma rápida revisão e feedback.
+Prever um fluxo de notificações (via e-mail e/ou dentro do portal) para manter os parceiros informados sobre o status de suas solicitações, pagamentos e análise documental (solicitação de correção, aprovação ou rejeição de documentos).
+Documentar detalhadamente a API de integração com o Módulo Financeiro Empresarial.
+Definir um fluxo claro para o tratamento de documentos rejeitados (notificação ao parceiro para correção e reenvio).
