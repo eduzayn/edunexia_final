@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Gerar token simples
       const token = Date.now().toString();
-      activeUsers[token] = user;
+      setActiveUser(token, user);
       
       // Não usar cookies, enviar o token na resposta
       // O cliente irá armazenar no localStorage
@@ -112,10 +112,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Gerar token simples
         const token = Date.now().toString();
-        activeUsers[token] = {
+        setActiveUser(token, {
           ...safeUser,
           role: safeUser.portalType
-        };
+        });
         
         // Não usar cookies, enviar o token na resposta
         // O cliente irá armazenar no localStorage
@@ -144,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Gerar token simples
           const token = Date.now().toString();
-          activeUsers[token] = user;
+          setActiveUser(token, user);
           
           // Não usar cookies, enviar o token na resposta
           // O cliente irá armazenar no localStorage
@@ -171,8 +171,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
-    if (token && activeUsers[token]) {
-      delete activeUsers[token];
+    if (token) {
+      removeActiveUser(token);
     }
     
     res.status(200).json({
@@ -187,14 +187,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
-    if (!token || !activeUsers[token]) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: "Usuário não autenticado"
       });
     }
     
-    res.status(200).json(activeUsers[token]);
+    const user = getActiveUserByToken(token);
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Sessão inválida ou expirada"
+      });
+    }
+    
+    res.status(200).json(user);
   });
 
   // Middleware para verificar autenticação (simplificado)
