@@ -9,7 +9,7 @@ import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
-import activeUsers, { setActiveUser, removeActiveUser } from './shared/active-users';
+import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
@@ -183,27 +183,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Rota para obter usuário atual
   app.get('/api-json/user', (req, res) => {
-    // Verificar o token no header de Authorization
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-    
-    if (!token) {
-      return res.status(401).json({
+    try {
+      // Verificar o token no header de Authorization
+      const authHeader = req.headers.authorization;
+      console.log('GET /api-json/user - Auth Header:', authHeader);
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+      
+      if (!token) {
+        console.log('GET /api-json/user - Token não encontrado');
+        return res.status(401).json({
+          success: false,
+          message: "Usuário não autenticado"
+        });
+      }
+      
+      console.log('GET /api-json/user - Token:', token);
+      const user = getActiveUserByToken(token);
+      console.log('GET /api-json/user - User encontrado:', user ? 'Sim' : 'Não');
+      
+      if (!user) {
+        console.log('GET /api-json/user - Sessão inválida');
+        return res.status(401).json({
+          success: false,
+          message: "Sessão inválida ou expirada"
+        });
+      }
+      
+      console.log('GET /api-json/user - Retornando usuário');
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error('Erro em GET /api-json/user:', error);
+      return res.status(500).json({
         success: false,
-        message: "Usuário não autenticado"
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
       });
     }
-    
-    const user = getActiveUserByToken(token);
-    
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Sessão inválida ou expirada"
-      });
-    }
-    
-    res.status(200).json(user);
   });
 
   // Middleware para verificar autenticação (simplificado)
@@ -243,14 +258,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
-    if (!token || !activeUsers[token]) {
+    if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
     
-    const user = activeUsers[token];
+    const user = getActiveUserByToken(token);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Sessão inválida ou expirada. Faça login novamente.' 
+      });
+    }
+    
     if (user.portalType !== 'admin' && user.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
@@ -273,14 +296,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
-    if (!token || !activeUsers[token]) {
+    if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
     
-    const user = activeUsers[token];
+    const user = getActiveUserByToken(token);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Sessão inválida ou expirada. Faça login novamente.' 
+      });
+    }
+    
     if (user.portalType !== 'student' && user.role !== 'student') {
       return res.status(403).json({ 
         success: false,

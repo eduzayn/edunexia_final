@@ -23,12 +23,14 @@ export async function apiRequest<T = any>(
   
   // Adicionar token de autenticação ao header se disponível no localStorage
   const authToken = localStorage.getItem('auth_token');
+  console.log('Token de autenticação recuperado do localStorage:', !!authToken ? 'Sim' : 'Não');
   if (authToken) {
     customHeaders['Authorization'] = `Bearer ${authToken}`;
+    console.log('Authorization Header definido:', `Bearer ${authToken}`);
   }
 
   // Adicionar console.log para debug
-  console.log(`Realizando requisição ${method} para ${url}`);
+  console.log(`Realizando requisição ${method} para ${url}`, { headers: customHeaders });
 
   const res = await fetch(url, {
     method,
