@@ -12,7 +12,7 @@ import { eq } from 'drizzle-orm';
 import { users } from '../../shared/schema';
 
 // Chave específica para certificações (definida pelo usuário)
-const ASAAS_API_KEY = process.env.ASAAS_CERTIFIC_KEY;
+const ASAAS_API_KEY = process.env.ASAAS_CERTIFIC_KEY || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmY4ZmQ2MTVhLWUwMmUtNDkxMC05NTQ3LTZmZTYzMTIyNzk4Nzo6JGFhY2hfNTlhMmU5NDYtMGE2ZC00OWExLWEwN2MtZDZiNzZkYjZjYmEz';
 // Sempre usar ambiente de produção
 const ASAAS_API_URL = 'https://api.asaas.com/v3';
 
