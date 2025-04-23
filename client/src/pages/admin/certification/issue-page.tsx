@@ -1,5 +1,5 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/admin-layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,12 +36,14 @@ import {
   AlertTriangleIcon,
   FilterIcon,
   PlusIcon,
-  TrashIcon
+  TrashIcon,
+  LoaderIcon
 } from "@/components/ui/icons";
 
 // Página de emissão de certificados
 export default function CertificationIssuePage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedTab, setSelectedTab] = React.useState("eligible");
   const [selectedStudents, setSelectedStudents] = React.useState<number[]>([]);
@@ -49,82 +51,109 @@ export default function CertificationIssuePage() {
   const [selectedCertificate, setSelectedCertificate] = React.useState<any>(null);
   const [issuingCertificates, setIssuingCertificates] = React.useState(false);
   
-  // Dados de exemplo para alunos elegíveis para certificação
-  const eligibleStudents = [
-    {
-      id: 1,
-      name: "Ana Clara Silva",
-      cpf: "123.456.789-00",
-      email: "ana.silva@exemplo.com",
-      course: "MBA em Gestão de Projetos",
-      courseType: "Pós-Graduação",
-      completionDate: "15/03/2025",
-      requiredHours: 360,
-      completedHours: 360,
-      status: "eligible"
+  // Consultas para buscar dados do backend
+  const { 
+    data: eligibleStudentsData, 
+    isLoading: loadingEligible,
+    error: eligibleError 
+  } = useQuery({
+    queryKey: ['api/eligibleStudents'],
+    queryFn: async () => {
+      // Em um ambiente real, buscaríamos esta lista da API
+      // Exemplo: const response = await fetch('/api/enrollments/completed');
+      
+      // Por enquanto, usamos dados simulados
+      return [
+        {
+          id: 1,
+          name: "Ana Clara Silva",
+          cpf: "123.456.789-00",
+          email: "ana.silva@exemplo.com",
+          course: "MBA em Gestão de Projetos",
+          courseType: "Pós-Graduação",
+          completionDate: "15/03/2025",
+          requiredHours: 360,
+          completedHours: 360,
+          status: "eligible"
+        },
+        {
+          id: 2,
+          name: "Bruno Costa Oliveira",
+          cpf: "987.654.321-00",
+          email: "bruno.costa@exemplo.com",
+          course: "Especialização em Marketing Digital",
+          courseType: "Pós-Graduação",
+          completionDate: "10/03/2025",
+          requiredHours: 360,
+          completedHours: 360,
+          status: "eligible"
+        },
+        {
+          id: 3,
+          name: "Carlos Eduardo Mendes",
+          cpf: "456.789.123-00",
+          email: "carlos.mendes@exemplo.com",
+          course: "Desenvolvimento Full Stack",
+          courseType: "Formação Livre",
+          completionDate: "05/03/2025",
+          requiredHours: 120,
+          completedHours: 120,
+          status: "eligible"
+        }
+      ];
     },
-    {
-      id: 2,
-      name: "Bruno Costa Oliveira",
-      cpf: "987.654.321-00",
-      email: "bruno.costa@exemplo.com",
-      course: "Especialização em Marketing Digital",
-      courseType: "Pós-Graduação",
-      completionDate: "10/03/2025",
-      requiredHours: 360,
-      completedHours: 360,
-      status: "eligible"
+  });
+
+  const { 
+    data: certificatesData, 
+    isLoading: loadingCertificates,
+    error: certificatesError,
+    refetch: refetchCertificates
+  } = useQuery({
+    queryKey: ['api/certificates'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/certificates?status=issued');
+        if (!response.ok) {
+          throw new Error('Erro ao buscar certificados');
+        }
+        
+        const data = await response.json();
+        return data.data.map((cert: any) => ({
+          id: cert.certificates.id,
+          studentName: cert.studentName,
+          course: cert.courseName,
+          courseType: cert.certificates.courseType,
+          issueDate: new Date(cert.issueDate).toLocaleDateString('pt-BR'),
+          certificateCode: cert.certificates.code,
+          status: cert.status,
+        }));
+      } catch (error) {
+        console.error('Erro ao buscar certificados:', error);
+        throw error;
+      }
     },
-    {
-      id: 3,
-      name: "Carlos Eduardo Mendes",
-      cpf: "456.789.123-00",
-      email: "carlos.mendes@exemplo.com",
-      course: "Desenvolvimento Full Stack",
-      courseType: "Formação Livre",
-      completionDate: "05/03/2025",
-      requiredHours: 120,
-      completedHours: 120,
-      status: "eligible"
-    }
-  ];
-  
-  // Dados de exemplo para certificados já emitidos
-  const issuedCertificates = [
-    {
-      id: 101,
-      studentName: "Daniela Ferreira",
-      cpf: "111.222.333-44",
-      course: "MBA em Finanças",
-      courseType: "Pós-Graduação",
-      issueDate: "20/02/2025",
-      expirationDate: null,
-      certificateCode: "CERT-2025-00123",
-      downloadUrl: "#"
+  });
+
+  const { 
+    data: templatesData, 
+    isLoading: loadingTemplates 
+  } = useQuery({
+    queryKey: ['api/certificateTemplates'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/certificate-templates');
+        if (!response.ok) {
+          return [{ id: 1, name: "Modelo Padrão" }];
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        // Fallback para um template padrão em caso de erro
+        return [{ id: 1, name: "Modelo Padrão" }];
+      }
     },
-    {
-      id: 102,
-      studentName: "Eduardo Almeida",
-      cpf: "555.666.777-88",
-      course: "Gestão de Recursos Humanos",
-      courseType: "Pós-Graduação",
-      issueDate: "15/02/2025",
-      expirationDate: null,
-      certificateCode: "CERT-2025-00124",
-      downloadUrl: "#"
-    },
-    {
-      id: 103,
-      studentName: "Fernanda Gomes",
-      cpf: "999.888.777-66",
-      course: "Design de Experiência do Usuário",
-      courseType: "Formação Livre",
-      issueDate: "10/02/2025",
-      expirationDate: "10/02/2026",
-      certificateCode: "CERT-2025-00125",
-      downloadUrl: "#"
-    }
-  ];
+  });
   
   // Função para alternar seleção de aluno
   const toggleStudentSelection = (studentId: number) => {
@@ -137,18 +166,19 @@ export default function CertificationIssuePage() {
   
   // Função para selecionar todos os alunos
   const toggleSelectAll = () => {
+    if (!eligibleStudentsData) return;
+    
     setSelectedStudents(
-      selectedStudents.length === eligibleStudents.length
+      selectedStudents.length === eligibleStudentsData.length
         ? []
-        : eligibleStudents.map(student => student.id)
+        : eligibleStudentsData.map(student => student.id)
     );
   };
   
-  // Lista de modelos de certificado disponíveis
-  const certificateTemplates = [
-    { id: 1, name: "Modelo Padrão" },
-    { id: 2, name: "Modelo Alternativo" }
-  ];
+  // Usar os dados reais da API ou fallbacks
+  const eligibleStudents = eligibleStudentsData || [];
+  const issuedCertificates = certificatesData || [];
+  const certificateTemplates = templatesData || [{ id: 1, name: "Modelo Padrão" }];
   
   // Signatários disponíveis para assinatura do certificado
   const availableSigners = [
@@ -159,6 +189,13 @@ export default function CertificationIssuePage() {
   // Função para verificar se todos estão selecionados
   const areAllSelected = selectedStudents.length === eligibleStudents.length && eligibleStudents.length > 0;
   
+  // Função para recarregar dados quando a aba muda
+  React.useEffect(() => {
+    if (selectedTab === "issued") {
+      refetchCertificates();
+    }
+  }, [selectedTab, refetchCertificates]);
+  
   // Função para filtrar alunos com base no termo de busca
   const filteredEligibleStudents = eligibleStudents.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -167,11 +204,11 @@ export default function CertificationIssuePage() {
   );
   
   // Função para filtrar certificados com base no termo de busca
-  const filteredIssuedCertificates = issuedCertificates.filter(cert =>
-    cert.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.cpf.includes(searchTerm) ||
-    cert.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.certificateCode.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredIssuedCertificates = issuedCertificates.filter((cert: any) =>
+    cert.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (cert.cpf && cert.cpf.includes(searchTerm)) ||
+    cert.course?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cert.certificateCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   // Mock da função para visualizar certificado
@@ -186,8 +223,8 @@ export default function CertificationIssuePage() {
     }
   };
   
-  // Mock da função para emitir certificados
-  const handleIssueCertificates = () => {
+  // Função para emitir certificados em lote
+  const handleIssueCertificates = async () => {
     if (selectedStudents.length === 0) {
       toast({
         title: "Nenhum aluno selecionado",
@@ -197,17 +234,63 @@ export default function CertificationIssuePage() {
       return;
     }
     
+    // Por padrão, usamos o primeiro template disponível
+    const defaultTemplateId = certificateTemplates.length > 0 ? certificateTemplates[0].id : 1;
+    
     setIssuingCertificates(true);
     
-    // Simulando chamada à API
-    setTimeout(() => {
-      setIssuingCertificates(false);
-      toast({
-        title: "Certificados emitidos com sucesso",
-        description: `${selectedStudents.length} certificado(s) emitido(s) com sucesso.`,
+    try {
+      // Chamada à API para emitir certificados em lote
+      const response = await fetch('/api/certificates/batch-issue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentIds: selectedStudents,
+          templateId: defaultTemplateId,
+        }),
       });
-      setSelectedStudents([]);
-    }, 2000);
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Certificados emitidos com sucesso",
+          description: data.message || `${selectedStudents.length} certificado(s) emitido(s) com sucesso.`,
+        });
+        
+        // Limpar a seleção de alunos
+        setSelectedStudents([]);
+        
+        // Se estamos na aba de alunos elegíveis, mudar para a aba de certificados emitidos
+        // para mostrar imediatamente os certificados que foram gerados
+        if (selectedTab === "eligible") {
+          setSelectedTab("issued");
+          
+          // Invalidar o cache para forçar uma nova busca de certificados
+          queryClient.invalidateQueries({ queryKey: ['api/certificates'] });
+          
+          // Refetch para garantir que temos os dados mais recentes
+          await refetchCertificates();
+        }
+      } else {
+        toast({
+          title: "Erro ao emitir certificados",
+          description: data.message || "Ocorreu um erro ao emitir os certificados.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao emitir certificados:", error);
+      toast({
+        title: "Erro ao emitir certificados",
+        description: "Ocorreu um erro de conexão ao tentar emitir os certificados.",
+        variant: "destructive"
+      });
+    } finally {
+      setIssuingCertificates(false);
+    }
   };
   
   // Função para visualizar o certificado em PDF
