@@ -24,11 +24,12 @@ export const integrationTypeEnum = pgEnum("integration_type", ["asaas", "lytex",
 // Enums para o módulo CRM e Gestão e Matrículas
 // Enums para outros módulos
 export const clientTypeEnum = pgEnum("client_type", ["pf", "pj"]);  // Pessoa Física ou Pessoa Jurídica
-export const simplifiedEnrollmentStatusEnum = pgEnum("simplified_enrollment_status", ["pending", "converted", "expired", "cancelled"]);
+export const simplifiedEnrollmentStatusEnum = pgEnum("simplified_enrollment_status", ["pending", "waiting_payment", "payment_confirmed", "converted", "expired", "blocked", "cancelled"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "pending", "paid", "overdue", "cancelled", "partial"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["completed", "pending", "failed", "refunded"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["credit_card", "debit_card", "bank_slip", "bank_transfer", "pix", "cash", "other"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["trial", "active", "cancelled", "expired"]);
+export const accessTypeEnum = pgEnum("access_type", ["after_link_completion", "after_payment_confirmation"]);
 
 // Enums para o sistema de permissões
 export const permissionResourceEnum = pgEnum("permission_resource", [
@@ -303,6 +304,16 @@ export const simplifiedEnrollments = pgTable("simplified_enrollments", {
   paymentId: text("payment_id"), // ID da cobrança/pagamento (Asaas)
   asaasCustomerId: text("asaas_customer_id"), // ID do cliente no Asaas
   amount: doublePrecision("amount"), // Valor da matrícula
+  
+  // Campos para controle de acesso e datas para regras de negócio
+  accessGrantedAt: timestamp("access_granted_at"), // Data quando o acesso foi liberado
+  paymentConfirmedAt: timestamp("payment_confirmed_at"), // Data de confirmação do pagamento
+  blockScheduledAt: timestamp("block_scheduled_at"), // Data programada para bloqueio
+  blockExecutedAt: timestamp("block_executed_at"), // Data real do bloqueio
+  cancellationScheduledAt: timestamp("cancellation_scheduled_at"), // Data programada para cancelamento
+  cancellationExecutedAt: timestamp("cancellation_executed_at"), // Data real do cancelamento
+  paymentDueDate: timestamp("payment_due_date"), // Data de vencimento do pagamento
+  
   errorDetails: text("error_details"), // Detalhes do erro em caso de falha
   sourceChannel: text("source_channel"), // Canal de origem (web, app, etc.)
   processedAt: timestamp("processed_at"), // Data de processamento
@@ -371,6 +382,11 @@ export const institutions = pgTable("institutions", {
   
   // Plano atual
   currentPlanId: integer("current_plan_id").references(() => subscriptionPlans.id),
+  
+  // Configurações de matrícula flexível
+  enrollmentAccessType: accessTypeEnum("enrollment_access_type").default("after_link_completion"),
+  daysUntilBlock: integer("days_until_block").default(10), // Dias de atraso para bloqueio
+  daysUntilCancellation: integer("days_until_cancellation").default(30), // Dias de atraso para cancelamento
   
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
