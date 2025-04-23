@@ -254,7 +254,7 @@ export async function blockAccess(req: Request, res: Response) {
       enrollmentId,
       'blocked',
       reason || 'Bloqueio administrativo',
-      req.auth?.userId || null,
+      req.auth?.userId || undefined,
       { blockEndsAt, blockedAt: now }
     );
 
@@ -328,7 +328,7 @@ export async function unblockAccess(req: Request, res: Response) {
       enrollmentId,
       'active',
       unblockReason,
-      req.auth?.userId || null,
+      req.auth?.userId || undefined,
       { unblockedAt: now }
     );
 
