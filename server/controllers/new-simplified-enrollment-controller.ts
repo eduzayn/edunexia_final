@@ -429,13 +429,16 @@ export async function generatePaymentLink(req: Request, res: Response) {
           asaasCustomerId = existingCustomer.id;
         } else {
           // Obter os detalhes armazenados para recuperar informações de endereço
-          let metadata = {};
+          let metadataObj = {};
           try {
-            if (enrollmentData.errorDetails) {
-              metadata = JSON.parse(enrollmentData.errorDetails);
+            if (enrollmentData.metadata) {
+              metadataObj = JSON.parse(enrollmentData.metadata);
+            } else if (enrollmentData.errorDetails) {
+              // Compatibilidade com dados antigos
+              metadataObj = JSON.parse(enrollmentData.errorDetails);
             }
           } catch (error) {
-            console.error('[API] Erro ao converter detalhes:', error);
+            console.error('[API] Erro ao converter metadados:', error);
           }
           
           // Criar novo cliente com dados completos incluindo endereço
@@ -444,13 +447,13 @@ export async function generatePaymentLink(req: Request, res: Response) {
             email: enrollmentData.studentEmail,
             cpfCnpj: enrollmentData.studentCpf,
             mobilePhone: enrollmentData.studentPhone || undefined,
-            address: metadata.studentAddress,
-            addressNumber: metadata.studentAddressNumber,
-            complement: metadata.studentAddressComplement,
-            province: metadata.studentNeighborhood,
-            city: metadata.studentCity,
-            state: metadata.studentState,
-            postalCode: metadata.studentPostalCode
+            address: metadataObj.studentAddress,
+            addressNumber: metadataObj.studentAddressNumber,
+            complement: metadataObj.studentAddressComplement,
+            province: metadataObj.studentNeighborhood,
+            city: metadataObj.studentCity,
+            state: metadataObj.studentState,
+            postalCode: metadataObj.studentPostalCode
           });
           
           asaasCustomerId = customer.id;
@@ -476,13 +479,16 @@ export async function generatePaymentLink(req: Request, res: Response) {
       const description = `Matrícula no curso: ${courseName}`;
       
       // Obter os detalhes armazenados para recuperar informações de pagamento
-      let metadata = {};
+      let metadataObj = {};
       try {
-        if (enrollmentData.errorDetails) {
-          metadata = JSON.parse(enrollmentData.errorDetails);
+        if (enrollmentData.metadata) {
+          metadataObj = JSON.parse(enrollmentData.metadata);
+        } else if (enrollmentData.errorDetails) {
+          // Compatibilidade com dados antigos
+          metadataObj = JSON.parse(enrollmentData.errorDetails);
         }
       } catch (error) {
-        console.error('[API] Erro ao converter detalhes:', error);
+        console.error('[API] Erro ao converter metadados:', error);
       }
       
       // Usar as configurações do formulário ou valores padrão
@@ -490,15 +496,15 @@ export async function generatePaymentLink(req: Request, res: Response) {
         name: `Matrícula #${enrollmentId} - ${enrollmentData.studentName}`,
         description,
         value: enrollmentData.amount,
-        billingType: metadata.billingType || 'UNDEFINED',
+        billingType: metadataObj.billingType || 'UNDEFINED',
         chargeType: 'DETACHED',
-        dueDateLimitDays: metadata.dueDateLimitDays || 30,
-        maxInstallmentCount: metadata.maxInstallmentCount || 12,
+        dueDateLimitDays: metadataObj.dueDateLimitDays || 30,
+        maxInstallmentCount: metadataObj.maxInstallmentCount || 12,
         interestSettings: {
-          value: metadata.interestRate || 0
+          value: metadataObj.interestRate || 0
         },
         fineSettings: {
-          value: metadata.fine || 0
+          value: metadataObj.fine || 0
         }
       });
       
