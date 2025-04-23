@@ -188,7 +188,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     
     // Título principal
     doc.font('Helvetica-Bold').fontSize(32);
-    doc.text('FACULDADE DYNAMUS DE CAMPINAS', doc.page.width / 2, 80, { align: 'center' });
+    doc.text('EDUNEXA ACADEMY', doc.page.width / 2, 80, { align: 'center' });
     
     // Subtítulo
     doc.fontSize(28);
@@ -196,7 +196,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     
     // Introdução
     doc.font('Helvetica').fontSize(16);
-    doc.text('Este certificado é orgulhosamente apresentado a:', doc.page.width / 2, 180, { align: 'center' });
+    doc.text('Certificamos que', doc.page.width / 2, 180, { align: 'center' });
     
     // Nome do aluno
     doc.font('Helvetica-Bold').fontSize(28);
@@ -206,7 +206,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     // Texto do certificado
     doc.font('Helvetica').fontSize(14);
     
-    const certificateText = `O Diretor Geral da FACULDADE DYNAMUS DE CAMPINAS – FADYC, no uso de suas atribuições e tendo em vista a conclusão do ${certificateData.courseName} com duração de ${certificateData.totalHours} horas, outorga-lhe o presente Certificado, a fim de que possa gozar de todos os direitos e prerrogativas legais.`;
+    const certificateText = `concluiu com aproveitamento o curso de Pós-Graduação Lato Sensu em ${certificateData.courseName}, com carga horária de ${certificateData.totalHours} horas, tendo cumprido todas as exigências acadêmicas do curso, conforme legislação vigente.`;
     
     doc.text(certificateText, doc.page.width / 2, 280, {
       align: 'center',
@@ -301,17 +301,18 @@ export async function generateTranscriptPdf(certificateId: number): Promise<Buff
 
   try {
     // Gerar o QR Code com a URL de validação
-    const verificationUrl = `https://portal.fadyc.com.br/validar-certificado/${certificateData.code}`;
+    const baseUrl = process.env.BASE_URL || 'https://portal.edunexa.com.br';
+    const verificationUrl = `${baseUrl}/validar-certificado/${certificateData.code}`;
     const qrCodeBuffer = await generateQRCode(verificationUrl);
     
     // Título principal
     doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('Faculdade Dynamus de Campinas – FADYC', { align: 'center' });
+    doc.text('EDUNEXA ACADEMY', { align: 'center' });
     
     // Informações de credenciamento
     doc.font('Helvetica').fontSize(10);
     doc.moveDown();
-    doc.text('Credenciada no MEC através da Portaria Nº 1484 de 20 de Dezembro de 2016, Publicado D.O.U. 21/12/2016 e Portaria Nº 949 de 7 de Dezembro de 2022.', { align: 'center' });
+    doc.text('Educação de alta qualidade para formação continuada de profissionais', { align: 'center' });
     
     // Título do histórico
     doc.moveDown();
@@ -465,7 +466,7 @@ export async function generateTranscriptPdf(certificateId: number): Promise<Buff
     
     // Nome da instituição (lado esquerdo)
     doc.font('Helvetica').fontSize(10);
-    doc.text('Faculdade Dynamus de Campinas - FADYC', 150, footerY + 50, { align: 'center' });
+    doc.text('EDUNEXA ACADEMY', 150, footerY + 50, { align: 'center' });
     
     // Assinatura do diretor (lado direito)
     if (certificateData.signerSignatureUrl) {
