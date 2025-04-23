@@ -379,7 +379,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
-  // Categoria: Sistema & Operacional (reformulada para incluir itens de Administração)
+  // Categoria: Sistema (com funcionalidades administrativas)
   const operationalCategory: SidebarCategory = {
     name: "Sistema",
     icon: <BuildIcon />,
@@ -387,12 +387,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       name: "Sistema",
       icon: <BuildIcon />,
       items: [
-        { 
-          name: "Relatórios", 
-          icon: <BarChartAltIcon />, 
-          href: "/admin/reports",
-          active: currentPath === "/admin/reports"
-        },
         { 
           name: "Controle de Acesso ao Portal do Aluno", 
           icon: <LockIcon />, 
@@ -405,45 +399,9 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           href: "/admin/pessoas/abac-permissions",
           active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
         },
-        { 
-          name: "Funções & Permissões", 
-          icon: <SecurityIcon />, 
-          href: "/admin/pessoas/roles",
-          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
-        },
-        { 
-          name: "Usuários Admin", 
-          icon: <GroupIcon />, 
-          href: "/admin/pessoas/admin-users",
-          active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
-        },
-        { 
-          name: "Integrações", 
-          icon: <CloudIcon />, 
-          href: "/admin/integracoes/integrations",
-          active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
-        },
-        { 
-          name: "Auditoria", 
-          icon: <FileCheckIcon />, 
-          href: "/admin/auditoria/logs",
-          active: currentPath === "/admin/auditoria/logs" || (currentPath && currentPath.includes("/admin/auditoria/"))
-        },
-        { 
-          name: "Configurações", 
-          icon: <SettingsIcon />, 
-          href: "/admin/sistema/settings",
-          active: currentPath === "/admin/sistema/settings" || (currentPath && currentPath.includes("/admin/sistema/settings"))
-        },
       ]
     }, currentPath),
     items: [
-      { 
-        name: "Relatórios", 
-        icon: <BarChartAltIcon />, 
-        href: "/admin/reports",
-        active: currentPath === "/admin/reports"
-      },
       { 
         name: "Controle de Acesso ao Portal do Aluno", 
         icon: <LockIcon />, 
@@ -455,36 +413,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         icon: <BadgeCheckIcon />, 
         href: "/admin/pessoas/abac-permissions",
         active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
-      },
-      { 
-        name: "Funções & Permissões", 
-        icon: <SecurityIcon />, 
-        href: "/admin/pessoas/roles",
-        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
-      },
-      { 
-        name: "Usuários Admin", 
-        icon: <GroupIcon />, 
-        href: "/admin/pessoas/admin-users",
-        active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
-      },
-      { 
-        name: "Integrações", 
-        icon: <CloudIcon />, 
-        href: "/admin/integracoes/integrations",
-        active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
-      },
-      { 
-        name: "Auditoria", 
-        icon: <FileCheckIcon />, 
-        href: "/admin/auditoria/logs",
-        active: currentPath === "/admin/auditoria/logs" || (currentPath && currentPath.includes("/admin/auditoria/"))
-      },
-      { 
-        name: "Configurações", 
-        icon: <SettingsIcon />, 
-        href: "/admin/sistema/settings",
-        active: currentPath === "/admin/sistema/settings" || (currentPath && currentPath.includes("/admin/sistema/settings"))
       },
     ]
   };
