@@ -115,8 +115,27 @@ export default function DisciplinesPage() {
   // Mutation para criar disciplina
   const createDisciplineMutation = useMutation({
     mutationFn: async (data: DisciplineFormValues) => {
-      const response = await apiRequest("POST", "/api/admin/disciplines", data);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", "/api/admin/disciplines", data);
+        
+        // Verifica se a resposta foi bem-sucedida
+        if (!response.ok) {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Erro ao criar disciplina");
+          } else {
+            // Se não for JSON, lê como texto para evitar erro de parsing
+            const errorText = await response.text();
+            throw new Error(`Erro do servidor (${response.status}): Erro não JSON`);
+          }
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Erro na requisição:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -128,9 +147,10 @@ export default function DisciplinesPage() {
       createForm.reset();
     },
     onError: (error) => {
+      console.error("Erro detalhado:", error);
       toast({
         title: "Erro ao criar disciplina",
-        description: error.message || "Ocorreu um erro ao tentar criar a disciplina.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao tentar criar a disciplina.",
         variant: "destructive",
       });
     },
@@ -140,8 +160,27 @@ export default function DisciplinesPage() {
   const updateDisciplineMutation = useMutation({
     mutationFn: async (data: DisciplineFormValues & { id: number }) => {
       const { id, ...updateData } = data;
-      const response = await apiRequest("PUT", `/api/admin/disciplines/${id}`, updateData);
-      return await response.json();
+      try {
+        const response = await apiRequest("PUT", `/api/admin/disciplines/${id}`, updateData);
+        
+        // Verifica se a resposta foi bem-sucedida
+        if (!response.ok) {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Erro ao atualizar disciplina");
+          } else {
+            // Se não for JSON, lê como texto para evitar erro de parsing
+            const errorText = await response.text();
+            throw new Error(`Erro do servidor (${response.status}): Erro não JSON`);
+          }
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Erro na requisição:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -152,9 +191,10 @@ export default function DisciplinesPage() {
       refetch();
     },
     onError: (error) => {
+      console.error("Erro detalhado:", error);
       toast({
         title: "Erro ao atualizar disciplina",
-        description: error.message || "Ocorreu um erro ao tentar atualizar a disciplina.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao tentar atualizar a disciplina.",
         variant: "destructive",
       });
     },
