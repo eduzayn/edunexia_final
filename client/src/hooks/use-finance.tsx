@@ -221,7 +221,7 @@ export function useInvoices(clientId?: number, status?: string) {
   // Atualizar fatura
   const updateInvoiceMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<Invoice> }) => 
-      apiRequest<Invoice>(`/api/finance/invoices/${id}`, { method: 'PATCH', data }),
+      apiRequest<Invoice>('PATCH', `/api/finance/invoices/${id}`, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices', data.id] });
@@ -242,7 +242,7 @@ export function useInvoices(clientId?: number, status?: string) {
   // Excluir fatura
   const deleteInvoiceMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/finance/invoices/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/finance/invoices/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices'] });
       toast({
@@ -262,7 +262,7 @@ export function useInvoices(clientId?: number, status?: string) {
   // Gerar link de pagamento
   const generatePaymentLinkMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest<{ paymentUrl: string }>(`/api/finance/invoices/${id}/payment-link`, { method: 'POST' }),
+      apiRequest<{ paymentUrl: string }>('POST', `/api/finance/invoices/${id}/payment-link`),
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices', id] });
@@ -285,7 +285,7 @@ export function useInvoices(clientId?: number, status?: string) {
   // Cancelar fatura
   const cancelInvoiceMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/finance/invoices/${id}/cancel`, { method: 'POST' }),
+      apiRequest('POST', `/api/finance/invoices/${id}/cancel`),
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices', id] });
@@ -354,7 +354,7 @@ export function usePayments(invoiceId?: number, status?: string) {
   // Registrar pagamento
   const registerPaymentMutation = useMutation({
     mutationFn: (data: Omit<Payment, 'id' | 'createdAt' | 'updatedAt' | 'createdById'>) => 
-      apiRequest<Payment>('/api/finance/payments', { method: 'POST', data }),
+      apiRequest<Payment>('POST', '/api/finance/payments', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments'] });
       if (invoiceId) {
@@ -378,7 +378,7 @@ export function usePayments(invoiceId?: number, status?: string) {
   // Atualizar pagamento
   const updatePaymentMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<Payment> }) => 
-      apiRequest<Payment>(`/api/finance/payments/${id}`, { method: 'PATCH', data }),
+      apiRequest<Payment>('PATCH', `/api/finance/payments/${id}`, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments', data.id] });
@@ -401,7 +401,7 @@ export function usePayments(invoiceId?: number, status?: string) {
   // Excluir pagamento
   const deletePaymentMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/finance/payments/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/finance/payments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments'] });
       if (invoiceId) {
@@ -425,7 +425,7 @@ export function usePayments(invoiceId?: number, status?: string) {
   // Reembolsar pagamento
   const refundPaymentMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number, reason: string }) => 
-      apiRequest(`/api/finance/payments/${id}/refund`, { method: 'POST', data: { reason } }),
+      apiRequest('POST', `/api/finance/payments/${id}/refund`, { reason }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/payments', variables.id] });
