@@ -1,3 +1,11 @@
+// ===========================================================================
+// COMPONENT OBSOLETO - NÃO USAR EM NOVOS COMPONENTES
+// ===========================================================================
+// Este arquivo está obsoleto e será removido em breve.
+// Em vez de importar 'getStudentSidebarItems', defina os itens da sidebar diretamente
+// em cada componente, seguindo o padrão usado nas páginas atualizadas.
+// ===========================================================================
+
 import React from 'react';
 import { 
   BookOpenText, 
@@ -23,7 +31,8 @@ export type SidebarItem = {
 };
 
 /**
- * Retorna os itens do menu da barra lateral do estudante
+ * OBSOLETO - NÃO USAR EM NOVOS COMPONENTES
+ * @deprecated Defina os itens da sidebar diretamente em cada componente
  * @param pathname Caminho atual da rota
  * @returns Array de itens do menu
  */
