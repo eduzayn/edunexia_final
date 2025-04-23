@@ -4,7 +4,7 @@
  */
 
 import { db } from '../db';
-import { eq } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import { disciplineTable } from '../db/schema';
 
 /**
@@ -23,6 +23,8 @@ export async function generateDisciplineCode(name: string): Promise<string> {
     baseCode = (baseCode + "DIS").substring(0, 3);
   }
   
+  console.log('Gerando código para disciplina. Base:', baseCode);
+  
   // Busca quantas disciplinas já existem com este prefixo
   const existingDisciplines = await db.select({ code: disciplineTable.code })
                                      .from(disciplineTable)
@@ -30,7 +32,9 @@ export async function generateDisciplineCode(name: string): Promise<string> {
                                      
   if (existingDisciplines.length === 0) {
     // Se não existe nenhuma, retorna o código base + 101
-    return `${baseCode}101`;
+    const newCode = `${baseCode}101`;
+    console.log('Código gerado (novo prefixo):', newCode);
+    return newCode;
   } else {
     // Busca todos os códigos que começam com o mesmo prefixo
     const similarCodes = await db.select({ code: disciplineTable.code })
@@ -48,7 +52,9 @@ export async function generateDisciplineCode(name: string): Promise<string> {
     }
     
     // Retorna o código base + número incrementado
-    return `${baseCode}${maxNumber + 1}`;
+    const newCode = `${baseCode}${maxNumber + 1}`;
+    console.log('Código gerado (incrementado):', newCode);
+    return newCode;
   }
 }
 
@@ -64,8 +70,4 @@ export async function isDisciplineCodeInUse(code: string): Promise<boolean> {
                                     .limit(1);
   
   return existingDiscipline.length > 0;
-}
-
-function like(column: any, pattern: string) {
-  return `${column.name} LIKE '${pattern}'`;
 }

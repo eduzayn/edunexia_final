@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { disciplineTable } from '../db/schema';
+import { eq, and, not } from 'drizzle-orm';
 import { generateDisciplineCode, isDisciplineCodeInUse } from './discipline-code-generator';
 
 /**
@@ -22,26 +23,29 @@ export async function createDiscipline(req: Request, res: Response) {
     // Gerar código automaticamente
     const code = await generateDisciplineCode(name);
     
+    console.log('Criando disciplina com código:', code);
+    
     // Inserir a disciplina no banco de dados
     const [newDiscipline] = await db.insert(disciplineTable)
       .values({
         code,
         name,
         description,
-        workload,
+        workload: Number(workload), // Garante que é um número
         syllabus,
         createdAt: new Date(),
         updatedAt: new Date()
       })
       .returning();
     
+    console.log('Disciplina criada com sucesso:', newDiscipline);
     return res.status(201).json(newDiscipline);
   } catch (error) {
     console.error('Erro ao criar disciplina:', error);
     return res.status(500).json({
       success: false,
       message: 'Erro ao criar disciplina',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
 }
@@ -62,7 +66,7 @@ export async function updateDiscipline(req: Request, res: Response) {
       });
     }
     
-    // Verificar se o código foi alterado e se o novo código já está em uso
+    // Verificar se a disciplina existe
     const existingDiscipline = await db.select()
       .from(disciplineTable)
       .where(eq(disciplineTable.id, parseInt(id)))
@@ -78,7 +82,8 @@ export async function updateDiscipline(req: Request, res: Response) {
     // Se o código foi alterado, verificar se já está em uso por outra disciplina
     if (code !== existingDiscipline[0].code) {
       // Verificar se o usuário é admin
-      if (req.user?.role !== 'admin') {
+      const userRole = (req as any).user?.role || (req as any).auth?.userRole;
+      if (userRole !== 'admin') {
         return res.status(403).json({
           success: false,
           message: 'Apenas administradores podem alterar o código da disciplina'
@@ -110,7 +115,7 @@ export async function updateDiscipline(req: Request, res: Response) {
         code,
         name,
         description,
-        workload,
+        workload: Number(workload), // Garante que é um número
         syllabus,
         updatedAt: new Date()
       })
@@ -123,20 +128,7 @@ export async function updateDiscipline(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: 'Erro ao atualizar disciplina',
-      error: error.message
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
-}
-
-// Funções auxiliares
-function eq(column: any, value: any) {
-  return `${column.name} = ${typeof value === 'string' ? `'${value}'` : value}`;
-}
-
-function and(...conditions: string[]) {
-  return conditions.join(' AND ');
-}
-
-function not(condition: string) {
-  return `NOT (${condition})`;
 }
