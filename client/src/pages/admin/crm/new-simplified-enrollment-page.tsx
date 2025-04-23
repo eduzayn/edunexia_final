@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { listSimplifiedEnrollments, NewSimplifiedEnrollment } from '../../../services/new-simplified-enrollment-service';
-import { DollarSign, Eye, Plus, Search } from 'lucide-react';
+import { DollarSign, Eye, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -151,8 +151,10 @@ export default function NewSimplifiedEnrollmentPage() {
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(currentPage - 1)}
             >
-              <PaginationPrevious className="h-4 w-4" />
-              Anterior
+              <div className="flex items-center gap-1">
+                <ChevronLeftIcon className="h-4 w-4" />
+                Anterior
+              </div>
             </Button>
           </PaginationItem>
           
@@ -210,8 +212,10 @@ export default function NewSimplifiedEnrollmentPage() {
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(currentPage + 1)}
             >
-              Próxima
-              <PaginationNext className="h-4 w-4" />
+              <div className="flex items-center gap-1">
+                Próxima
+                <ChevronRightIcon className="h-4 w-4" />
+              </div>
             </Button>
           </PaginationItem>
         </PaginationContent>
