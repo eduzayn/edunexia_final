@@ -106,9 +106,9 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
       const enrollment = { 
         ...result.simplifiedEnrollments,
         // Adicionar os campos de join
-        courseName: result.courseName,
-        institutionName: result.institutionName,
-        poloName: result.poloName
+        courseName: result.courseInfo?.name || 'Curso não encontrado',
+        institutionName: result.institutionInfo?.name || 'Instituição não encontrada',
+        poloName: result.poloInfo?.name || null
       };
       
       return enrollment;
@@ -149,9 +149,9 @@ export async function getSimplifiedEnrollmentById(req: Request, res: Response) {
     
     const result = await db.select({
       simplifiedEnrollments,
-      courseName: courses.name,
-      institutionName: institutions.name,
-      poloName: polos.name,
+      courseInfo: courses,
+      institutionInfo: institutions,
+      poloInfo: polos,
     })
     .from(simplifiedEnrollments)
     .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
@@ -170,9 +170,9 @@ export async function getSimplifiedEnrollmentById(req: Request, res: Response) {
     // Formatar resultado
     const enrollment = { 
       ...result[0].simplifiedEnrollments,
-      courseName: result[0].courseName,
-      institutionName: result[0].institutionName,
-      poloName: result[0].poloName
+      courseName: result[0].courseInfo?.name || 'Curso não encontrado',
+      institutionName: result[0].institutionInfo?.name || 'Instituição não encontrada',
+      poloName: result[0].poloInfo?.name || null
     };
     
     res.json({
@@ -301,18 +301,15 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
     const courseName = courseExists[0].name;
     const institutionName = institutionExists[0].name;
     
-    // Criar a matrícula simplificada de acordo com o schema em server/db/schema.ts
+    // Criar a matrícula simplificada de acordo com o schema real do banco de dados
     const [newEnrollment] = await db.insert(simplifiedEnrollments).values({
       studentName,
       studentEmail,
       studentCpf,
       studentPhone: studentPhone || null,
       courseId,
-      courseName, // Adicionando o nome do curso
       institutionId,
-      institutionName, // Adicionando o nome da instituição 
       poloId: poloId || null,
-      poloName: poloName || null,
       amount,
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
@@ -321,8 +318,11 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       // Se tiver um ID de cliente Asaas, usar
       asaasCustomerId: asaasCustomerId || null,
       
-      // Armazenar detalhes adicionais no campo errorDetails, se necessário
-      errorDetails: JSON.stringify({
+      // Data de expiração - usando a data definida anteriormente
+      expiresAt,
+      
+      // Metadados com dados adicionais
+      metadata: JSON.stringify({
         billingType: billingType || 'UNDEFINED',
         maxInstallmentCount: maxInstallmentCount || 12,
         dueDateLimitDays: dueDateLimitDays || 30,
@@ -339,6 +339,9 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
         studentState,
         studentPostalCode
       }),
+      
+      // Dados para rastreamento das solicitações
+      errorDetails: null,
       
       createdAt: new Date(),
       updatedAt: new Date(),

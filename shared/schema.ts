@@ -558,7 +558,16 @@ export type InsertFinancialCategory = z.infer<typeof insertFinancialCategorySche
 export type FinancialCategory = typeof financialCategories.$inferSelect;
 
 // Schemas de inserção e tipos para matrículas simplificadas
-export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments).omit({ id: true });
+// Criar schema de inserção e personalizar validação para lidar com o campo expiresAt como Date ou string
+export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments)
+  .omit({ id: true })
+  .extend({
+    // Permitir que expiresAt seja uma string ou Date
+    expiresAt: z.union([
+      z.string().transform((val) => new Date(val)),
+      z.date()
+    ])
+  });
 export type InsertSimplifiedEnrollment = z.infer<typeof insertSimplifiedEnrollmentSchema>;
 export type SimplifiedEnrollment = typeof simplifiedEnrollments.$inferSelect;
 
