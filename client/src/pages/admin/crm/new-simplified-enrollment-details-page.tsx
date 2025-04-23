@@ -1,3 +1,12 @@
+/**
+ * AVISO DE PROTEÇÃO: Este arquivo contém lógica crítica para o sistema de matrículas simplificadas.
+ * Não faça alterações neste código a menos que seja absolutamente necessário.
+ * Qualquer modificação requer aprovação e deve ser feita com extremo cuidado.
+ * Data de estabilização: 23/04/2025
+ * 
+ * Este componente é responsável por exibir e gerenciar os detalhes de uma matrícula simplificada,
+ * incluindo operações críticas como geração de link de pagamento, atualização de status e cancelamento.
+ */
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useLocation } from 'wouter';
