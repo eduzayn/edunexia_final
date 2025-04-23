@@ -145,34 +145,48 @@ export async function getSimplifiedEnrollment(req: Request, res: Response) {
  */
 export async function listSimplifiedEnrollments(req: Request, res: Response) {
   try {
+    console.log('Parâmetros recebidos na API:', JSON.stringify(req.query));
+    
     const { 
       status, 
       courseId, 
       poloId, 
       institutionId,
       limit = 50,
-      offset = 0
+      page = 1,
+      search = ''
     } = req.query;
+    
+    // Calcular offset a partir da página
+    const pageNum = parseInt(page as string, 10) || 1;
+    const limitNum = parseInt(limit as string, 10) || 50;
+    const offset = (pageNum - 1) * limitNum;
     
     // Converter parâmetros numéricos
     const parsedCourseId = courseId ? parseInt(courseId as string, 10) : undefined;
     const parsedPoloId = poloId ? parseInt(poloId as string, 10) : undefined;
     const parsedInstitutionId = institutionId ? parseInt(institutionId as string, 10) : undefined;
-    const parsedLimit = parseInt(limit as string, 10);
-    const parsedOffset = parseInt(offset as string, 10);
     
-    // Obter termos de pesquisa
-    const search = req.query.search as string;
+    // Termo de pesquisa já extraído dos parâmetros acima
+    console.log('Parâmetros processados:', {
+      search,
+      status,
+      parsedInstitutionId,
+      parsedCourseId,
+      parsedPoloId,
+      limitNum,
+      offset
+    });
     
     // Buscar matrículas com filtros
     const enrollments = await storage.getSimplifiedEnrollments(
-      search,
+      search as string,
       status as string,
       parsedInstitutionId,
       parsedCourseId,
       parsedPoloId,
-      parsedLimit,
-      parsedOffset
+      limitNum,
+      offset
     );
     
     return res.json({
