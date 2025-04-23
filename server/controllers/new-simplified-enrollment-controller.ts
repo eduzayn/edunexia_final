@@ -25,9 +25,10 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
     // Construir query com filtros
     let query = db.select({
       simplifiedEnrollments,
-      courseName: courses.name,
-      institutionName: institutions.name,
-      poloName: polos.name,
+      // Obter os nomes das entidades relacionadas através dos joins
+      courseInfo: courses,
+      institutionInfo: institutions,
+      poloInfo: polos,
     })
     .from(simplifiedEnrollments)
     .leftJoin(courses, eq(simplifiedEnrollments.courseId, courses.id))
