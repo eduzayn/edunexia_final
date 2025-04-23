@@ -6,8 +6,8 @@
  */
 
 import { db } from '../db';
-import { users, notifications } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { users } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
 
 // Tipos de notificações suportados
 export type NotificationType = 
@@ -53,21 +53,17 @@ export async function sendNotification(
       return false;
     }
     
-    // Criar a notificação no banco de dados
-    await db.insert(notifications).values({
-      userId,
-      type,
-      title,
-      message,
-      data: data as any, // Armazenar dados adicionais como JSON
-      isRead: false,
-      createdAt: new Date()
-    });
+    // Por enquanto, apenas log das notificações
+    // No futuro, implementar armazenamento e envio
+    console.log(`[NOTIFICATION] Notificação para usuário ${userId}:`);
+    console.log(`[NOTIFICATION] Tipo: ${type}`);
+    console.log(`[NOTIFICATION] Título: ${title}`);
+    console.log(`[NOTIFICATION] Mensagem: ${message}`);
+    console.log(`[NOTIFICATION] Dados:`, data);
     
     // Implementar envio por outros canais (e-mail, push notification, etc.)
     // conforme necessário no futuro
     
-    console.log(`[NOTIFICATION] Notificação enviada para usuário ${userId}: ${title}`);
     return true;
   } catch (error) {
     console.error('[NOTIFICATION] Erro ao enviar notificação:', error);
