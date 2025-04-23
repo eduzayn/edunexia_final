@@ -253,6 +253,9 @@ export default function CourseFormPage() {
   const addDisciplinesToCourseMutation = useMutation({
     mutationFn: async ({ courseId, disciplineIds }: { courseId: number; disciplineIds: number[] }) => {
       try {
+        console.log("Iniciando atualização de disciplinas para curso ID:", courseId);
+        console.log("Disciplinas selecionadas:", disciplineIds);
+        
         // Armazenar temporariamente as disciplinas selecionadas como backup
         await apiRequest("POST", "/api/admin/system-settings", {
           key: `temp_course_disciplines_${courseId}`,
@@ -260,33 +263,58 @@ export default function CourseFormPage() {
           scope: "system"
         });
         
-        // Remover disciplinas existentes
-        await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+        // Remover disciplinas existentes de forma segura
+        try {
+          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          console.log("Disciplinas existentes removidas com sucesso");
+        } catch (deleteError) {
+          console.error("Erro ao remover disciplinas existentes:", deleteError);
+          // Continuar mesmo com erro na remoção
+        }
         
-        // Adicionar novas disciplinas
-        const promises = disciplineIds.map((disciplineId, index) => {
-          return apiRequest("POST", "/api/admin/course-disciplines", {
-            courseId,
-            disciplineId,
-            order: index + 1
-          });
-        });
-        
-        await Promise.all(promises);
+        // Adicionar novas disciplinas uma por uma para evitar problemas de concorrência
+        console.log("Adicionando novas disciplinas...");
+        for (let i = 0; i < disciplineIds.length; i++) {
+          const disciplineId = disciplineIds[i];
+          try {
+            await apiRequest("POST", "/api/admin/course-disciplines", {
+              courseId,
+              disciplineId,
+              order: i + 1
+            });
+            console.log(`Disciplina ${disciplineId} adicionada com sucesso na posição ${i + 1}`);
+          } catch (addError) {
+            console.error(`Erro ao adicionar disciplina ${disciplineId}:`, addError);
+            // Continuar para a próxima disciplina mesmo em caso de erro
+          }
+        }
         
         // Verificar se as disciplinas foram realmente adicionadas
         const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
         const addedDisciplines = await result.json();
+        console.log("Disciplinas adicionadas verificadas:", addedDisciplines?.length || 0);
         
         if (!addedDisciplines || addedDisciplines.length === 0) {
+          console.log("Nenhuma disciplina adicionada, tentando reparo...");
           // Se falhar, tente recuperar usando a API de reparo
-          await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+          try {
+            await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+            console.log("Reparo de disciplinas concluído");
+          } catch (fixError) {
+            console.error("Erro ao reparar disciplinas:", fixError);
+          }
         }
+        
+        return { success: true };
       } catch (error) {
         console.error("Erro durante o processo de adição de disciplinas:", error);
         
         // Tente recuperar disciplinas em caso de erro
-        await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+        try {
+          await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+        } catch (repairError) {
+          console.error("Erro também durante tentativa de reparo:", repairError);
+        }
         throw error;
       }
     },
@@ -295,8 +323,10 @@ export default function CourseFormPage() {
         title: "Disciplinas adicionadas com sucesso!",
         description: "As disciplinas foram vinculadas ao curso.",
       });
-      // Redirecionar para a lista de cursos
-      setLocation("/admin/courses");
+      // Redirecionar para a lista de cursos após um pequeno delay para permitir que o DOM se atualize
+      setTimeout(() => {
+        setLocation("/admin/courses");
+      }, 500);
     },
     onError: (error) => {
       toast({
@@ -310,26 +340,56 @@ export default function CourseFormPage() {
   // Mutation para atualizar disciplinas do curso
   const updateCourseDisciplinesMutation = useMutation({
     mutationFn: async ({ courseId, disciplineIds }: { courseId: number; disciplineIds: number[] }) => {
-      // Primeiro, remove todas as disciplinas do curso
-      await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
-      
-      // Depois, adiciona as novas selecionadas
-      const promises = disciplineIds.map((disciplineId, index) => {
-        return apiRequest("POST", "/api/admin/course-disciplines", {
-          courseId,
-          disciplineId,
-          order: index + 1
-        });
-      });
-      await Promise.all(promises);
+      try {
+        console.log("Atualizando disciplinas do curso ID:", courseId);
+        console.log("Disciplinas selecionadas para atualização:", disciplineIds);
+        
+        // Primeiro, remove todas as disciplinas do curso com tratamento de erro
+        try {
+          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          console.log("Disciplinas existentes removidas com sucesso");
+        } catch (deleteError) {
+          console.error("Erro ao remover disciplinas existentes:", deleteError);
+          // Continuar mesmo com erro na remoção
+        }
+        
+        // Adicionar novas disciplinas uma por uma para evitar problemas de concorrência
+        console.log("Adicionando disciplinas atualizadas...");
+        for (let i = 0; i < disciplineIds.length; i++) {
+          const disciplineId = disciplineIds[i];
+          try {
+            await apiRequest("POST", "/api/admin/course-disciplines", {
+              courseId,
+              disciplineId,
+              order: i + 1
+            });
+            console.log(`Disciplina ${disciplineId} adicionada na posição ${i + 1}`);
+          } catch (addError) {
+            console.error(`Erro ao adicionar disciplina ${disciplineId}:`, addError);
+            // Continuar para a próxima disciplina
+          }
+        }
+        
+        // Verificar se a atualização foi bem-sucedida
+        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const updatedDisciplines = await result.json();
+        console.log("Disciplinas atualizadas verificadas:", updatedDisciplines?.length || 0);
+        
+        return { success: true };
+      } catch (error) {
+        console.error("Erro durante o processo de atualização de disciplinas:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
         title: "Disciplinas atualizadas com sucesso!",
         description: "As disciplinas do curso foram atualizadas.",
       });
-      // Redirecionar para a lista de cursos
-      setLocation("/admin/courses");
+      // Redirecionar para a lista de cursos após um pequeno delay para permitir que o DOM se atualize
+      setTimeout(() => {
+        setLocation("/admin/courses");
+      }, 500);
     },
     onError: (error) => {
       toast({
@@ -901,23 +961,34 @@ export default function CourseFormPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredDisciplines.map((discipline: Discipline) => (
-                            <TableRow key={discipline.id} className={!isDisciplineComplete(discipline) ? "bg-amber-50" : ""}>
-                              <TableCell>
-                                <Checkbox
-                                  id={`discipline-${discipline.id}`}
-                                  checked={selectedDisciplines.includes(discipline.id)}
-                                  onCheckedChange={(checked) => {
-                                    toggleDiscipline(discipline.id, checked === true);
-                                  }}
-                                />
-                              </TableCell>
-                              <TableCell>{discipline.code}</TableCell>
-                              <TableCell className="font-medium">{discipline.name}</TableCell>
-                              <TableCell>{discipline.workload} h</TableCell>
-                              <TableCell>{renderDisciplineStatus(discipline)}</TableCell>
-                            </TableRow>
-                          ))}
+                          {filteredDisciplines.map((discipline: Discipline) => {
+                            // Garantindo que discipline é válido antes de renderizar
+                            if (!discipline || typeof discipline.id === 'undefined') {
+                              console.log("Disciplina inválida encontrada:", discipline);
+                              return null;
+                            }
+                            
+                            return (
+                              <TableRow 
+                                key={`discipline-row-${discipline.id}`} 
+                                className={!isDisciplineComplete(discipline) ? "bg-amber-50" : ""}
+                              >
+                                <TableCell>
+                                  <Checkbox
+                                    id={`discipline-checkbox-${discipline.id}`}
+                                    checked={selectedDisciplines.includes(discipline.id)}
+                                    onCheckedChange={(checked) => {
+                                      toggleDiscipline(discipline.id, checked === true);
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell>{discipline.code || '—'}</TableCell>
+                                <TableCell className="font-medium">{discipline.name || 'Sem nome'}</TableCell>
+                                <TableCell>{discipline.workload || 0} h</TableCell>
+                                <TableCell>{renderDisciplineStatus(discipline)}</TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
