@@ -117,7 +117,7 @@ export default function DisciplineEbookPage() {
             <div className="mt-6 p-4 bg-gray-50 rounded-md">
               <h4 className="font-medium mb-2">Exercício Interativo</h4>
               <p className="mb-4">Complete a frase abaixo escolhendo a opção correta:</p>
-              <p className="mb-2">A principal característica desta disciplina é:</p>
+              <div className="mb-2 font-medium">A principal característica desta disciplina é:</div>
               <div className="space-y-2">
                 <Button variant="outline" className="w-full justify-start">
                   a) Sua abordagem experimental
