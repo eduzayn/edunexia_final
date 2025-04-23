@@ -170,9 +170,13 @@ function Router() {
       <Route path="/public-view/charges" component={SimpleChargesPage} />
       <Route path="/create-charge" component={PublicCreateChargePage} />
       
+      {/* Portal do Aluno - Rotas unificadas com verificação consistente */}
       <ProtectedRoute path="/student/dashboard" portalType="student" />
       <Route path="/student/courses">
-        {() => user?.portalType === "student" ? <StudentCoursesPage /> : <Redirect to="/auth" />}
+        {() => {
+          console.log("Tentando acessar /student/courses - user:", user?.portalType);
+          return user?.portalType === "student" ? <StudentCoursesPage /> : <Redirect to="/auth" />;
+        }}
       </Route>
       <Route path="/student/courses/:id">
         {() => user?.portalType === "student" ? <CourseDetailPage /> : <Redirect to="/auth" />}
@@ -209,6 +213,15 @@ function Router() {
       </Route>
       <Route path="/student/financeiro">
         {() => user?.portalType === "student" ? <Redirect to="/student/financial" /> : <Redirect to="/auth" />}
+      </Route>
+      {/* Fallback para URLs do student não definidas explicitamente */}
+      <Route path="/student/:rest*">
+        {() => {
+          console.log("Rota de student não encontrada, redirecionando para dashboard");
+          return user?.portalType === "student" 
+            ? <Redirect to="/student/dashboard" /> 
+            : <Redirect to="/auth" />;
+        }}
       </Route>
       <ProtectedRoute path="/partner/dashboard" portalType="partner" />
       <Route path="/partner/certificacao">
