@@ -55,6 +55,7 @@ export interface CertificationPaymentResponse {
   invoiceUrl?: string;         // URL da fatura (se disponível)
   pixUrl?: string;             // URL do QR Code PIX (se disponível)
   pixCode?: string;            // Código PIX copia e cola (se disponível)
+  code?: string;               // Código de referência único (se sucesso)
   message?: string;            // Mensagem de erro (se falha)
   error?: any;                 // Detalhes do erro (se falha)
 }
@@ -129,11 +130,30 @@ export const CertificationPaymentService = {
         };
       }
       
+      // Verificar campos obrigatórios
+      if (!request.partnerId) {
+        return {
+          success: false,
+          message: 'ID do parceiro é obrigatório'
+        };
+      }
+      
+      if (!request.totalAmount) {
+        return {
+          success: false,
+          message: 'Valor total é obrigatório'
+        };
+      }
+      
       // Obter o ID Asaas do parceiro
       const customerAsaasId = await this.getPartnerAsaasId(request.partnerId);
       
+      // Criar um código único para essa cobrança
+      const code = `CERT-${request.partnerId}-${Date.now()}`;
+      
       // Criar a descrição do pagamento
-      const description = `Certificação em lote - ${request.students.length} alunos`;
+      const totalStudents = request.students.length;
+      const description = `Certificação em lote - ${totalStudents} aluno${totalStudents > 1 ? 's' : ''}`;
       
       // Data de vencimento (10 dias a partir de hoje)
       const dueDate = new Date();
@@ -147,7 +167,7 @@ export const CertificationPaymentService = {
         dueDate: dueDateString,
         value: request.totalAmount,
         description,
-        externalReference: `cert-batch-${request.partnerId}-${Date.now()}`,
+        externalReference: code,
         postalService: false,
         // Habilitar PIX
         canBePaidWithPix: true
@@ -166,14 +186,26 @@ export const CertificationPaymentService = {
         paymentLink: paymentResponse.data.paymentLink,
         invoiceUrl: paymentResponse.data.invoiceUrl,
         pixUrl: paymentResponse.data.pixQrCodeUrl,
-        pixCode: paymentResponse.data.pixCopiaECola
+        pixCode: paymentResponse.data.pixCopiaECola,
+        code
       };
     } catch (error) {
       console.error('[CERTIFICATION] Erro ao criar pagamento para certificação em lote:', error);
       
+      // Verificar se é um erro de resposta da API Asaas
+      if (error.response && error.response.data) {
+        console.error('[CERTIFICATION] Erro específico Asaas:', JSON.stringify(error.response.data));
+        
+        return {
+          success: false,
+          message: 'Erro na API do Asaas: ' + (error.response.data.errors?.description || error.response.data.message || 'Erro desconhecido'),
+          error: error.response.data
+        };
+      }
+      
       return {
         success: false,
-        message: 'Erro ao criar pagamento',
+        message: error instanceof Error ? error.message : 'Erro ao criar pagamento',
         error: error
       };
     }

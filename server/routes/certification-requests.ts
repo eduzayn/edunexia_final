@@ -217,14 +217,56 @@ router.get("/:id", async (req, res) => {
 });
 
 // Criar nova solicitação de certificação
-router.post("/", validateBody(insertCertificationRequestSchema), async (req, res) => {
+// Importar o serviço de pagamento
+import { CertificationPaymentService } from "../services/certification-payment-service";
+
+// Definir o schema Zod para solicitações em lote (reutilizar no futuro)
+import { z } from "zod";
+
+const batchStudentSchema = z.object({
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  cpf: z.string().min(11, "CPF deve ter pelo menos 11 caracteres"),
+  email: z.string().email("Email inválido"),
+  phone: z.string().optional(),
+  courseId: z.number().or(z.string().transform(Number)),
+  courseName: z.string()
+});
+
+const batchCertificationSchema = z.object({
+  title: z.string().min(3, "Título deve ter pelo menos 3 caracteres"),
+  description: z.string().optional(),
+  institutionId: z.number(),
+  unitPrice: z.number().positive("Preço unitário deve ser positivo"),
+  students: z.array(batchStudentSchema).min(1, "É necessário pelo menos um aluno")
+});
+
+router.post("/", async (req, res) => {
   try {
-    const data = req.body;
+    // Validar os dados recebidos
+    const validationResult = batchCertificationSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Validação falhou", 
+        errors: validationResult.error.errors 
+      });
+    }
+    
+    const data = validationResult.data;
     const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false,
+        message: "Usuário não autenticado" 
+      });
+    }
     
     // Verificar se o usuário é parceiro
     if (req.user?.portalType !== "partner" && req.user?.portalType !== "admin") {
       return res.status(403).json({ 
+        success: false,
         message: "Apenas parceiros podem criar solicitações de certificação" 
       });
     }
@@ -235,8 +277,15 @@ router.post("/", validateBody(insertCertificationRequestSchema), async (req, res
     });
     
     if (!institution) {
-      return res.status(404).json({ message: "Instituição não encontrada" });
+      return res.status(404).json({ 
+        success: false,
+        message: "Instituição não encontrada" 
+      });
     }
+    
+    // Calcular totais
+    const totalStudents = data.students.length;
+    const totalAmount = totalStudents * data.unitPrice;
     
     // Gerar código único para a solicitação
     const code = await generateUniqueCode("CERT", async (code) => {
@@ -246,28 +295,116 @@ router.post("/", validateBody(insertCertificationRequestSchema), async (req, res
       return !existingRequest;
     });
     
-    // Criar a solicitação
+    // Criar a solicitação no banco de dados
     const [newRequest] = await db.insert(certificationRequests).values({
-      ...data,
       code,
-      partnerId: userId || data.partnerId,
+      partnerId: userId,
+      institutionId: data.institutionId,
+      title: data.title,
+      description: data.description,
+      totalStudents,
+      unitPrice: data.unitPrice,
+      totalAmount,
       status: "pending",
       submittedAt: new Date()
     }).returning();
+    
+    // Criar os registros de estudantes
+    for (const student of data.students) {
+      await db.insert(certificationStudents).values({
+        requestId: newRequest.id,
+        name: student.name,
+        cpf: student.cpf,
+        email: student.email,
+        phone: student.phone,
+        courseId: Number(student.courseId),
+        courseName: student.courseName,
+        status: "pending"
+      });
+    }
     
     // Registrar atividade
     await db.insert(certificationActivityLogs).values({
       requestId: newRequest.id,
       action: "created",
-      description: "Solicitação de certificação criada",
+      description: "Solicitação de certificação em lote criada",
       performedById: userId,
       performedAt: new Date()
     });
     
-    return res.status(201).json(newRequest);
+    // Criar o pagamento no Asaas
+    const paymentRequest = {
+      partnerId: userId,
+      students: data.students.map(s => ({
+        name: s.name,
+        cpf: s.cpf,
+        email: s.email,
+        phone: s.phone,
+        courseId: String(s.courseId),
+        courseName: s.courseName
+      })),
+      unitPrice: data.unitPrice,
+      totalAmount
+    };
+    
+    console.log("Criando pagamento para certificação em lote:", paymentRequest);
+    
+    const paymentResponse = await CertificationPaymentService.createBatchPayment(paymentRequest);
+    
+    if (!paymentResponse.success) {
+      console.error("Erro ao criar pagamento:", paymentResponse.message, paymentResponse.error);
+      
+      // Se falhou o pagamento, ainda retornamos a solicitação criada,
+      // mas com uma indicação de que o pagamento falhou
+      return res.status(201).json({ 
+        ...newRequest, 
+        paymentError: paymentResponse.message,
+        success: true
+      });
+    }
+    
+    // Atualizar a solicitação com as informações de pagamento
+    await db.update(certificationRequests)
+      .set({
+        asaasPaymentId: paymentResponse.paymentId,
+        paymentLink: paymentResponse.paymentLink,
+        invoiceUrl: paymentResponse.invoiceUrl,
+        pixQrCodeUrl: paymentResponse.pixUrl,
+        pixCopiaECola: paymentResponse.pixCode,
+        paymentStatus: "pending",
+        status: "payment_pending",
+        updatedAt: new Date()
+      })
+      .where(eq(certificationRequests.id, newRequest.id));
+    
+    // Registrar atividade de pagamento criado
+    await db.insert(certificationActivityLogs).values({
+      requestId: newRequest.id,
+      action: "payment_created",
+      description: "Pagamento gerado via Asaas",
+      performedById: userId,
+      metadata: {
+        paymentId: paymentResponse.paymentId,
+        paymentLink: paymentResponse.paymentLink
+      },
+      performedAt: new Date()
+    });
+    
+    // Retornar a resposta com o link de pagamento
+    return res.status(201).json({
+      id: newRequest.id,
+      code: newRequest.code,
+      paymentId: paymentResponse.paymentId,
+      paymentLink: paymentResponse.paymentLink,
+      invoiceUrl: paymentResponse.invoiceUrl,
+      pixUrl: paymentResponse.pixUrl,
+      pixCode: paymentResponse.pixCode,
+      success: true
+    });
   } catch (error) {
     console.error("Erro ao criar solicitação de certificação:", error);
     return res.status(500).json({
+      success: false,
       message: "Erro ao criar solicitação de certificação",
       error: error instanceof Error ? error.message : String(error),
     });
