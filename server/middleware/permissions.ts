@@ -4,7 +4,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
-import { permissions, userRoles, roles, rolePermissions } from '../../shared/schema';
+import { permissions, userRoles, roles, rolePermissions } from '../db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 
 /**

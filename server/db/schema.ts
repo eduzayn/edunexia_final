@@ -63,6 +63,21 @@ export const userRolesRelations = relations(userRoles, ({ one }) => ({
   })
 }));
 
+// Disciplinas
+export const disciplines = pgTable('disciplines', {
+  id: serial('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  description: text('description'),
+  workload: integer('workload'),
+  syllabus: text('syllabus'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// Alias para backward compatibility
+export const disciplineTable = disciplines;
+
 // Simplified Enrollments schema
 export const simplifiedEnrollments = pgTable('simplified_enrollments', {
   id: serial('id').primaryKey(),
