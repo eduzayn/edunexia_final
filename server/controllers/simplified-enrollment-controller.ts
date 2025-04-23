@@ -179,9 +179,25 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
     });
     
     // Buscar matrículas com filtros
+    console.log('Chamando storage.getSimplifiedEnrollments com parâmetros:');
+    
+    // Tratar corretamente strings vazias como undefined
+    const searchParam = (search as string) || undefined;
+    const statusParam = (status as string) || undefined;
+    
+    console.log({
+      searchParam, 
+      statusParam,
+      parsedInstitutionId,
+      parsedCourseId,
+      parsedPoloId,
+      limitNum,
+      offset
+    });
+    
     const enrollments = await storage.getSimplifiedEnrollments(
-      search as string,
-      status as string,
+      searchParam,
+      statusParam,
       parsedInstitutionId,
       parsedCourseId,
       parsedPoloId,
@@ -189,15 +205,20 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
       offset
     );
     
+    console.log(`Retornados ${enrollments ? enrollments.length : 0} registros`);
+    
     return res.json({
       success: true,
-      data: enrollments
+      data: enrollments || [],
+      page: pageNum,
+      limit: limitNum,
+      total: enrollments ? enrollments.length : 0
     });
   } catch (error) {
     console.error('Erro ao listar matrículas simplificadas:', error);
     return res.status(500).json({
       success: false,
-      message: `Erro ao listar matrículas simplificadas: ${error.message}`
+      message: `Erro ao listar matrículas simplificadas: ${error.message || 'Erro desconhecido'}`
     });
   }
 }

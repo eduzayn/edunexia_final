@@ -1037,36 +1037,53 @@ export class DatabaseStorage implements IStorage {
     limit: number = 50,
     offset: number = 0
   ): Promise<SimplifiedEnrollment[]> {
-    let query = db.select().from(simplifiedEnrollments).limit(limit).offset(offset);
-    
-    // Filtros
-    if (search) {
-      query = query.where(
-        or(
-          like(simplifiedEnrollments.studentName, `%${search}%`),
-          like(simplifiedEnrollments.studentEmail, `%${search}%`),
-          like(simplifiedEnrollments.studentCpf, `%${search}%`)
-        )
-      );
+    try {
+      console.log('Storage: Iniciando consulta de matrículas simplificadas');
+      console.log('Parâmetros da consulta:', { search, status, institutionId, courseId, poloId, limit, offset });
+      
+      let query = db.select().from(simplifiedEnrollments).limit(limit).offset(offset);
+      
+      // Filtros
+      if (search) {
+        console.log('Aplicando filtro de pesquisa:', search);
+        query = query.where(
+          or(
+            like(simplifiedEnrollments.studentName, `%${search}%`),
+            like(simplifiedEnrollments.studentEmail, `%${search}%`),
+            like(simplifiedEnrollments.studentCpf, `%${search}%`)
+          )
+        );
+      }
+      
+      if (status) {
+        console.log('Aplicando filtro de status:', status);
+        query = query.where(eq(simplifiedEnrollments.status, status));
+      }
+      
+      if (institutionId) {
+        console.log('Aplicando filtro de instituição:', institutionId);
+        query = query.where(eq(simplifiedEnrollments.institutionId, institutionId));
+      }
+      
+      if (courseId) {
+        console.log('Aplicando filtro de curso:', courseId);
+        query = query.where(eq(simplifiedEnrollments.courseId, courseId));
+      }
+      
+      if (poloId) {
+        console.log('Aplicando filtro de polo:', poloId);
+        query = query.where(eq(simplifiedEnrollments.poloId, poloId));
+      }
+      
+      console.log('Executando consulta final...');
+      const result = await query.orderBy(desc(simplifiedEnrollments.createdAt));
+      console.log(`Consulta bem-sucedida, retornando ${result ? result.length : 0} registros`);
+      
+      return result;
+    } catch (error) {
+      console.error('ERRO na consulta de matrículas simplificadas:', error);
+      throw error;
     }
-    
-    if (status) {
-      query = query.where(eq(simplifiedEnrollments.status, status));
-    }
-    
-    if (institutionId) {
-      query = query.where(eq(simplifiedEnrollments.institutionId, institutionId));
-    }
-    
-    if (courseId) {
-      query = query.where(eq(simplifiedEnrollments.courseId, courseId));
-    }
-    
-    if (poloId) {
-      query = query.where(eq(simplifiedEnrollments.poloId, poloId));
-    }
-    
-    return await query.orderBy(desc(simplifiedEnrollments.createdAt));
   }
   
   async createSimplifiedEnrollment(enrollment: InsertSimplifiedEnrollment): Promise<SimplifiedEnrollment> {
