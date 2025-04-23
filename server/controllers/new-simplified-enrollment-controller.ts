@@ -4,13 +4,9 @@
 
 import { Request, Response } from 'express';
 import { db, pool } from '../db';
-import { 
-  simplifiedEnrollments, 
-  courses, 
-  polos, 
-  institutions, 
-  insertSimplifiedEnrollmentSchema 
-} from '../../shared/schema';
+// Usar o schema do servidor que corresponde à estrutura atual do banco de dados
+import { simplifiedEnrollments } from '../db/schema';
+import { courses, polos, institutions, insertSimplifiedEnrollmentSchema } from '../../shared/schema';
 import { eq, and, like, or, desc } from 'drizzle-orm';
 import { AsaasDirectPaymentService } from '../services/asaas-direct-payment-service';
 import { ZodError } from 'zod';
@@ -300,31 +296,32 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
     
-    // Criar a matrícula simplificada
+    // Obter o nome do curso e da instituição para incluir na matrícula
+    const courseName = courseExists[0].name;
+    const institutionName = institutionExists[0].name;
+    
+    // Criar a matrícula simplificada de acordo com o schema em server/db/schema.ts
     const [newEnrollment] = await db.insert(simplifiedEnrollments).values({
-      uuid, // UUID único gerado
       studentName,
       studentEmail,
       studentCpf,
-      studentPhone,
+      studentPhone: studentPhone || null,
       courseId,
+      courseName, // Adicionando o nome do curso
       institutionId,
-      poloId,
+      institutionName, // Adicionando o nome da instituição 
+      poloId: poloId || null,
+      poloName: poloName || null,
       amount,
-      fullPrice: amount, // Preço completo (obrigatório)
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
       externalReference: generatedExternalReference, // Usar o valor gerado ou o fornecido
       
-      // Campos obrigatórios que estavam faltando
-      expiresAt, // Data de expiração do link
-      paymentGateway: "asaas", // Gateway de pagamento padrão
-      
       // Se tiver um ID de cliente Asaas, usar
       asaasCustomerId: asaasCustomerId || null,
       
-      // Armazenar metadados adicionais para Asaas
-      metadata: JSON.stringify({
+      // Armazenar detalhes adicionais no campo errorDetails, se necessário
+      errorDetails: JSON.stringify({
         billingType: billingType || 'UNDEFINED',
         maxInstallmentCount: maxInstallmentCount || 12,
         dueDateLimitDays: dueDateLimitDays || 30,
@@ -427,14 +424,14 @@ export async function generatePaymentLink(req: Request, res: Response) {
         if (existingCustomer) {
           asaasCustomerId = existingCustomer.id;
         } else {
-          // Obter os metadados armazenados para recuperar informações de endereço
+          // Obter os detalhes armazenados para recuperar informações de endereço
           let metadata = {};
           try {
-            if (enrollmentData.metadata) {
-              metadata = JSON.parse(enrollmentData.metadata);
+            if (enrollmentData.errorDetails) {
+              metadata = JSON.parse(enrollmentData.errorDetails);
             }
           } catch (error) {
-            console.error('[API] Erro ao converter metadados:', error);
+            console.error('[API] Erro ao converter detalhes:', error);
           }
           
           // Criar novo cliente com dados completos incluindo endereço
@@ -474,14 +471,14 @@ export async function generatePaymentLink(req: Request, res: Response) {
       const courseName = enrollment[0].courseName || 'Curso';
       const description = `Matrícula no curso: ${courseName}`;
       
-      // Obter os metadados armazenados para recuperar informações de pagamento
+      // Obter os detalhes armazenados para recuperar informações de pagamento
       let metadata = {};
       try {
-        if (enrollmentData.metadata) {
-          metadata = JSON.parse(enrollmentData.metadata);
+        if (enrollmentData.errorDetails) {
+          metadata = JSON.parse(enrollmentData.errorDetails);
         }
       } catch (error) {
-        console.error('[API] Erro ao converter metadados:', error);
+        console.error('[API] Erro ao converter detalhes:', error);
       }
       
       // Usar as configurações do formulário ou valores padrão
