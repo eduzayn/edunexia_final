@@ -152,7 +152,7 @@ export default function NewSimplifiedEnrollmentPage() {
               onClick={() => setCurrentPage(currentPage - 1)}
             >
               <div className="flex items-center gap-1">
-                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" />
                 Anterior
               </div>
             </Button>
@@ -214,7 +214,7 @@ export default function NewSimplifiedEnrollmentPage() {
             >
               <div className="flex items-center gap-1">
                 Próxima
-                <ChevronRightIcon className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4" />
               </div>
             </Button>
           </PaginationItem>
