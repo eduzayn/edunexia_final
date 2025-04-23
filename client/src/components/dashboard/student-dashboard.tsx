@@ -100,9 +100,9 @@ export function StudentDashboard() {
                       <Skeleton className="h-4 w-52 mt-1" />
                     </div>
                   ) : (
-                    <p className="text-gray-600">
+                    <div className="text-gray-600">
                       Você tem 3 atividades pendentes essa semana.
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -118,15 +118,15 @@ export function StudentDashboard() {
                   <TrendingUpIcon className="text-primary h-5 w-5" />
                 </div>
                 {isLoading ? (
-                  <>
+                  <div className="loading-content">
                     <Skeleton className="h-6 w-16 mb-2" />
                     <Skeleton className="h-2.5 w-full rounded-full" />
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div className="loaded-content">
                     <p className="text-2xl font-bold text-gray-900">78%</p>
                     <Progress value={78} className="h-2.5 mt-2" />
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -138,15 +138,15 @@ export function StudentDashboard() {
                   <SchoolIcon className="text-green-600 h-5 w-5" />
                 </div>
                 {isLoading ? (
-                  <>
+                  <div className="loading-content">
                     <Skeleton className="h-6 w-24 mb-2" />
                     <Skeleton className="h-4 w-48 mt-2" />
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div className="loaded-content">
                     <p className="text-2xl font-bold text-gray-900">3 cursos</p>
                     <p className="text-gray-600 text-sm mt-2">2 em andamento, 1 não iniciado</p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -158,15 +158,15 @@ export function StudentDashboard() {
                   <CalendarIcon className="text-orange-500 h-5 w-5" />
                 </div>
                 {isLoading ? (
-                  <>
+                  <div className="loading-content">
                     <Skeleton className="h-6 w-28 mb-2" />
                     <Skeleton className="h-4 w-32 mt-2" />
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div className="loaded-content">
                     <p className="text-2xl font-bold text-gray-900">15/07/2023</p>
                     <p className="text-gray-600 text-sm mt-2">Mensalidade: R$ 197,00</p>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -196,7 +196,7 @@ export function StudentDashboard() {
                   </Card>
                 ))
               ) : (
-                <>
+                <div className="courses-grid">
                   <Card className="overflow-hidden">
                     <div className="h-36 bg-primary-light flex items-center justify-center">
                       <MenuBookIcon className="h-16 w-16 text-white" />
@@ -250,7 +250,7 @@ export function StudentDashboard() {
                       </div>
                     </CardContent>
                   </Card>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -325,7 +325,7 @@ export function StudentDashboard() {
                     </div>
                   ))
                 ) : (
-                  <>
+                  <div className="notification-container">
                     <ScrollArea className="h-[240px] pr-4">
                       <div className="space-y-4">
                         <div className="pb-4 border-b border-gray-200">
@@ -347,7 +347,7 @@ export function StudentDashboard() {
                         </div>
                       </div>
                     </ScrollArea>
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
