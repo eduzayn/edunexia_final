@@ -44,7 +44,7 @@ export function AsaasCustomerSearch({
   placeholder = 'Nome completo do aluno',
   description,
   error,
-  label = '',
+  label = 'Nome Completo',
   isRequired = false,
 }: AsaasCustomerSearchProps) {
   const [open, setOpen] = useState(false);
