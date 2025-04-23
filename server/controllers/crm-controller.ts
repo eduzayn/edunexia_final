@@ -86,7 +86,8 @@ export async function createAsaasCustomer(req: Request, res: Response) {
       addressNumber,
       complement,
       province,
-      postalCode
+      postalCode,
+      personType: 'FISICA' // Adicionar o tipo de pessoa explicitamente
     });
 
     // Criar o cliente no sistema local

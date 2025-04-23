@@ -120,6 +120,13 @@ export async function getCustomerByCpfCnpj(cpfCnpj: string) {
  */
 export async function createCustomer(customerData: any) {
   try {
+    // Garantir que o CPF/CNPJ esteja no formato correto (apenas números)
+    if (customerData.cpfCnpj) {
+      // Remover formatação (pontos, traços, barras)
+      customerData.cpfCnpj = customerData.cpfCnpj.replace(/[^\d]+/g, '');
+      logger.info(`[AsaasCustomersService] CPF/CNPJ formatado: ${customerData.cpfCnpj}`);
+    }
+    
     logger.info(`[AsaasCustomersService] Criando novo cliente: ${JSON.stringify(customerData)}`);
     
     const response = await asaasApi.post('/customers', customerData);
@@ -127,7 +134,16 @@ export async function createCustomer(customerData: any) {
     logger.info(`[AsaasCustomersService] Cliente criado com sucesso: ${response.data.id}`);
     return response.data as AsaasCustomer;
   } catch (error: any) {
-    const errorMessage = error?.message || 'Erro desconhecido';
+    // Capturar detalhes mais específicos do erro da API Asaas
+    let errorMessage = error?.message || 'Erro desconhecido';
+    
+    // Verificar se há detalhes do erro na resposta da API
+    if (error.response && error.response.data && error.response.data.errors) {
+      const apiErrors = error.response.data.errors;
+      errorMessage = apiErrors.map((err: any) => `${err.description} (${err.code})`).join('; ');
+      logger.error(`[AsaasCustomersService] Erro detalhado da API: ${JSON.stringify(apiErrors)}`);
+    }
+    
     logger.error(`[AsaasCustomersService] Erro ao criar cliente: ${errorMessage}`);
     throw new Error(`Erro ao criar cliente no Asaas: ${errorMessage}`);
   }

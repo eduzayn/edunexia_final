@@ -45,6 +45,7 @@ interface AsaasCustomerRequest {
   province?: string;
   postalCode?: string;
   externalReference?: string;
+  personType?: 'FISICA' | 'JURIDICA';
 }
 
 // Interface para resposta de criação/busca de cliente
@@ -155,7 +156,6 @@ interface AsaasPaymentResponse {
     creditCardToken?: string;
     creditCardNumber?: string;
     creditCardBrand?: string;
-    creditCardToken?: string;
   };
   pixQrCodeUrl?: string;
   pixCopiaECola?: string;
@@ -227,11 +227,24 @@ export const AsaasDirectPaymentService = {
         cpfCnpj: formattedCpf
       };
       
-      const createResponse = await asaasClient.post('/customers', createCustomerPayload);
-      
-      console.log(`[ASAAS DIRECT] Cliente criado com sucesso:`, JSON.stringify(createResponse.data));
-      
-      return createResponse.data;
+      try {
+        const createResponse = await asaasClient.post('/customers', createCustomerPayload);
+        console.log(`[ASAAS DIRECT] Cliente criado com sucesso:`, JSON.stringify(createResponse.data));
+        return createResponse.data;
+      } catch (createError: any) {
+        // Capturar detalhes mais específicos do erro da API Asaas
+        let errorMessage = createError?.message || 'Erro desconhecido';
+        
+        // Verificar se há detalhes do erro na resposta da API
+        if (createError.response && createError.response.data && createError.response.data.errors) {
+          const apiErrors = createError.response.data.errors;
+          errorMessage = apiErrors.map((err: any) => `${err.description} (${err.code})`).join('; ');
+          console.error(`[ASAAS DIRECT] Erro detalhado da API: ${JSON.stringify(apiErrors)}`);
+        }
+        
+        console.error(`[ASAAS DIRECT] Erro ao criar cliente: ${errorMessage}`);
+        throw new Error(`Erro ao criar cliente no Asaas: ${errorMessage}`);
+      }
     } catch (error) {
       console.error('[ASAAS DIRECT] Erro ao criar/buscar cliente no Asaas:', error);
       throw error;
@@ -271,13 +284,39 @@ export const AsaasDirectPaymentService = {
    */
   async createCustomer(customerData: AsaasCustomerRequest): Promise<AsaasCustomerResponse> {
     try {
+      // Garantir que o CPF/CNPJ esteja no formato correto (apenas números)
+      if (customerData.cpfCnpj) {
+        // Remover formatação (pontos, traços, barras)
+        customerData.cpfCnpj = customerData.cpfCnpj.replace(/[^\d]+/g, '');
+        console.log(`[ASAAS DIRECT] CPF/CNPJ formatado: ${customerData.cpfCnpj}`);
+      }
+      
+      // Adicionar o tipo de pessoa se não estiver definido
+      if (!customerData.personType) {
+        customerData.personType = 'FISICA'; // Valor padrão
+        console.log(`[ASAAS DIRECT] Tipo de pessoa definido para FISICA`);
+      }
+      
       console.log(`[ASAAS DIRECT] Criando novo cliente no Asaas:`, JSON.stringify(customerData));
       
-      const createResponse = await asaasClient.post('/customers', customerData);
-      
-      console.log(`[ASAAS DIRECT] Cliente criado com sucesso:`, JSON.stringify(createResponse.data));
-      
-      return createResponse.data;
+      try {
+        const createResponse = await asaasClient.post('/customers', customerData);
+        console.log(`[ASAAS DIRECT] Cliente criado com sucesso:`, JSON.stringify(createResponse.data));
+        return createResponse.data;
+      } catch (createError: any) {
+        // Capturar detalhes mais específicos do erro da API Asaas
+        let errorMessage = createError?.message || 'Erro desconhecido';
+        
+        // Verificar se há detalhes do erro na resposta da API
+        if (createError.response && createError.response.data && createError.response.data.errors) {
+          const apiErrors = createError.response.data.errors;
+          errorMessage = apiErrors.map((err: any) => `${err.description} (${err.code})`).join('; ');
+          console.error(`[ASAAS DIRECT] Erro detalhado da API: ${JSON.stringify(apiErrors)}`);
+        }
+        
+        console.error(`[ASAAS DIRECT] Erro ao criar cliente: ${errorMessage}`);
+        throw new Error(`Erro ao criar cliente no Asaas: ${errorMessage}`);
+      }
     } catch (error) {
       console.error('[ASAAS DIRECT] Erro ao criar cliente no Asaas:', error);
       throw error;
