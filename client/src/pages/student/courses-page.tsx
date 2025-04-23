@@ -148,7 +148,7 @@ export default function StudentCoursesPage() {
         items={sidebarItems}
         user={user}
         portalType="student"
-        portalColor="#0891B2"
+        portalColor="#12B76A"
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
