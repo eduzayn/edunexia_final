@@ -259,8 +259,8 @@ export default function NovaSolicitacaoCertificacaoPage() {
   // Função para enviar a solicitação em lote
   const enviarSolicitacaoLote = async () => {
     try {
-      // Exibir loading state
-      setShowResumoLote(false);
+      // Ativar o estado de processamento
+      setIsProcessing(true);
       
       // Converter alunos do formato da interface para o formato esperado pela API
       const students = alunosLote.map(aluno => {
@@ -291,24 +291,40 @@ export default function NovaSolicitacaoCertificacaoPage() {
       // Enviar para a API
       const response = await createBatchCertification.mutateAsync(certificationRequest);
       
-      // Se tiver link de pagamento, redirecionar
-      if (response.paymentLink) {
-        window.location.href = response.paymentLink;
-      } else {
-        // Redirecionar de volta para a página de certificação após o envio
-        setLocation("/partner/certificacao");
-      }
+      // Desativar o estado de processamento
+      setIsProcessing(false);
+      
+      // Fechar o diálogo de resumo
+      setShowResumoLote(false);
+      
+      // Mostrar feedback positivo ao usuário
+      toast({
+        title: "Solicitação enviada com sucesso",
+        description: "Redirecionando para pagamento...",
+      });
+      
+      // Aguardar um breve momento antes de redirecionar (melhor UX)
+      setTimeout(() => {
+        // Se tiver link de pagamento, redirecionar
+        if (response.paymentLink) {
+          window.location.href = response.paymentLink;
+        } else {
+          // Redirecionar de volta para a página de certificação após o envio
+          setLocation("/partner/certificacao");
+        }
+      }, 1500);
+      
     } catch (error) {
       console.error("Erro ao enviar solicitação:", error);
+      
+      // Desativar o estado de processamento
+      setIsProcessing(false);
       
       toast({
         title: "Erro ao enviar solicitação",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao processar sua solicitação",
         variant: "destructive",
       });
-      
-      // Reabrir o diálogo de resumo para o usuário poder tentar novamente
-      setShowResumoLote(true);
     }
   };
   
@@ -374,11 +390,29 @@ export default function NovaSolicitacaoCertificacaoPage() {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResumoLote(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowResumoLote(false)} 
+              disabled={isProcessing}
+            >
               Voltar
             </Button>
-            <Button onClick={enviarSolicitacaoLote}>
-              Confirmar e Pagar
+            <Button 
+              onClick={enviarSolicitacaoLote} 
+              disabled={isProcessing}
+              className="min-w-[150px]"
+            >
+              {isProcessing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processando...
+                </>
+              ) : (
+                "Confirmar e Pagar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -890,7 +924,10 @@ export default function NovaSolicitacaoCertificacaoPage() {
                       Confirmar e Pagar
                     </Button>
                   ) : (
-                    <Button onClick={activeTab === "lote" ? mostrarResumoLote : undefined}>
+                    <Button 
+                      onClick={activeTab === "lote" ? mostrarResumoLote : undefined}
+                      disabled={isProcessing}
+                    >
                       <Save className="h-4 w-4 mr-2" />
                       {activeTab === "lote" ? "Revisar Solicitação" : "Enviar Solicitação"}
                     </Button>
