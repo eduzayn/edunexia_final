@@ -402,6 +402,9 @@ router.post("/:id/status", async (req, res) => {
       additionalFields.rejectionReason = reason;
     }
     
+    // Salvar o status anterior para notificação
+    const oldStatus = certRequest.status;
+    
     // Atualizar status
     const [updatedRequest] = await db.update(certificationRequests)
       .set({
@@ -424,6 +427,45 @@ router.post("/:id/status", async (req, res) => {
       performedById: userId,
       performedAt: new Date()
     });
+    
+    // Enviar notificação para o parceiro sobre a mudança de status
+    try {
+      const { sendCertificationStatusChangeNotification } = await import('../services/notification-service');
+      
+      // Notificar apenas se o status atual for diferente do anterior
+      if (oldStatus !== status && certRequest.partnerId) {
+        sendCertificationStatusChangeNotification(
+          certRequest.partnerId,
+          requestId,
+          certRequest.code,
+          oldStatus,
+          status
+        ).catch(err => {
+          console.error(`Erro ao enviar notificação de mudança de status: ${err.message}`);
+        });
+      }
+    } catch (notificationError) {
+      console.error("Erro ao enviar notificação:", notificationError);
+      // Falha na notificação não deve impedir o sucesso da operação
+    }
+    
+    // Se o status for payment_confirmed, iniciar processamento automático
+    if (status === "payment_confirmed") {
+      // Iniciar processamento dos certificados de forma assíncrona
+      try {
+        fetch(`${process.env.BASE_URL || 'http://localhost:5000'}/api/certification-requests/${requestId}/process-certificates`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': req.headers.authorization || '',
+          }
+        }).catch(error => {
+          console.error('Erro ao chamar endpoint de processamento de certificados:', error);
+        });
+      } catch (processingError) {
+        console.error("Erro ao iniciar processamento automático:", processingError);
+      }
+    }
     
     return res.json(updatedRequest);
   } catch (error) {
@@ -1034,8 +1076,16 @@ router.post("/:id/process-certificates", async (req, res) => {
     const { id } = req.params;
     const userId = req.user?.id;
     
-    // Apenas administradores podem processar certificados
-    if (req.user?.portalType !== "admin") {
+    // Verificar autenticação
+    // Se não for um usuário logado, verificar se é uma chamada interna com o token adequado
+    const isInternalRequest = req.headers['x-internal-auth'] === process.env.INTERNAL_API_TOKEN;
+    
+    if (!req.user && !isInternalRequest) {
+      return res.status(401).json({ message: "Autenticação necessária" });
+    }
+    
+    // Apenas administradores ou chamadas internas podem processar certificados
+    if (!isInternalRequest && req.user?.portalType !== "admin") {
       return res.status(403).json({
         message: "Apenas administradores podem processar certificados"
       });
@@ -1060,37 +1110,162 @@ router.post("/:id/process-certificates", async (req, res) => {
       return res.status(404).json({ message: "Solicitação de certificação não encontrada" });
     }
     
-    // Verificar se a solicitação está no estado correto
-    if (certRequest.status !== "payment_confirmed") {
+    // Verificar se a solicitação está no estado correto (payment_confirmed ou processing)
+    if (certRequest.status !== "payment_confirmed" && certRequest.status !== "processing") {
       return res.status(400).json({
-        message: `Não é possível processar certificados de uma solicitação com status "${certRequest.status}". A solicitação deve estar com status "payment_confirmed"`
+        message: `Não é possível processar certificados de uma solicitação com status "${certRequest.status}". A solicitação deve estar com status "payment_confirmed" ou "processing"`
       });
     }
     
-    // Atualizar status da solicitação para "processing"
-    await db.update(certificationRequests)
-      .set({
-        status: "processing",
-        updatedAt: new Date()
+    // Se ainda estiver em payment_confirmed, atualizar status para processing
+    if (certRequest.status === "payment_confirmed") {
+      await db.update(certificationRequests)
+        .set({
+          status: "processing",
+          updatedAt: new Date()
+        })
+        .where(eq(certificationRequests.id, requestId));
+      
+      // Registrar atividade de início do processamento
+      await db.insert(certificationActivityLogs).values({
+        requestId: requestId,
+        action: "certificates_processing_started",
+        description: "Início do processamento de certificados",
+        performedById: userId,
+        performedAt: new Date()
+      });
+    }
+    
+    // Importar serviços necessários para geração de certificados
+    const { 
+      generateCertificatePdf,
+      generateTranscriptPdf,
+      saveCertificatePdf
+    } = await import('../services/certificate-generator');
+    
+    // Processar certificados para cada aluno na solicitação
+    const results = await Promise.allSettled(
+      certRequest.students.map(async (student) => {
+        try {
+          // Verificar se o aluno já tem um certificado gerado
+          if (student.certificateId) {
+            return {
+              studentId: student.id,
+              status: "already_processed",
+              message: "Certificado já processado anteriormente"
+            };
+          }
+          
+          // Criar registro de certificado no banco de dados
+          const [certificate] = await db.insert(certificates).values({
+            code: await generateUniqueCode("CERT", async (code) => {
+              const existingCert = await db.query.certificates.findFirst({
+                where: eq(certificates.code, code)
+              });
+              return !existingCert;
+            }),
+            studentId: student.studentId || 0,
+            studentName: student.name,
+            courseName: student.courseName || student.course?.name || "",
+            courseId: student.courseId,
+            totalHours: student.course?.workload || 360, // Default para pós-graduação
+            institutionId: certRequest.institutionId,
+            issuedAt: new Date(),
+            completionDate: new Date(),
+            status: "active"
+          }).returning();
+          
+          // Vincular o certificado ao aluno na solicitação
+          await db.update(certificationStudents)
+            .set({
+              certificateId: certificate.id,
+              status: "processed",
+              updatedAt: new Date()
+            })
+            .where(eq(certificationStudents.id, student.id));
+          
+          // Gerar os documentos PDF
+          const certificatePdf = await generateCertificatePdf(certificate.id);
+          
+          // Salvar os PDFs
+          const certificatePath = await saveCertificatePdf(
+            certificate.id, 
+            certificatePdf, 
+            'certificate'
+          );
+          
+          // Atualizar o certificado com os caminhos dos arquivos
+          await db.update(certificates)
+            .set({
+              certificateUrl: certificatePath,
+              updatedAt: new Date()
+            })
+            .where(eq(certificates.id, certificate.id));
+          
+          return {
+            studentId: student.id,
+            certificateId: certificate.id,
+            status: "success",
+            message: "Certificado gerado com sucesso"
+          };
+        } catch (error) {
+          console.error(`Erro ao processar certificado para aluno ${student.id}:`, error);
+          
+          return {
+            studentId: student.id,
+            status: "error",
+            message: error instanceof Error ? error.message : String(error)
+          };
+        }
       })
-      .where(eq(certificationRequests.id, requestId));
+    );
     
-    // Registrar atividade de início do processamento
-    await db.insert(certificationActivityLogs).values({
-      requestId: requestId,
-      action: "certificates_processing_started",
-      description: "Início do processamento de certificados",
-      performedById: userId,
-      performedAt: new Date()
-    });
+    // Contar os sucessos e falhas
+    const successCount = results.filter(r => r.status === "fulfilled" && r.value.status === "success").length;
+    const errorCount = results.filter(r => r.status === "rejected" || 
+      (r.status === "fulfilled" && r.value.status === "error")
+    ).length;
+    const alreadyProcessedCount = results.filter(r => 
+      r.status === "fulfilled" && r.value.status === "already_processed"
+    ).length;
     
-    // Aqui seria feito o processamento dos certificados de forma assíncrona
-    // Por enquanto, vamos apenas retornar sucesso na iniciação do processo
+    // Se todos foram processados com sucesso, atualizar status da solicitação
+    if (errorCount === 0 && successCount + alreadyProcessedCount === certRequest.students.length) {
+      await db.update(certificationRequests)
+        .set({
+          status: "completed",
+          completedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(certificationRequests.id, requestId));
+      
+      // Registrar atividade de conclusão
+      await db.insert(certificationActivityLogs).values({
+        requestId: requestId,
+        action: "certificates_completed",
+        description: `Processamento de certificados concluído. ${successCount} certificados gerados com sucesso.`,
+        performedById: userId,
+        performedAt: new Date()
+      });
+    } else {
+      // Houve algum erro, registrar os problemas
+      await db.insert(certificationActivityLogs).values({
+        requestId: requestId,
+        action: "certificates_processing_partial",
+        description: `Processamento parcial. Sucesso: ${successCount}, Erro: ${errorCount}, Já processados: ${alreadyProcessedCount}`,
+        performedById: userId,
+        performedAt: new Date()
+      });
+    }
     
     return res.json({
-      message: "Processamento de certificados iniciado",
+      message: "Processamento de certificados concluído",
       requestId: requestId,
-      totalStudents: certRequest.students.length
+      totalStudents: certRequest.students.length,
+      successCount,
+      errorCount,
+      alreadyProcessedCount,
+      results: results.map(r => r.status === "fulfilled" ? r.value : { status: "error" })
     });
   } catch (error) {
     console.error("Erro ao iniciar processamento de certificados:", error);

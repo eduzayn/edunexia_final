@@ -11,6 +11,7 @@ import authRouter from './routes/auth-route';
 import financeRouter from './routes/finance-routes';
 import certificationPaymentRoutes from './routes/certification-payment-routes';
 import certificationRequestRoutes from './routes/certification-requests';
+import asaasWebhookRoutes from './routes/asaas-webhook';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
