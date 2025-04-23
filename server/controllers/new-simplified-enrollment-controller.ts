@@ -447,19 +447,42 @@ export async function generatePaymentLink(req: Request, res: Response) {
             console.error('[API] Erro ao converter metadados:', error);
           }
           
-          // Criar novo cliente com dados completos incluindo endereço
-          const customer = await AsaasDirectPaymentService.createCustomer({
+          // Garantir que o CPF esteja no formato correto (apenas números)
+          const formattedCpf = enrollmentData.studentCpf.replace(/[^\d]+/g, '');
+          console.log(`[API] CPF formatado para criar cliente: ${formattedCpf} (original: ${enrollmentData.studentCpf})`);
+          
+          // Validar se o CPF tem um tamanho válido
+          if (formattedCpf.length !== 11) {
+            console.error(`[API] CPF com tamanho inválido (${formattedCpf.length}): ${formattedCpf}`);
+            return res.status(400).json({
+              success: false,
+              message: 'CPF inválido. O CPF deve ter 11 dígitos.',
+              error: 'invalid_cpf_length'
+            });
+          }
+          
+          // Log dos dados que serão enviados ao Asaas
+          console.log(`[API] Dados para criação do cliente:`, JSON.stringify({
             name: enrollmentData.studentName,
             email: enrollmentData.studentEmail,
-            cpfCnpj: enrollmentData.studentCpf,
-            mobilePhone: enrollmentData.studentPhone || undefined,
+            cpfCnpj: formattedCpf,
+            mobilePhone: enrollmentData.studentPhone
+          }, null, 2));
+          
+          // Criar novo cliente com dados completos incluindo endereço
+          const customer = await AsaasDirectPaymentService.createCustomer({
+            name: enrollmentData.studentName.trim(), // Garantir que não haja espaços extras
+            email: enrollmentData.studentEmail,
+            cpfCnpj: formattedCpf, // Usar o CPF formatado
+            mobilePhone: enrollmentData.studentPhone ? enrollmentData.studentPhone.replace(/\D/g, '') : undefined,
             address: metadataObj.studentAddress,
             addressNumber: metadataObj.studentAddressNumber,
             complement: metadataObj.studentAddressComplement,
             province: metadataObj.studentNeighborhood,
             city: metadataObj.studentCity,
             state: metadataObj.studentState,
-            postalCode: metadataObj.studentPostalCode
+            postalCode: metadataObj.studentPostalCode ? metadataObj.studentPostalCode.replace(/\D/g, '') : undefined,
+            personType: 'FISICA' // Especificar explicitamente o tipo de pessoa
           });
           
           asaasCustomerId = customer.id;

@@ -220,10 +220,32 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   const onSubmit = (values: FormValues) => {
     setIsSubmitting(true);
     
+    // Log para debug
+    console.log('Valores do formulário:', { 
+      nome: values.studentName, 
+      cpf: values.studentCpf, 
+      email: values.studentEmail
+    });
+    
+    // Garantir que o CPF tenha só números e que o nome esteja sem espaços extras
+    const formattedCpf = values.studentCpf.replace(/\D/g, '');
+    const formattedName = values.studentName.trim();
+    
+    // Verificar se o CPF tem um tamanho válido
+    if (formattedCpf.length !== 11) {
+      toast({
+        title: 'CPF inválido',
+        description: 'O CPF deve ter exatamente 11 dígitos. Por favor, verifique o CPF informado.',
+        variant: 'destructive',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
     const enrollmentData = {
-      studentName: values.studentName,
-      studentEmail: values.studentEmail,
-      studentCpf: values.studentCpf.replace(/\D/g, ''), // Remover formatação
+      studentName: formattedName,
+      studentEmail: values.studentEmail.trim(),
+      studentCpf: formattedCpf, // CPF já formatado
       studentPhone: values.studentPhone.replace(/\D/g, ''), // Remover formatação
       courseId: values.courseId,
       institutionId: values.institutionId,
@@ -241,17 +263,23 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       billingType: values.billingType,
       maxInstallmentCount: values.maxInstallmentCount,
       dueDateLimitDays: values.dueDateLimitDays,
-      studentAddress: values.studentAddress,
-      studentAddressNumber: values.studentAddressNumber,
-      studentAddressComplement: values.studentAddressComplement,
-      studentNeighborhood: values.studentNeighborhood,
-      studentCity: values.studentCity,
-      studentState: values.studentState,
+      studentAddress: values.studentAddress ? values.studentAddress.trim() : '',
+      studentAddressNumber: values.studentAddressNumber ? values.studentAddressNumber.trim() : '',
+      studentAddressComplement: values.studentAddressComplement ? values.studentAddressComplement.trim() : '',
+      studentNeighborhood: values.studentNeighborhood ? values.studentNeighborhood.trim() : '',
+      studentCity: values.studentCity ? values.studentCity.trim() : '',
+      studentState: values.studentState ? values.studentState.trim() : '',
       studentPostalCode: values.studentPostalCode?.replace(/\D/g, ''),
       allowInstallments: values.allowInstallments,
       interestRate: values.interestRate,
       fine: values.fine,
     };
+    
+    // Log para debug
+    console.log('Dados enviados para o servidor:', { 
+      nome: enrollmentData.studentName, 
+      cpf: enrollmentData.studentCpf 
+    });
     
     // Se tiver um cliente Asaas selecionado, incluir o ID
     if (selectedAsaasCustomer) {
@@ -303,23 +331,68 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     cpfCnpj: string;
     mobilePhone?: string;
   }) => {
-    setSelectedAsaasCustomer(customer);
+    console.log('Cliente selecionado:', customer);
     
-    // Atualizar campos do formulário com os dados do cliente Asaas
-    form.setValue('studentName', customer.name);
-    form.setValue('studentEmail', customer.email);
-    form.setValue('studentCpf', customer.cpfCnpj);
+    // Realizar uma cópia do cliente para evitar possíveis referências
+    const customerCopy = {
+      id: customer.id,
+      name: customer.name.trim(), // Garantir que não haja espaços extras
+      email: customer.email,
+      cpfCnpj: customer.cpfCnpj,
+      mobilePhone: customer.mobilePhone
+    };
     
-    if (customer.mobilePhone) {
-      form.setValue('studentPhone', customer.mobilePhone);
+    // Se for um novo cliente (criado no componente de busca)
+    if (customerCopy.id.startsWith('new_customer')) {
+      console.log('Novo cliente criado a partir da busca:', customerCopy.name);
+      
+      // Limpar ou formatar CPF somente se estiver vazio
+      if (!customerCopy.cpfCnpj) {
+        customerCopy.cpfCnpj = '';
+      } else {
+        // Garantir que o CPF está no formato correto (apenas dígitos)
+        customerCopy.cpfCnpj = customerCopy.cpfCnpj.replace(/\D/g, '');
+      }
+    } else {
+      // Cliente existente do Asaas - garantir que o CPF esteja formatado
+      const formattedCpf = customerCopy.cpfCnpj.replace(/\D/g, '');
+      customerCopy.cpfCnpj = formattedCpf;
+      console.log('Cliente existente encontrado:', customerCopy.name, 'CPF:', formattedCpf);
     }
     
-    // Exibir mensagem de sucesso
-    toast({
-      title: 'Cliente encontrado',
-      description: 'Os dados do cliente foram preenchidos automaticamente.',
-      variant: 'default',
-    });
+    // Atualizar estado do cliente selecionado
+    setSelectedAsaasCustomer(customerCopy);
+    
+    // Atualizar campos do formulário com os dados do cliente tratados
+    form.setValue('studentName', customerCopy.name);
+    form.setValue('studentEmail', customerCopy.email || '');
+    
+    // Aplicar formatação ao CPF para exibição
+    if (customerCopy.cpfCnpj && customerCopy.cpfCnpj.length > 0) {
+      // Garantir que o valor seja somente dígitos para então formatar
+      const cpfDigitsOnly = customerCopy.cpfCnpj.replace(/\D/g, '');
+      form.setValue('studentCpf', formatCPF(cpfDigitsOnly));
+    } else {
+      form.setValue('studentCpf', '');
+    }
+    
+    // Formatar telefone se disponível
+    if (customerCopy.mobilePhone) {
+      form.setValue('studentPhone', formatPhone(customerCopy.mobilePhone));
+    }
+    
+    // Exibir mensagem apropriada
+    if (customerCopy.id.startsWith('new_customer')) {
+      toast({
+        title: 'Novo cliente',
+        description: 'Complete os dados do novo cliente para continuar.',
+      });
+    } else {
+      toast({
+        title: 'Cliente encontrado',
+        description: 'Os dados do cliente foram preenchidos automaticamente.',
+      });
+    }
   };
 
   return (
