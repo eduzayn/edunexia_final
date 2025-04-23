@@ -23,7 +23,8 @@ import {
   PersonAddIcon,
   MonetizationOnIcon,
   ArrowUpwardIcon,
-  ReceiptIcon
+  ReceiptIcon,
+  AwardIcon
 } from "@/components/ui/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ export function PartnerDashboard() {
   // Sidebar items for partner portal
   const sidebarItems = [
     { name: "Dashboard", icon: <ChartIcon />, active: true, href: "/partner/dashboard" },
+    { name: "Certificação", icon: <AwardIcon />, href: "/partner/certificacao" },
     { name: "Referências", icon: <PeopleIcon />, href: "/partner/referrals" },
     { name: "Comissões", icon: <MonetizationOnIcon />, href: "/partner/commissions" },
     { name: "Materiais", icon: <ComputerIcon />, href: "/partner/materials" },

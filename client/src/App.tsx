@@ -208,6 +208,20 @@ function Router() {
         {() => user?.portalType === "student" ? <Redirect to="/student/financial" /> : <Redirect to="/auth" />}
       </Route>
       <ProtectedRoute path="/partner/dashboard" portalType="partner" />
+      <Route path="/partner/certificacao" exact>
+        {() => {
+          // Importação dinâmica para módulos de certificação
+          const CertificacaoPage = require("@/pages/partner/certificacao/index").default;
+          return user?.portalType === "partner" ? <CertificacaoPage /> : <Redirect to="/auth" />;
+        }}
+      </Route>
+      <Route path="/partner/certificacao/nova">
+        {() => {
+          // Importação dinâmica para módulos de certificação
+          const NovaSolicitacaoPage = require("@/pages/partner/certificacao/nova").default;
+          return user?.portalType === "partner" ? <NovaSolicitacaoPage /> : <Redirect to="/auth" />;
+        }}
+      </Route>
       <ProtectedRoute path="/polo/dashboard" portalType="polo" />
       <Route path="/polo/enrollments">
         {() => user?.portalType === "polo" ? <PoloEnrollmentsPage /> : <Redirect to="/polo" />}
