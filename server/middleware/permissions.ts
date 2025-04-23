@@ -15,19 +15,22 @@ import { and, eq, inArray } from 'drizzle-orm';
 export function hasPermission(permissionCode: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Verificar autenticação
-      if (!req.isAuthenticated() || !req.user || !req.user.id) {
+      // Verificar autenticação usando nossa implementação atual
+      const user = (req as any).user;
+      const auth = (req as any).auth;
+      
+      if (!user || !auth || !user.id) {
         return res.status(401).json({ 
           success: false, 
           message: 'Usuário não autenticado'
         });
       }
       
-      const userId = req.user.id;
+      const userId = user.id;
       
-      // Para super_admin, sempre concede acesso
-      if (req.user.username === 'admin' || req.user.role === 'super_admin') {
-        console.log(`Usuário ${userId} é super_admin, acesso garantido para ${permissionCode}`);
+      // Para admin, sempre concede acesso
+      if (user.username === 'admin' || user.role === 'admin' || user.portalType === 'admin') {
+        console.log(`Usuário ${userId} é admin, acesso garantido para ${permissionCode}`);
         return next();
       }
       
@@ -107,19 +110,22 @@ export function hasPermission(permissionCode: string) {
 export function hasAnyPermission(permissionCodes: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Verificar autenticação
-      if (!req.isAuthenticated() || !req.user || !req.user.id) {
+      // Verificar autenticação usando nossa implementação atual
+      const user = (req as any).user;
+      const auth = (req as any).auth;
+      
+      if (!user || !auth || !user.id) {
         return res.status(401).json({ 
           success: false, 
           message: 'Usuário não autenticado'
         });
       }
       
-      const userId = req.user.id;
+      const userId = user.id;
       
-      // Para super_admin, sempre concede acesso
-      if (req.user.username === 'admin' || req.user.role === 'super_admin') {
-        console.log(`Usuário ${userId} é super_admin, acesso garantido para qualquer permissão`);
+      // Para admin, sempre concede acesso
+      if (user.username === 'admin' || user.role === 'admin' || user.portalType === 'admin') {
+        console.log(`Usuário ${userId} é admin, acesso garantido para qualquer permissão`);
         return next();
       }
       
@@ -195,7 +201,9 @@ export function hasAnyPermission(permissionCodes: string[]) {
  * Middleware para verificar se o usuário é um administrador
  */
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated() || !req.user || req.user.portalType !== 'admin') {
+  const user = (req as any).user;
+  
+  if (!user || (user.portalType !== 'admin' && user.role !== 'admin')) {
     return res.status(403).json({ 
       success: false, 
       message: 'Acesso restrito a administradores'
@@ -209,7 +217,9 @@ export function isAdmin(req: Request, res: Response, next: NextFunction) {
  * Middleware para verificar se o usuário está autenticado
  */
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+  const user = (req as any).user;
+  
+  if (!user) {
     return res.status(401).json({ 
       success: false, 
       message: 'Não autorizado'
