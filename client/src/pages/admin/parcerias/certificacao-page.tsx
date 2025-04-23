@@ -1,30 +1,215 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import AdminLayout from "@/components/layout/admin-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { 
-  FileCheck, 
-  Upload, 
-  Clock, 
-  Search, 
-  Download, 
-  Printer, 
-  Filter, 
+import {
+  FileCheck,
+  Upload,
+  Clock,
+  Search,
+  Download,
+  Printer,
+  Filter,
   RefreshCcw,
   Users,
-  BookOpen
+  BookOpen,
+  CheckCircle,
+  XCircle,
+  Eye,
+  File,
+  FileText,
+  ThumbsUp,
+  ThumbsDown,
+  CircleDollarSign,
+  ExternalLink,
+  Mail,
+  AlertCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+
+// Definição de tipos para os modelos
+interface Documento {
+  id: number;
+  nome: string;
+  tipo: string;
+  url: string;
+  validado?: boolean;
+}
+
+interface Aluno {
+  id: number;
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+}
+
+interface Curso {
+  id: number;
+  nome: string;
+  categoria: string;
+  cargaHoraria: number;
+  disciplinas: {
+    nome: string;
+    cargaHoraria: number;
+    professor: string;
+  }[];
+}
+
+interface Instituicao {
+  id: number;
+  nome: string;
+  cnpj: string;
+  email: string;
+  telefone: string;
+}
+
+interface SolicitacaoCertificacao {
+  id: number;
+  aluno: Aluno;
+  curso: Curso;
+  instituicao: Instituicao;
+  documentos: Documento[];
+  dataSolicitacao: string;
+  status: 'pendente' | 'aprovada' | 'rejeitada' | 'emitida';
+  statusPagamento: 'pendente' | 'pago' | 'atrasado';
+  dataAprovacao?: string;
+  dataEmissao?: string;
+  observacoes?: string;
+  valorCertificacao: number;
+}
 
 export default function CertificacaoAlunosPage() {
   const [location] = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("pendentes");
+  const [selectedSolicitacao, setSelectedSolicitacao] = useState<number | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [validacaoDocumentos, setValidacaoDocumentos] = useState<Record<number, boolean>>({});
+  const [observacoes, setObservacoes] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [confirmacaoDialogAberta, setConfirmacaoDialogAberta] = useState(false);
+  const [acaoConfirmacao, setAcaoConfirmacao] = useState<'aprovar' | 'rejeitar' | null>(null);
+
+  // Mock data - será substituído pela chamada à API
+  const mockSolicitacao: SolicitacaoCertificacao = {
+    id: 1,
+    aluno: {
+      id: 1,
+      nome: "Maria Silva dos Santos",
+      cpf: "123.456.789-00",
+      email: "maria.silva@exemplo.com",
+      telefone: "(11) 98765-4321"
+    },
+    curso: {
+      id: 1,
+      nome: "MBA em Gestão Empresarial",
+      categoria: "Pós-graduação",
+      cargaHoraria: 420,
+      disciplinas: [
+        { nome: "Gestão Estratégica", cargaHoraria: 60, professor: "Dr. João Silva" },
+        { nome: "Finanças Corporativas", cargaHoraria: 60, professor: "Dra. Ana Paula Souza" },
+        { nome: "Marketing Digital", cargaHoraria: 60, professor: "Dr. Ricardo Oliveira" },
+        { nome: "Gestão de Pessoas", cargaHoraria: 60, professor: "Dra. Carla Santos" },
+        { nome: "Empreendedorismo", cargaHoraria: 60, professor: "Dr. Marcelo Almeida" },
+        { nome: "Inovação e Tecnologia", cargaHoraria: 60, professor: "Dr. Fernando Costa" },
+        { nome: "Metodologia Científica", cargaHoraria: 60, professor: "Dra. Juliana Ferreira" }
+      ]
+    },
+    instituicao: {
+      id: 1,
+      nome: "Faculdade Dynamus",
+      cnpj: "12.345.678/0001-90",
+      email: "contato@faculdadedynamus.edu.br",
+      telefone: "(11) 3456-7890"
+    },
+    documentos: [
+      { id: 1, nome: "RG", tipo: "image/jpeg", url: "/uploads/rg.jpg" },
+      { id: 2, nome: "CPF", tipo: "image/jpeg", url: "/uploads/cpf.jpg" },
+      { id: 3, nome: "Diploma de Graduação", tipo: "application/pdf", url: "/uploads/diploma.pdf" },
+      { id: 4, nome: "Histórico Escolar", tipo: "application/pdf", url: "/uploads/historico.pdf" }
+    ],
+    dataSolicitacao: "15/04/2025",
+    status: "pendente",
+    statusPagamento: "pendente",
+    valorCertificacao: 250.00
+  };
+
+  const handleOpenDetails = (id: number) => {
+    setSelectedSolicitacao(id);
+    setDetailsOpen(true);
+    // Inicializa o estado de validação dos documentos
+    const validacaoInicial: Record<number, boolean> = {};
+    mockSolicitacao.documentos.forEach(doc => {
+      validacaoInicial[doc.id] = doc.validado || false;
+    });
+    setValidacaoDocumentos(validacaoInicial);
+    setObservacoes(mockSolicitacao.observacoes || "");
+  };
+
+  const handleCloseDetails = () => {
+    setDetailsOpen(false);
+    setSelectedSolicitacao(null);
+    setObservacoes("");
+    setRejectionReason("");
+    setAcaoConfirmacao(null);
+  };
+
+  const handleDocumentoValidacaoChange = (docId: number, validado: boolean) => {
+    setValidacaoDocumentos(prev => ({
+      ...prev,
+      [docId]: validado
+    }));
+  };
+
+  const handleAprovarSolicitacao = () => {
+    setAcaoConfirmacao('aprovar');
+    setConfirmacaoDialogAberta(true);
+  };
+
+  const handleRejeitarSolicitacao = () => {
+    setAcaoConfirmacao('rejeitar');
+    setConfirmacaoDialogAberta(true);
+  };
+
+  const handleConfirmarAcao = () => {
+    if (acaoConfirmacao === 'aprovar') {
+      // Lógica para aprovar a solicitação
+      console.log("Solicitação aprovada:", selectedSolicitacao);
+      console.log("Validação de documentos:", validacaoDocumentos);
+      console.log("Observações:", observacoes);
+    } else if (acaoConfirmacao === 'rejeitar') {
+      // Lógica para rejeitar a solicitação
+      console.log("Solicitação rejeitada:", selectedSolicitacao);
+      console.log("Motivo da rejeição:", rejectionReason);
+    }
+    setConfirmacaoDialogAberta(false);
+    handleCloseDetails();
+  };
 
   return (
     <AdminLayout
@@ -99,7 +284,11 @@ export default function CertificacaoAlunosPage() {
                         <Badge variant="pending">Aguardando</Badge>
                       </div>
                       <div className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleOpenDetails(item)}
+                        >
                           <Search className="h-4 w-4" />
                           <span className="sr-only">Detalhes</span>
                         </Button>
