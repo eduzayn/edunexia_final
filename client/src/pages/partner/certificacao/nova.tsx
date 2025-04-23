@@ -138,15 +138,85 @@ export default function NovaSolicitacaoCertificacaoPage() {
     { name: "Configurações", icon: <SettingsIcon />, href: "/partner/settings" },
   ];
 
+  // Estado para controlar o processamento do formulário individual
+  const [isProcessingIndividual, setIsProcessingIndividual] = useState(false);
+  
   // Função para lidar com o envio do formulário - solicitação individual
-  const onSubmit = (data: any) => {
-    console.log("Dados do formulário:", data);
-    console.log("Arquivos enviados:", uploadedFiles);
-    
-    // Aqui você implementaria a lógica para enviar a solicitação para o backend
-    
-    // Redirecionar de volta para a página de certificação após o envio
-    setLocation("/partner/certificacao");
+  const onSubmit = async (data: any) => {
+    try {
+      // Ativar o estado de processamento
+      setIsProcessingIndividual(true);
+      
+      console.log("Dados do formulário:", data);
+      console.log("Arquivos enviados:", uploadedFiles);
+      
+      if (!data.nomeAluno || !data.cpf || !data.email || !data.curso) {
+        toast({
+          title: "Formulário incompleto",
+          description: "Por favor, preencha todos os campos obrigatórios.",
+          variant: "destructive"
+        });
+        setIsProcessingIndividual(false);
+        return;
+      }
+      
+      // Buscar nome do curso selecionado
+      const cursoSelecionado = cursos.find(c => c.id.toString() === data.curso);
+      
+      // Preparar dados para a API no mesmo formato do lote (reutilizando código)
+      const certificationRequest = {
+        title: `Certificação Individual - ${data.nomeAluno}`,
+        description: data.observacoes || `Solicitação de certificação para ${data.nomeAluno}`,
+        institutionId: 1, // Por enquanto fixo, idealmente viria de uma seleção
+        unitPrice: valorCertificado,
+        students: [{
+          name: data.nomeAluno,
+          cpf: data.cpf,
+          email: data.email,
+          phone: data.telefone,
+          courseId: parseInt(data.curso),
+          courseName: cursoSelecionado ? cursoSelecionado.nome : 'Curso não encontrado'
+        }]
+      };
+      
+      // Enviar solicitação usando o mesmo hook que usamos para lote
+      const response = await createBatchCertification.mutateAsync(certificationRequest);
+      
+      // Desativar o estado de processamento
+      setIsProcessingIndividual(false);
+      
+      // Verificar se temos um link de pagamento
+      if (response.paymentLink) {
+        toast({
+          title: "Solicitação enviada com sucesso",
+          description: "Redirecionando para o portal de pagamento...",
+        });
+        
+        // Redirecionar para o pagamento após breve delay para melhor UX
+        setTimeout(() => {
+          window.location.href = response.paymentLink;
+        }, 1500);
+      } else {
+        toast({
+          title: "Solicitação enviada com sucesso",
+          description: "Voltando para a página de certificação.",
+        });
+        
+        // Redirecionar de volta para a página de certificação
+        setLocation("/partner/certificacao");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar solicitação individual:", error);
+      
+      // Desativar o estado de processamento
+      setIsProcessingIndividual(false);
+      
+      toast({
+        title: "Erro ao enviar solicitação",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao processar sua solicitação",
+        variant: "destructive",
+      });
+    }
   };
 
   // Função para lidar com o upload de arquivos
@@ -690,10 +760,19 @@ export default function NovaSolicitacaoCertificacaoPage() {
                         </Button>
                         <Button 
                           type="submit" 
-                          disabled={uploading || uploadedFiles.length === 0}
+                          disabled={isProcessingIndividual || uploading || uploadedFiles.length === 0}
                         >
-                          <Save className="h-4 w-4 mr-2" />
-                          Enviar Solicitação
+                          {isProcessingIndividual ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Processando...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              Enviar Solicitação
+                            </>
+                          )}
                         </Button>
                       </div>
                     </form>
