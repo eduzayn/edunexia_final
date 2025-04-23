@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { SchoolIcon, HandshakeIcon, MapPinIcon, ShieldIcon, ArrowLeftIcon } from "@/components/ui/icons";
@@ -11,44 +11,9 @@ export default function PortalSelectionPage() {
   const [, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [selectedPortal, setSelectedPortal] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Efeito para lidar com usuário já autenticado
-  useEffect(() => {
-    const cleanupAuth = async () => {
-      if (user) {
-        // Sempre limpar a autenticação para consistência entre ambientes
-        console.log("Limpando autenticação na seleção de portal");
-        
-        try {
-          // Se o usuário já estiver autenticado, fazer logout primeiro
-          await logoutMutation.mutateAsync();
-          
-          // Limpar todo o cache do cliente para garantir que não haja estado persistente
-          queryClient.clear();
-          
-          // Forçar limpeza do sessionStorage/localStorage
-          if (typeof window !== 'undefined') {
-            try {
-              // Limpar quaisquer dados armazenados localmente que possam interferir
-              sessionStorage.clear();
-              localStorage.removeItem('queryClient');
-            } catch (e) {
-              console.error("Erro ao limpar storage:", e);
-            }
-          }
-          
-          // Força a página a recarregar para limpar qualquer estado
-          if (window.location.pathname === '/portal-selection') {
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error("Erro ao limpar autenticação:", error);
-        }
-      }
-    };
-    
-    cleanupAuth();
-  }, []);
+  // Removido o useEffect redundante que fazia logout automaticamente
 
   const portals = [
     {
@@ -86,67 +51,38 @@ export default function PortalSelectionPage() {
   ];
 
   const handlePortalSelect = async (portalId: string) => {
+    if (isLoggingOut) return; // Evitar múltiplos cliques
+    
     setSelectedPortal(portalId);
     
-    try {
-      // Não precisamos mais verificar ambiente, aplicação tem comportamento consistente
+    // Usar navigate para transição mais suave
+    const redirectToPortal = () => {
+      console.log("Redirecionando para portal:", portalId);
       
-      // Sempre fazer logout para consistência entre ambientes
-      if (user) {
-        console.log("Limpando sessão existente antes de mudar de portal");
-        await logoutMutation.mutateAsync();
-        
-        // Limpar todo o cache do cliente para garantir que não haja estado persistente
-        queryClient.clear();
-        
-        // Forçar limpeza do sessionStorage/localStorage
-        if (typeof window !== 'undefined') {
-          try {
-            sessionStorage.clear();
-            localStorage.removeItem('queryClient');
-          } catch (e) {
-            console.error("Erro ao limpar storage:", e);
-          }
-        }
+      if (portalId === "admin") {
+        navigate("/admin");
+      } else if (portalId === "polo") {
+        navigate("/polo");
       } else {
-        // Mesmo sem usuário logado, limpar todo o cache por segurança
-        queryClient.clear();
+        // Rota padrão para student e partner
+        navigate(`/auth?portal=${portalId}`);
       }
-      
-      // Aplicar um delay mais longo para garantir uma transição suave
-      setTimeout(() => {
-        // Direcionar para a rota específica do portal selecionado
-        console.log("Redirecionando para portal:", portalId);
-        
-        // Usar window.location para forçar recarregamento completo da página
-        if (portalId === "admin") {
-          window.location.href = "/admin";
-        } else if (portalId === "polo") {
-          // Corrigir o redirecionamento do portal do polo para a página de autenticação correta
-          window.location.href = "/polo";
-        } else if (portalId === "student" || portalId === "partner") {
-          window.location.href = `/auth?portal=${portalId}`;
-        } else {
-          // Fallback para qualquer outro tipo de portal
-          window.location.href = `/auth?portal=${portalId}`;
-        }
-      }, 500);
-    } catch (error) {
-      console.error("Erro ao mudar de portal:", error);
-      
-      // Em caso de erro no logout, limpar o estado manualmente e tentar redirecionar
-      queryClient.setQueryData(["/api/user"], null);
-      queryClient.clear();
-      
-      // Forçar redirecionamento após erro
-      setTimeout(() => {
-        window.location.href = portalId === "admin" 
-          ? "/admin" 
-          : portalId === "polo" 
-            ? "/polo" 
-            : `/auth?portal=${portalId}`;
-      }, 500);
+    };
+    
+    // Se usuário estiver logado, fazer logout primeiro
+    if (user) {
+      try {
+        setIsLoggingOut(true);
+        await logoutMutation.mutateAsync();
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+      } finally {
+        setIsLoggingOut(false);
+      }
     }
+    
+    // Redirecionar imediatamente
+    redirectToPortal();
   };
 
   const containerVariants = {
