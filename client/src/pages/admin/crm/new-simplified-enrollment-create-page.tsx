@@ -41,6 +41,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 // Esquema de validação
 const formSchema = z.object({
+  // Campos obrigatórios de matrícula
   studentName: z.string().min(3, { message: 'Nome do aluno deve ter pelo menos 3 caracteres' }),
   studentEmail: z.string().email({ message: 'E-mail inválido' }),
   studentCpf: z.string()
@@ -215,6 +216,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       amount: values.amount,
       poloId: values.poloId,
       sourceChannel: values.sourceChannel || 'admin-portal',
+      
+      // Campos obrigatórios para a API
+      uuid: `enroll-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      fullPrice: values.amount, // Mesmo valor do amount
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias a partir de agora
+      paymentGateway: "asaas",
+      
       // Adicionar dados adicionais para o Asaas
       billingType: values.billingType,
       maxInstallmentCount: values.maxInstallmentCount,
