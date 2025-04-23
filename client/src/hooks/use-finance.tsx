@@ -81,14 +81,14 @@ export function useProducts(category?: string) {
   // Buscar produto por ID
   const useProduct = (id: number) => useQuery({
     queryKey: ['/api/finance/products', id],
-    queryFn: () => apiRequest<Product>(`/api/finance/products/${id}`),
+    queryFn: () => apiRequest<Product>('GET', `/api/finance/products/${id}`),
     enabled: !!id
   });
 
   // Criar produto
   const createProductMutation = useMutation({
     mutationFn: (data: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'createdById'>) => 
-      apiRequest<Product>('/api/finance/products', { method: 'POST', data }),
+      apiRequest<Product>('POST', '/api/finance/products', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/products'] });
       toast({
@@ -108,7 +108,7 @@ export function useProducts(category?: string) {
   // Atualizar produto
   const updateProductMutation = useMutation({
     mutationFn: ({ id, data }: { id: number, data: Partial<Product> }) => 
-      apiRequest<Product>(`/api/finance/products/${id}`, { method: 'PATCH', data }),
+      apiRequest<Product>('PATCH', `/api/finance/products/${id}`, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/products'] });
       queryClient.invalidateQueries({ queryKey: ['/api/finance/products', data.id] });
@@ -129,7 +129,7 @@ export function useProducts(category?: string) {
   // Excluir produto
   const deleteProductMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest(`/api/finance/products/${id}`, { method: 'DELETE' }),
+      apiRequest('DELETE', `/api/finance/products/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/products'] });
       toast({
@@ -179,20 +179,20 @@ export function useInvoices(clientId?: number, status?: string) {
   // Listar faturas
   const invoicesQuery = useQuery({
     queryKey: ['/api/finance/invoices', { clientId, status }],
-    queryFn: () => apiRequest<Invoice[]>(`/api/finance/invoices${buildQueryString()}`),
+    queryFn: () => apiRequest<Invoice[]>('GET', `/api/finance/invoices${buildQueryString()}`),
   });
 
   // Buscar fatura por ID
   const useInvoice = (id: number) => useQuery({
     queryKey: ['/api/finance/invoices', id],
-    queryFn: () => apiRequest<Invoice>(`/api/finance/invoices/${id}`),
+    queryFn: () => apiRequest<Invoice>('GET', `/api/finance/invoices/${id}`),
     enabled: !!id
   });
 
   // Buscar itens de uma fatura
   const useInvoiceItems = (invoiceId: number) => useQuery({
     queryKey: ['/api/finance/invoices', invoiceId, 'items'],
-    queryFn: () => apiRequest<InvoiceItem[]>(`/api/finance/invoices/${invoiceId}/items`),
+    queryFn: () => apiRequest<InvoiceItem[]>('GET', `/api/finance/invoices/${invoiceId}/items`),
     enabled: !!invoiceId
   });
 
@@ -201,7 +201,7 @@ export function useInvoices(clientId?: number, status?: string) {
     mutationFn: (data: { 
       invoice: Omit<Invoice, 'id' | 'number' | 'createdAt' | 'updatedAt' | 'createdById'>, 
       items: Omit<InvoiceItem, 'id' | 'invoiceId'>[] 
-    }) => apiRequest<Invoice>('/api/finance/invoices', { method: 'POST', data }),
+    }) => apiRequest<Invoice>('POST', '/api/finance/invoices', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/finance/invoices'] });
       toast({
@@ -341,13 +341,13 @@ export function usePayments(invoiceId?: number, status?: string) {
   // Listar pagamentos
   const paymentsQuery = useQuery({
     queryKey: ['/api/finance/payments', { invoiceId, status }],
-    queryFn: () => apiRequest<Payment[]>(`/api/finance/payments${buildQueryString()}`),
+    queryFn: () => apiRequest<Payment[]>('GET', `/api/finance/payments${buildQueryString()}`),
   });
 
   // Buscar pagamento por ID
   const usePayment = (id: number) => useQuery({
     queryKey: ['/api/finance/payments', id],
-    queryFn: () => apiRequest<Payment>(`/api/finance/payments/${id}`),
+    queryFn: () => apiRequest<Payment>('GET', `/api/finance/payments/${id}`),
     enabled: !!id
   });
 
