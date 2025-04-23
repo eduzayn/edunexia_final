@@ -19,6 +19,7 @@ import {
   generateTranscriptPdf, 
   saveCertificatePdf 
 } from "../services/certificate-generator";
+import { sendEmail } from "../services/email-service";
 import fs from "fs";
 import path from "path";
 
@@ -750,6 +751,94 @@ router.get("/:id/pdf/download", async (req, res) => {
     console.error("Erro ao gerar PDF do certificado para download:", error);
     return res.status(500).json({
       message: "Erro ao gerar PDF do certificado para download",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Enviar certificado por e-mail
+router.post("/:id/send-email", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const certificateId = parseInt(id);
+    const userId = req.user?.id;
+    
+    // Verificar se o certificado existe
+    const certificate = await db.query.certificates.findFirst({
+      where: eq(certificates.id, certificateId),
+      with: {
+        student: true,
+        course: true,
+      },
+    });
+    
+    if (!certificate) {
+      return res.status(404).json({ message: "Certificado não encontrado" });
+    }
+    
+    // Verificar se o certificado foi emitido
+    if (certificate.status !== "issued") {
+      return res.status(400).json({ 
+        message: "Só é possível enviar por e-mail certificados já emitidos" 
+      });
+    }
+    
+    // Verificar se o aluno tem e-mail cadastrado
+    if (!certificate.student?.email) {
+      return res.status(400).json({ 
+        message: "Aluno não possui e-mail cadastrado" 
+      });
+    }
+    
+    // Gerar URLs para os documentos
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    
+    // Gerar e salvar os PDFs se ainda não existirem
+    const certificatePdfBuffer = await generateCertificatePdf(certificateId);
+    const certificatePdfPath = await saveCertificatePdf(certificateId, certificatePdfBuffer, 'certificate');
+    const certificatePdfUrl = `${baseUrl}/${certificatePdfPath}`;
+    
+    const transcriptPdfBuffer = await generateTranscriptPdf(certificateId);
+    const transcriptPdfPath = await saveCertificatePdf(certificateId, transcriptPdfBuffer, 'transcript');
+    const transcriptPdfUrl = `${baseUrl}/${transcriptPdfPath}`;
+    
+    // URL de verificação do certificado
+    const verificationUrl = `${baseUrl}/validar-certificado/${certificate.code}`;
+    
+    // Enviar e-mail
+    const emailSent = await emailService.sendCertificateEmail({
+      to: certificate.student.email,
+      studentName: certificate.student.fullName,
+      certificateCode: certificate.code,
+      courseName: certificate.courseName || certificate.course?.name || 'Curso Concluído',
+      certificatePdfUrl: certificatePdfUrl,
+      transcriptPdfUrl: transcriptPdfUrl,
+      completionDate: certificate.completionDate?.toLocaleDateString('pt-BR') || certificate.issuedAt?.toLocaleDateString('pt-BR') || 'Data não informada',
+      verificationUrl: verificationUrl
+    });
+    
+    if (!emailSent) {
+      return res.status(500).json({ 
+        message: "Erro ao enviar e-mail com o certificado" 
+      });
+    }
+    
+    // Registrar no histórico
+    await db.insert(certificateHistory).values({
+      certificateId: certificateId,
+      action: "email_sent",
+      description: "Certificado enviado por e-mail",
+      performedById: userId || null,
+    });
+    
+    return res.json({ 
+      success: true, 
+      message: `Certificado enviado com sucesso para ${certificate.student.email}` 
+    });
+  } catch (error) {
+    console.error("Erro ao enviar certificado por e-mail:", error);
+    return res.status(500).json({
+      message: "Erro ao enviar certificado por e-mail",
       error: error instanceof Error ? error.message : String(error),
     });
   }

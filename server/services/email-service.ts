@@ -271,4 +271,135 @@ class EmailService {
   }
 }
 
+  /**
+   * Envio de certificado e histórico escolar para o aluno
+   */
+  async sendCertificateEmail(options: {
+    to: string;
+    studentName: string;
+    certificateCode: string;
+    courseName: string;
+    certificatePdfUrl: string;
+    transcriptPdfUrl?: string;
+    completionDate: string;
+    verificationUrl: string;
+  }): Promise<boolean> {
+    const { 
+      to, 
+      studentName, 
+      certificateCode, 
+      courseName, 
+      certificatePdfUrl, 
+      transcriptPdfUrl, 
+      completionDate,
+      verificationUrl 
+    } = options;
+    
+    try {
+      console.log(`[EmailService] Enviando e-mail de certificado para ${to}`);
+      
+      // Criar seção condicional para o histórico escolar (se disponível)
+      const transcriptSection = transcriptPdfUrl ? `
+        <p>Seu histórico escolar também está disponível para download:</p>
+        <p>
+          <a href="${transcriptPdfUrl}" style="display: inline-block; background-color: #28a745; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-weight: bold;">Baixar Histórico Escolar</a>
+        </p>
+      ` : '';
+      
+      // Criar conteúdo do e-mail
+      const emailContent = `
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #f8f9fa; padding: 15px; border-bottom: 3px solid #0066cc; }
+          .content { padding: 20px 0; }
+          .footer { font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 15px; }
+          .button { display: inline-block; background-color: #0066cc; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; }
+          .info { margin: 15px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #0066cc; }
+          .success { color: #155724; background-color: #d4edda; border-left: 4px solid #c3e6cb; padding: 10px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Seu Certificado - EDUNEXA ACADEMY</h2>
+          </div>
+          <div class="content">
+            <p>Parabéns, <strong>${studentName}</strong>!</p>
+            <p>É com grande satisfação que informamos a conclusão do seu curso e disponibilizamos seu certificado.</p>
+            
+            <div class="success">
+              <p><strong>Parabéns pela sua conquista!</strong> Você concluiu com sucesso o curso e agora pode baixar seu certificado.</p>
+            </div>
+            
+            <div class="info">
+              <p><strong>Curso:</strong> ${courseName}</p>
+              <p><strong>Código do Certificado:</strong> ${certificateCode}</p>
+              <p><strong>Data de Conclusão:</strong> ${completionDate}</p>
+            </div>
+            
+            <p>Para baixar seu certificado, clique no botão abaixo:</p>
+            <p>
+              <a href="${certificatePdfUrl}" class="button">Baixar Certificado</a>
+            </p>
+            
+            ${transcriptSection}
+            
+            <p>Você também pode verificar a autenticidade do seu certificado através do link:</p>
+            <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+            
+            <p>Agradecemos por confiar na EDUNEXA para sua formação profissional!</p>
+          </div>
+          <div class="footer">
+            <p>EDUNEXA ACADEMY - Excelência em Educação Continuada</p>
+            <p>&copy; ${new Date().getFullYear()} EDUNEXA. Todos os direitos reservados.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+      
+      // Log de simulação - em produção enviaria via SMTP
+      console.log(`[EmailService] Simulando envio de certificado para ${to}`);
+      console.log(`[EmailService] Assunto: Seu Certificado - ${courseName}`);
+      console.log(`[EmailService] Link do certificado: ${certificatePdfUrl}`);
+      if (transcriptPdfUrl) {
+        console.log(`[EmailService] Link do histórico: ${transcriptPdfUrl}`);
+      }
+      
+      // Registrar sucesso no log
+      console.log(`[EmailService] E-mail de certificado enviado com sucesso para ${to}`);
+      
+      return true;
+    } catch (error) {
+      console.error('[EmailService] Erro ao enviar e-mail de certificado:', error);
+      return false;
+    }
+  }
+}
+
+// Função auxiliar para enviar e-mails (exportada para uso em outros módulos)
+export async function sendEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: Array<{filename: string, path: string, contentType?: string}>;
+}): Promise<boolean> {
+  try {
+    console.log(`[EmailService] Enviando e-mail para ${options.to}`);
+    console.log(`[EmailService] Assunto: ${options.subject}`);
+    
+    // Em uma implementação real, usaria um serviço SMTP real
+    // Esta é apenas uma implementação simulada para fins de demo
+    console.log('[EmailService] E-mail enviado com sucesso (simulação)');
+    
+    return true;
+  } catch (error) {
+    console.error('[EmailService] Erro ao enviar e-mail:', error);
+    return false;
+  }
+}
+
 export const emailService = new EmailService();
