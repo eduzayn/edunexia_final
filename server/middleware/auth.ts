@@ -1,91 +1,109 @@
-/**
- * Middlewares de autenticação e autorização centralizados para o sistema
- * Este arquivo consolida todos os middlewares relacionados à autenticação
- */
+import { Request, Response, NextFunction } from 'express';
+import { getActiveUserByToken } from '../shared/active-users';
 
-import { Request, Response, NextFunction } from "express";
-
-/**
- * Middleware para verificar se o usuário está autenticado
- * @param req Request do Express
- * @param res Response do Express
- * @param next Função next do Express
- * @returns void ou resposta de erro 401
- */
+// Middleware para verificar autenticação
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  // Verificar o token no header de Authorization
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+  if (!token) {
     return res.status(401).json({ 
       success: false,
-      message: "Usuário não autenticado" 
+      message: 'Você precisa estar autenticado para acessar este recurso.' 
     });
   }
+
+  const user = getActiveUserByToken(token);
+
+  if (!user) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Sessão inválida ou expirada. Faça login novamente.' 
+    });
+  }
+
+  // Adicionar usuário e informações de autenticação ao request
+  (req as any).user = user;
+  (req as any).auth = { 
+    userId: user.id,
+    userRole: user.role || user.portalType
+  };
   next();
 };
 
-/**
- * Middleware para garantir que o usuário seja um administrador
- * @param req Request do Express
- * @param res Response do Express
- * @param next Função next do Express
- * @returns void ou resposta de erro 403
- */
+// Middleware para verificar permissão de administrador
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || req.user.portalType !== "admin") {
-    return res.status(403).json({ 
+  // Verificar o token no header de Authorization
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+  if (!token) {
+    return res.status(401).json({ 
       success: false,
-      message: "Acesso restrito a administradores" 
+      message: 'Você precisa estar autenticado para acessar este recurso.' 
     });
   }
+
+  const user = getActiveUserByToken(token);
+
+  if (!user) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Sessão inválida ou expirada. Faça login novamente.' 
+    });
+  }
+
+  if (user.portalType !== 'admin' && user.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false,
+      message: 'Você não tem permissão para acessar este recurso.' 
+    });
+  }
+
+  // Adicionar usuário e informações de autenticação ao request
+  (req as any).user = user;
+  (req as any).auth = { 
+    userId: user.id,
+    userRole: user.role || user.portalType
+  };
   next();
 };
 
-/**
- * Middleware para garantir que o usuário seja um aluno
- * @param req Request do Express
- * @param res Response do Express
- * @param next Função next do Express
- * @returns void ou resposta de erro 403
- */
-export const requireStudent = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || req.user.portalType !== "student") {
-    return res.status(403).json({ 
-      success: false,
-      message: "Acesso restrito a alunos" 
-    });
-  }
-  next();
-};
-
-/**
- * Middleware para garantir que o usuário seja um polo
- * @param req Request do Express
- * @param res Response do Express
- * @param next Função next do Express
- * @returns void ou resposta de erro 403
- */
-export const requirePolo = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || req.user.portalType !== "polo") {
-    return res.status(403).json({ 
-      success: false,
-      message: "Acesso restrito a polos" 
-    });
-  }
-  next();
-};
-
-/**
- * Middleware para garantir que o usuário seja um parceiro
- * @param req Request do Express
- * @param res Response do Express
- * @param next Função next do Express
- * @returns void ou resposta de erro 403
- */
+// Middleware para verificar permissão de parceiro
 export const requirePartner = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated() || req.user.portalType !== "partner") {
-    return res.status(403).json({ 
+  // Verificar o token no header de Authorization
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+  if (!token) {
+    return res.status(401).json({ 
       success: false,
-      message: "Acesso restrito a parceiros" 
+      message: 'Você precisa estar autenticado para acessar este recurso.' 
     });
   }
+
+  const user = getActiveUserByToken(token);
+
+  if (!user) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Sessão inválida ou expirada. Faça login novamente.' 
+    });
+  }
+
+  if (user.portalType !== 'partner' && user.portalType !== 'admin' && user.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false,
+      message: 'Este recurso é exclusivo para parceiros.' 
+    });
+  }
+
+  // Adicionar usuário e informações de autenticação ao request
+  (req as any).user = user;
+  (req as any).auth = { 
+    userId: user.id,
+    userRole: user.role || user.portalType
+  };
   next();
 };

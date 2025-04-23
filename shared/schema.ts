@@ -4,7 +4,33 @@ import { z } from "zod";
 import { relations } from "drizzle-orm";
 
 // Importações para exportação de tabelas de certificados
-import { certificates, certificateSigners, certificateTemplates, certificateDisciplines, certificateHistory } from './certificate-schema';
+import { 
+  certificates, 
+  certificateSigners, 
+  certificateTemplates, 
+  certificateDisciplines, 
+  certificateHistory,
+  certificateStatusEnum,
+  certificateTypeEnum
+} from './certificate-schema';
+
+// Importações para exportação de tabelas de solicitações de certificação
+import { 
+  certificationRequests, 
+  certificationStudents, 
+  certificationDocuments, 
+  certificationActivityLogs,
+  certificationRequestStatusEnum,
+  documentVerificationStatusEnum,
+  InsertCertificationRequest,
+  InsertCertificationStudent,
+  InsertCertificationDocument,
+  InsertCertificationActivityLog,
+  insertCertificationRequestSchema,
+  insertCertificationStudentSchema,
+  insertCertificationDocumentSchema,
+  insertCertificationActivityLogSchema
+} from './certification-request-schema';
 
 // Tipos de portal
 export const portalTypes = ["student", "partner", "polo", "admin"] as const;
