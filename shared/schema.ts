@@ -17,7 +17,7 @@ export const assessmentTypeEnum = pgEnum("assessment_type", ["simulado", "avalia
 export const institutionStatusEnum = pgEnum("institution_status", ["active", "inactive", "pending"]);
 export const institutionPhaseEnum = pgEnum("institution_phase", ["trial", "setup", "active", "suspended", "cancelled"]);
 export const poloStatusEnum = pgEnum("polo_status", ["active", "inactive"]);
-export const enrollmentStatusEnum = pgEnum("enrollment_status", ["pending_payment", "active", "completed", "cancelled", "suspended"]);
+export const enrollmentStatusEnum = pgEnum("enrollment_status", ["pending_payment", "waiting_payment", "payment_confirmed", "active", "completed", "cancelled", "suspended", "blocked"]);
 export const paymentGatewayEnum = pgEnum("payment_gateway", ["asaas", "lytex"]);
 export const integrationTypeEnum = pgEnum("integration_type", ["asaas", "lytex", "openai", "elevenlabs", "zapi"]);
 
@@ -214,6 +214,7 @@ export const institutions = pgTable("institutions", {
   enrollmentAccessType: accessTypeEnum("enrollment_access_type").default("after_link_completion"),
   daysUntilBlock: integer("days_until_block").default(10), // Dias de atraso para bloqueio
   daysUntilCancellation: integer("days_until_cancellation").default(30), // Dias de atraso para cancelamento
+  accessPeriodDays: integer("access_period_days"), // Período padrão de acesso em dias após a concessão
   
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -293,6 +294,15 @@ export const enrollments = pgTable("enrollments", {
   // Status e informações adicionais
   status: enrollmentStatusEnum("status").default("pending_payment").notNull(),
   observations: text("observations"),
+  
+  // Controle de acesso ao portal
+  accessGrantedAt: timestamp("access_granted_at"), // Data quando o acesso foi liberado
+  accessExpiresAt: timestamp("access_expires_at"), // Data quando o acesso expira
+  accessPeriodDays: integer("access_period_days"), // Período de acesso em dias
+  blockReason: text("block_reason"), // Motivo do bloqueio
+  blockExecutedAt: timestamp("block_executed_at"), // Data real do bloqueio
+  blockEndsAt: timestamp("block_ends_at"), // Data de fim do bloqueio temporário
+  lastLoginAt: timestamp("last_login_at"), // Data do último login no portal
   
   // Rastreamento e Auditoria
   sourceChannel: text("source_channel"), // Canal de origem: admin, polo_portal, website, app, etc.

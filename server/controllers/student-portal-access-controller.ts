@@ -1,6 +1,18 @@
 import { storage } from '../storage';
 import { Request, Response } from 'express';
-import { accessTypeEnum } from '@shared/schema';
+import { accessTypeEnum, Enrollment } from '@shared/schema';
+
+// Adiciona as definições de tipos para auth no Request
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: {
+        userId: number;
+        userRole: string;
+      };
+    }
+  }
+}
 
 /**
  * Controller para gerenciamento de acesso de alunos ao portal
@@ -66,7 +78,7 @@ export async function provisionStudentAccess(req: Request, res: Response) {
     }
     // Regra 3: Se a matrícula estiver aguardando pagamento e a regra for confirmação de pagamento
     else if (enrollment.status === 'waiting_payment' && 
-             institution.enrollmentAccessType === accessTypeEnum.enum.after_payment_confirmation) {
+             institution.enrollmentAccessType === 'after_payment_confirmation') {
       canGrantAccess = false;
       denyReason = 'Aguardando confirmação de pagamento conforme regra da instituição';
     }
