@@ -77,19 +77,19 @@ export default function StudentCoursesPage() {
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  // Definir itens da sidebar igual ao modelo do portal do polo
+  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
   const sidebarItems = [
-    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard" },
+    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard", active: false },
     { name: "Meus Cursos", icon: <BookOpen size={18} />, href: "/student/courses", active: true },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
+    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: false },
+    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: false },
+    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: false },
+    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: false },
+    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: false },
+    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: false },
+    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: false },
+    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: false },
+    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: false },
   ];
 
   // Filter and sort courses
