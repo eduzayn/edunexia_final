@@ -51,6 +51,7 @@ import {
 import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
+import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
 
 // Armazenamento de sessão simplificado (em memória)
 // Definição movida para shared/active-users.ts
@@ -61,15 +62,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sistema de autenticação super-simplificado
   app.post('/api-json/login', (req, res) => {
     const { username, password, portalType } = req.body;
-    
+
     console.log(`Tentativa de login: ${username}, tipo portal: ${portalType}`);
-    
+
     // Credenciais de emergência para admin (acesso direto)
     if ((username === 'admin' && password === 'Admin123') || 
         (username === 'superadmin' && password === 'Super123') ||
         (username === 'admin' && password === 'admin123') ||
         (username === 'admin@edunexa.com' && password === 'Admin123')) {
-      
+
       // Criar usuário simulado
       const user = {
         id: 1,
@@ -79,22 +80,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         portalType: portalType || 'admin',
         role: 'admin'
       };
-      
+
       // Gerar token JWT
       const token = generateToken(user);
-      
+
       // Não usar cookies, enviar o token na resposta
       // O cliente irá armazenar no localStorage
-      
+
       console.log(`Login bem-sucedido para ${username}, token JWT gerado`);
-      
+
       return res.status(200).json({
         success: true,
         token: token,
         ...user
       });
     } 
-    
+
     // Tentar login via banco de dados como último recurso
     storage.getUserByUsername(username)
       .then(dbUser => {
@@ -105,24 +106,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: "Credenciais inválidas. Verifique seu nome de usuário e senha."
           });
         }
-        
+
         // Login bem-sucedido
         const { password: _, ...safeUser } = dbUser;
-        
+
         // Adicionar role baseado no portalType se não estiver presente
         const userWithRole = {
           ...safeUser,
           role: safeUser.role || safeUser.portalType
         };
-        
+
         // Gerar token JWT
         const token = generateToken(userWithRole);
-        
+
         // Não usar cookies, enviar o token na resposta
         // O cliente irá armazenar no localStorage
-        
+
         console.log(`Login via DB bem-sucedido para ${username}, token JWT gerado`);
-        
+
         return res.status(200).json({
           success: true,
           token: token,
@@ -131,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
       .catch(err => {
         console.error("Erro ao buscar usuário:", err);
-        
+
         // Como solução de emergência, permitir login com credenciais de admin
         if (username === 'admin' || username === 'superadmin') {
           const user = {
@@ -142,45 +143,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
             portalType: portalType || 'admin',
             role: 'admin'
           };
-          
+
           // Gerar token JWT
           const token = generateToken(user);
-          
+
           // Não usar cookies, enviar o token na resposta
           // O cliente irá armazenar no localStorage
-          
+
           console.log(`Login de emergência para ${username}, token JWT gerado`);
-          
+
           return res.status(200).json({
             success: true,
             token: token,
             ...user
           });
         }
-        
+
         return res.status(500).json({
           success: false,
           message: "Erro interno durante autenticação."
         });
       });
   });
-  
+
   // Rota para logout simples
   app.post('/api-json/logout', (req, res) => {
     // Verificar o token no header de Authorization
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-    
+
     if (token) {
       removeActiveUser(token);
     }
-    
+
     res.status(200).json({
       success: true,
       message: "Logout realizado com sucesso"
     });
   });
-  
+
   // Rota para obter usuário atual
   app.get('/api-json/user', (req, res) => {
     try {
@@ -188,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authHeader = req.headers.authorization;
       console.log('GET /api-json/user - Auth Header:', authHeader);
       const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-      
+
       if (!token) {
         console.log('GET /api-json/user - Token não encontrado');
         return res.status(401).json({
@@ -196,11 +197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Usuário não autenticado"
         });
       }
-      
+
       console.log('GET /api-json/user - Token:', token);
       const user = getActiveUserByToken(token);
       console.log('GET /api-json/user - User encontrado:', user ? 'Sim' : 'Não');
-      
+
       if (!user) {
         console.log('GET /api-json/user - Sessão inválida');
         return res.status(401).json({
@@ -208,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Sessão inválida ou expirada"
         });
       }
-      
+
       console.log('GET /api-json/user - Retornando usuário');
       return res.status(200).json(user);
     } catch (error) {
@@ -226,23 +227,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Verificar o token no header de Authorization
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-    
+
     if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
-    
+
     const user = getActiveUserByToken(token);
-    
+
     if (!user) {
       return res.status(401).json({ 
         success: false,
         message: 'Sessão inválida ou expirada. Faça login novamente.' 
       });
     }
-    
+
     // Adicionar usuário e informações de autenticação ao request
     (req as any).user = user;
     (req as any).auth = { 
@@ -257,30 +258,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Verificar o token no header de Authorization
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-    
+
     if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
-    
+
     const user = getActiveUserByToken(token);
-    
+
     if (!user) {
       return res.status(401).json({ 
         success: false,
         message: 'Sessão inválida ou expirada. Faça login novamente.' 
       });
     }
-    
+
     if (user.portalType !== 'admin' && user.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: 'Você não tem permissão para acessar este recurso.' 
       });
     }
-    
+
     // Adicionar usuário e informações de autenticação ao request
     (req as any).user = user;
     (req as any).auth = { 
@@ -295,30 +296,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Verificar o token no header de Authorization
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-    
+
     if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
-    
+
     const user = getActiveUserByToken(token);
-    
+
     if (!user) {
       return res.status(401).json({ 
         success: false,
         message: 'Sessão inválida ou expirada. Faça login novamente.' 
       });
     }
-    
+
     if (user.portalType !== 'student' && user.role !== 'student') {
       return res.status(403).json({ 
         success: false,
         message: 'Este recurso é exclusivo para estudantes.' 
       });
     }
-    
+
     // Adicionar usuário e informações de autenticação ao request
     (req as any).user = user;
     (req as any).auth = { 
@@ -338,48 +339,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Usar as rotas de debug
   app.use('/api/debug', debugRouter);
-  
+
   // Usar as rotas de permissões
   app.use('/api-json/permissions', permissionsRouter);
-  
+
   // Adicionar redirecionamentos de compatibilidade para rotas de autenticação antigas
   app.post('/api/login', (req, res) => {
     console.log('Redirecionando /api/login para /api-json/login');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Redirecionar a requisição para o novo endpoint
     req.url = '/api-json/login';
     app._router.handle(req, res);
   });
-  
+
   app.post('/api/logout', (req, res) => {
     console.log('Redirecionando /api/logout para /api-json/logout');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Redirecionar a requisição para o novo endpoint
     req.url = '/api-json/logout';
     app._router.handle(req, res);
   });
-  
+
   app.get('/api/user', (req, res) => {
     console.log('Redirecionando /api/user para /api-json/user');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     // Redirecionar a requisição para o novo endpoint
     req.url = '/api-json/user';
     app._router.handle(req, res);
   });
-  
+
   // Adicionar redirecionamentos para endpoints acadêmicos
   // Endpoint para listar cursos para administradores
   app.get('/api/admin/courses', (req, res) => {
     console.log('Redirecionando /api/admin/courses para /api-json/admin/courses');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       // Consultar diretamente da base de dados
       storage.getAllCourses()
@@ -395,12 +396,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
-  
+
   // Nova rota API JSON para cursos - usada no formulário de matrícula
   app.get('/api-json/courses', async (req, res) => {
     console.log('Buscando todos os cursos (API JSON)');
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       const courses = await storage.getAllCourses();
       console.log(`Retornando ${courses.length} cursos`);
@@ -417,12 +418,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Nova rota API JSON para instituições - usada no formulário de matrícula
   app.get('/api-json/institutions', async (req, res) => {
     console.log('Buscando todas as instituições (API JSON)');
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       // Buscar todas as instituições sem filtros
       const institutionsList = await storage.getInstitutions();
@@ -440,12 +441,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Nova rota API JSON para polos - usada no formulário de matrícula
   app.get('/api-json/polos', async (req, res) => {
     console.log('Buscando todos os polos (API JSON)');
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       // Buscar todos os polos sem filtros
       const polosList = await storage.getPolos();
@@ -463,12 +464,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   app.get('/api/admin/disciplines', (req, res) => {
     console.log('Redirecionando /api/admin/disciplines para /api-json/admin/disciplines');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
       // Consultar diretamente da base de dados sem paginação
       storage.getDisciplines()
@@ -569,21 +570,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Asaas CRM
   app.post('/api/v2/crm/asaas-customers', requireAuth, createAsaasCustomer);
   app.get('/api/v2/crm/search-customer-by-cpf', requireAuth, searchAsaasCustomerByCpfCnpj);
-  
+
   // Rota para buscar clientes do Asaas por nome (para o componente de autocompletar)
   app.get('/api-json/crm/asaas-customers-search', async (req, res) => {
     try {
       const { name } = req.query;
-      
+
       if (!name || typeof name !== 'string') {
         return res.status(400).json({
           success: false,
           message: 'Nome de busca é obrigatório'
         });
       }
-      
+
       const customers = await asaasCustomersService.searchCustomersByName(name);
-      
+
       res.json({
         success: true,
         data: customers
@@ -606,18 +607,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api-json/v2/simplified-enrollments/:id/update-payment-status', requireAuth, updatePaymentStatus);
   app.post('/api-json/v2/simplified-enrollments/:id/cancel', requireAuth, cancelEnrollment);
   app.post('/api-json/v2/simplified-enrollments/:id/convert', requireAuth, convertSimplifiedEnrollment);
-  
+
   // Portal do Aluno - Gerenciamento de Acesso
   app.post('/api-json/provision-access/:id', requireAdmin, provisionStudentAccess);
   app.put('/api-json/update-access-period/:id', requireAdmin, updateAccessPeriod);
   app.post('/api-json/block-access/:id', requireAdmin, blockAccess);
   app.post('/api-json/unblock-access/:id', requireAdmin, unblockAccess);
   app.get('/api-json/check-access/:id', requireAuth, checkAccessStatus);
-  
+
   // Portal do Aluno - Configurações de Acesso
   app.get('/api-json/institution-access-config/:id', requireAdmin, getInstitutionAccessConfig);
   app.put('/api-json/institution-access-config/:id', requireAdmin, updateInstitutionAccessConfig);
   app.get('/api-json/portal-access-report', requireAdmin, getPortalAccessReport);
+
+  // Registrar as rotas
+  app.use('/api', authRoutes);
+  app.use('/api/admin', financeRoutes);
+  app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
+  // Registre outras rotas conforme necessário
 
   return server;
 }

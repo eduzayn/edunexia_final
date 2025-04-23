@@ -66,8 +66,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Schema Zod para validação do formulário
+// Schema Zod para validação do formulário de criação
 const disciplineFormSchema = z.object({
+  code: z.string().optional(),
+  name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
+  description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
+  workload: z.coerce.number().min(1, { message: "Carga horária é obrigatória" }),
+  syllabus: z.string().min(10, { message: "Ementa deve ter pelo menos 10 caracteres" }),
+});
+
+// Schema Zod para validação do formulário de edição
+const disciplineEditFormSchema = z.object({
   code: z.string().min(3, { message: "Código deve ter pelo menos 3 caracteres" }),
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
   description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
@@ -116,7 +125,10 @@ export default function DisciplinesPage() {
   const createDisciplineMutation = useMutation({
     mutationFn: async (data: DisciplineFormValues) => {
       try {
-        const response = await apiRequest("POST", "/api/admin/disciplines", data);
+        // Remover o campo code do objeto, pois será gerado automaticamente no servidor
+        const { code, ...restData } = data;
+        
+        const response = await apiRequest("POST", "/api/admin/disciplines", restData);
         
         // Verifica se a resposta foi bem-sucedida
         if (!response.ok) {
@@ -137,10 +149,10 @@ export default function DisciplinesPage() {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Disciplina criada com sucesso!",
-        description: "A nova disciplina foi adicionada ao sistema.",
+        description: `A nova disciplina foi adicionada ao sistema com o código ${data.code}.`,
       });
       setIsCreateDialogOpen(false);
       refetch();
@@ -236,7 +248,7 @@ export default function DisciplinesPage() {
 
   // Form para editar disciplina
   const editForm = useForm<DisciplineFormValues>({
-    resolver: zodResolver(disciplineFormSchema),
+    resolver: zodResolver(disciplineEditFormSchema),
     defaultValues: {
       code: "",
       name: "",
@@ -486,7 +498,13 @@ export default function DisciplinesPage() {
                     <FormItem>
                       <FormLabel>Código</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: MAT101" {...field} />
+                        <Input 
+                          placeholder="Gerado automaticamente" 
+                          {...field} 
+                          disabled 
+                          value="[Código será gerado automaticamente]"
+                          className="bg-gray-100"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -593,9 +611,17 @@ export default function DisciplinesPage() {
                     <FormItem>
                       <FormLabel>Código</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: MAT101" {...field} />
+                        <Input 
+                          placeholder="Ex: MAT101" 
+                          {...field} 
+                          disabled={user?.role !== 'admin'} 
+                          className={user?.role !== 'admin' ? "bg-gray-100" : ""}
+                        />
                       </FormControl>
                       <FormMessage />
+                      {user?.role !== 'admin' && (
+                        <p className="text-xs text-gray-500 mt-1">Apenas administradores podem editar o código da disciplina</p>
+                      )}
                     </FormItem>
                   )}
                 />
