@@ -4,6 +4,13 @@
  * Este serviço utiliza a API de cobranças do Asaas para gerar links de pagamento
  * completos, contornando problemas de configuração de domínio e aproveitando
  * todas as funcionalidades disponíveis.
+ *
+ * ⚠️ AVISO IMPORTANTE ⚠️
+ * Este arquivo contém código crítico para integração com a API Asaas.
+ * NÃO MODIFIQUE este arquivo sem consultar a versão protegida e a documentação em:
+ * server/services/asaas-protected/
+ * 
+ * Alterações indevidas podem causar falhas na comunicação com a API Asaas.
  */
 
 import axios from 'axios';

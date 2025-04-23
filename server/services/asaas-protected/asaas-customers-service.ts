@@ -1,5 +1,12 @@
 /**
  * Serviço de integração com a API do Asaas para gerenciamento de clientes
+ * 
+ * ⚠️ AVISO IMPORTANTE ⚠️
+ * Este arquivo contém código crítico para integração com a API Asaas.
+ * NÃO MODIFIQUE este arquivo sem consultar a versão protegida e a documentação em:
+ * server/services/asaas-protected/
+ * 
+ * Alterações indevidas podem causar falhas na comunicação com a API Asaas.
  */
 
 import axios from 'axios';
