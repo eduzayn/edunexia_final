@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Criar usuário simulado
       const user = {
-        id: 1,
+        id: 18, // ID correto do admin no banco de dados
         username: username,
         fullName: username === 'admin' ? 'Administrador' : 'Super Administrador',
         email: username.includes('@') ? username : `${username}@edunexa.com`,
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Como solução de emergência, permitir login com credenciais de admin
         if (username === 'admin' || username === 'superadmin') {
           const user = {
-            id: 1,
+            id: 18, // ID correto do admin no banco de dados
             username: username,
             fullName: username === 'admin' ? 'Administrador' : 'Super Administrador',
             email: `${username}@edunexa.com`,
