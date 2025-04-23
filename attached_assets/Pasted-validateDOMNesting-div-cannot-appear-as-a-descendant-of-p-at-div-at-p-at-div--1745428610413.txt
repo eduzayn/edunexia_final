@@ -1,0 +1,37 @@
+validateDOMNesting(...): <div> cannot appear as a descendant of <p>.
+    at div
+    at p
+    at div
+    at div
+    at div
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=a42d076b:41:13
+    at Presence (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IYFCVA3S.js?v=a42d076b:24:11)
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a42d076b:175:13
+    at _c5 (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=a42d076b:41:13
+    at Provider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ICA7ZJMY.js?v=a42d076b:38:15)
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a42d076b:53:7
+    at div
+    at _c9 (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=a42d076b:41:13
+    at Presence (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IYFCVA3S.js?v=a42d076b:24:11)
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a42d076b:175:13
+    at _c5 (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-QCAFA6Y2.js?v=a42d076b:41:13
+    at Provider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-ICA7ZJMY.js?v=a42d076b:38:15)
+    at https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a42d076b:53:7
+    at div
+    at div
+    at div
+    at NovaSolicitacaoCertificacaoPage (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/pages/partner/certificacao/nova.tsx:84:20)
+    at Route (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:191:16)
+    at Switch (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:247:17)
+    at Router (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/App.tsx?v=eK-NS2ceE6qU0fVOn-Aj9:117:31)
+    at AuthProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/hooks/use-auth.tsx:93:32)
+    at App
+    at QueryClientProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a42d076b:2805:3)

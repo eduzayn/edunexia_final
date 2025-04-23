@@ -761,7 +761,7 @@ export default function NovaSolicitacaoCertificacaoPage() {
                         </Button>
                         <Button 
                           type="submit" 
-                          disabled={isProcessingIndividual || uploading || uploadedFiles.length === 0}
+                          disabled={isProcessingIndividual || uploading}
                         >
                           {isProcessingIndividual ? (
                             <>
