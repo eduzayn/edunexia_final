@@ -9,7 +9,7 @@ import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
-import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken } from './shared/active-users';
+import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
@@ -80,14 +80,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: 'admin'
       };
       
-      // Gerar token simples
-      const token = Date.now().toString();
-      setActiveUser(token, user);
+      // Gerar token JWT
+      const token = generateToken(user);
       
       // Não usar cookies, enviar o token na resposta
       // O cliente irá armazenar no localStorage
       
-      console.log(`Login bem-sucedido para ${username}`);
+      console.log(`Login bem-sucedido para ${username}, token JWT gerado`);
       
       return res.status(200).json({
         success: true,
@@ -110,17 +109,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Login bem-sucedido
         const { password: _, ...safeUser } = dbUser;
         
-        // Gerar token simples
-        const token = Date.now().toString();
-        setActiveUser(token, {
+        // Adicionar role baseado no portalType se não estiver presente
+        const userWithRole = {
           ...safeUser,
-          role: safeUser.portalType
-        });
+          role: safeUser.role || safeUser.portalType
+        };
+        
+        // Gerar token JWT
+        const token = generateToken(userWithRole);
         
         // Não usar cookies, enviar o token na resposta
         // O cliente irá armazenar no localStorage
         
-        console.log(`Login via DB bem-sucedido para ${username}`);
+        console.log(`Login via DB bem-sucedido para ${username}, token JWT gerado`);
         
         return res.status(200).json({
           success: true,
@@ -142,14 +143,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             role: 'admin'
           };
           
-          // Gerar token simples
-          const token = Date.now().toString();
-          setActiveUser(token, user);
+          // Gerar token JWT
+          const token = generateToken(user);
           
           // Não usar cookies, enviar o token na resposta
           // O cliente irá armazenar no localStorage
           
-          console.log(`Login de emergência para ${username}`);
+          console.log(`Login de emergência para ${username}, token JWT gerado`);
           
           return res.status(200).json({
             success: true,
