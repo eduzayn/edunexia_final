@@ -173,11 +173,11 @@ export default function PortalAccessControlPage() {
       const filters = reportFilterForm.getValues();
       const queryParams = new URLSearchParams();
       
-      if (filters.institutionId) {
+      if (filters.institutionId && filters.institutionId.toString() !== "all") {
         queryParams.append("institutionId", filters.institutionId.toString());
       }
       
-      if (filters.accessStatus) {
+      if (filters.accessStatus && filters.accessStatus !== "all") {
         queryParams.append("accessStatus", filters.accessStatus);
       }
       
@@ -444,7 +444,7 @@ export default function PortalAccessControlPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">Todas as instituições</SelectItem>
+                                  <SelectItem value="all">Todas as instituições</SelectItem>
                                   {institutions?.map((institution: any) => (
                                     <SelectItem key={institution.id} value={institution.id.toString()}>
                                       {institution.name}
@@ -473,7 +473,7 @@ export default function PortalAccessControlPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">Todos os status</SelectItem>
+                                  <SelectItem value="all">Todos os status</SelectItem>
                                   <SelectItem value="not_granted">Não concedido</SelectItem>
                                   <SelectItem value="active">Ativo</SelectItem>
                                   <SelectItem value="blocked">Bloqueado</SelectItem>

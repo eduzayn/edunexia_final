@@ -399,6 +399,24 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           href: "/admin/pessoas/abac-permissions",
           active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
         },
+        { 
+          name: "Funções & Permissões", 
+          icon: <SecurityIcon />, 
+          href: "/admin/pessoas/roles",
+          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+        },
+        { 
+          name: "Usuários Admin", 
+          icon: <GroupIcon />, 
+          href: "/admin/pessoas/admin-users",
+          active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+        },
+        { 
+          name: "Integrações", 
+          icon: <CloudIcon />, 
+          href: "/admin/integracoes/integrations",
+          active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
+        },
       ]
     }, currentPath),
     items: [
@@ -413,6 +431,24 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         icon: <BadgeCheckIcon />, 
         href: "/admin/pessoas/abac-permissions",
         active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+      },
+      { 
+        name: "Funções & Permissões", 
+        icon: <SecurityIcon />, 
+        href: "/admin/pessoas/roles",
+        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+      },
+      { 
+        name: "Usuários Admin", 
+        icon: <GroupIcon />, 
+        href: "/admin/pessoas/admin-users",
+        active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+      },
+      { 
+        name: "Integrações", 
+        icon: <CloudIcon />, 
+        href: "/admin/integracoes/integrations",
+        active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
       },
     ]
   };
