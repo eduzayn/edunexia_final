@@ -6,12 +6,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { PageTransition } from "@/components/ui/page-transition";
 import { useState } from "react";
 
-interface AdminLayoutProps {
+export interface AdminLayoutProps {
   children: ReactNode;
   sidebarItems?: SidebarItemOrCategory[];
+  title?: string;
+  subtitle?: string;
 }
 
-export default function AdminLayout({ children, sidebarItems }: AdminLayoutProps) {
+export default function AdminLayout({ children, sidebarItems, title, subtitle }: AdminLayoutProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -48,6 +50,12 @@ export default function AdminLayout({ children, sidebarItems }: AdminLayoutProps
       {/* Conteúdo principal */}
       <div className="flex-1 overflow-auto">
         <main>
+          {title && (
+            <div className="px-6 py-4 border-b">
+              <h1 className="text-2xl font-bold">{title}</h1>
+              {subtitle && <p className="text-muted-foreground mt-1">{subtitle}</p>}
+            </div>
+          )}
           <PageTransition>{children}</PageTransition>
         </main>
       </div>

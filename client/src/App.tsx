@@ -93,6 +93,11 @@ import SecurityPage from "@/pages/admin/sistema/security-page";
 import SettingsPage from "@/pages/admin/sistema/settings-page";
 import InstitutionSettingsPage from "@/pages/admin/sistema/institution-settings-page";
 import PortalAccessControlPage from "@/pages/admin/sistema/portal-access-control-page";
+// Import parcerias pages
+import PortalDoParceiroPage from "@/pages/admin/parcerias/portal-page";
+import CertificacaoAlunosPage from "@/pages/admin/parcerias/certificacao-page";
+import SolicitacoesPendentesPage from "@/pages/admin/parcerias/solicitacoes-page";
+import RelatoriosPage from "@/pages/admin/parcerias/relatorios-page";
 // Import polo pages
 import PoloEnrollmentsPage from "@/pages/polo/enrollments-page";
 import PoloNewEnrollmentPage from "@/pages/polo/new-enrollment-page";
@@ -353,6 +358,23 @@ function Router() {
       
       <Route path="/admin/certification/signers">
         {() => user?.portalType === "admin" ? <CertificationSignersPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      {/* Rotas do Módulo de Parcerias (Portal do Parceiro) */}
+      <Route path="/admin/parcerias/portal">
+        {() => user?.portalType === "admin" ? <PortalDoParceiroPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/parcerias/certificacao">
+        {() => user?.portalType === "admin" ? <CertificacaoAlunosPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/parcerias/solicitacoes">
+        {() => user?.portalType === "admin" ? <SolicitacoesPendentesPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/parcerias/relatorios">
+        {() => user?.portalType === "admin" ? <RelatoriosPage /> : <Redirect to="/admin" />}
       </Route>
       
       {/* Rotas do Módulo CRM */}

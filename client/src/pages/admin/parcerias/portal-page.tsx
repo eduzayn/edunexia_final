@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { AdminLayout } from "@/components/layout/admin-layout";
+import AdminLayout from "@/components/layout/admin-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import {
   CircleDollarSign, 
   GraduationCap, 
   Users, 
-  BuildingStore, 
+  Building2, 
   FileCheck, 
   BarChart4, 
   Plus, 
@@ -61,7 +61,7 @@ export default function PortalDoParceiroPage() {
                 <CardTitle className="text-sm font-medium">
                   Instituições Parceiras
                 </CardTitle>
-                <BuildingStore className="h-4 w-4 text-muted-foreground" />
+                <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">12</div>
