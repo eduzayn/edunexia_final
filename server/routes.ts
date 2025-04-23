@@ -35,6 +35,13 @@ import {
   cancelEnrollment
 } from './controllers/new-simplified-enrollment-controller';
 import { convertSimplifiedEnrollment } from './controllers/convert-simplified-enrollment-controller';
+import {
+  provisionStudentAccess,
+  updateAccessPeriod,
+  blockAccess,
+  unblockAccess,
+  checkAccessStatus
+} from './controllers/student-portal-access-controller';
 
 // Armazenamento de sessão simplificado (em memória)
 const activeUsers: Record<string, any> = {};
@@ -539,6 +546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/v2/simplified-enrollments/:id/update-payment-status', requireAuth, updatePaymentStatus);
   app.post('/api/v2/simplified-enrollments/:id/cancel', requireAuth, cancelEnrollment);
   app.post('/api/v2/simplified-enrollments/:id/convert', requireAuth, convertSimplifiedEnrollment);
+  
+  // Portal do Aluno - Gerenciamento de Acesso
+  app.post('/api/v2/enrollments/:id/provision-access', requireAdmin, provisionStudentAccess);
+  app.put('/api/v2/enrollments/:id/update-access-period', requireAdmin, updateAccessPeriod);
+  app.post('/api/v2/enrollments/:id/block-access', requireAdmin, blockAccess);
+  app.post('/api/v2/enrollments/:id/unblock-access', requireAdmin, unblockAccess);
+  app.get('/api/v2/enrollments/:id/access-status', requireAuth, checkAccessStatus);
 
   return server;
 }
