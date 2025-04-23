@@ -34,6 +34,7 @@ import {
   updatePaymentStatus,
   cancelEnrollment
 } from './controllers/new-simplified-enrollment-controller';
+import { convertSimplifiedEnrollment } from './controllers/convert-simplified-enrollment-controller';
 
 // Armazenamento de sessão simplificado (em memória)
 const activeUsers: Record<string, any> = {};
@@ -193,8 +194,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    // Adicionar usuário ao request
-    (req as any).user = activeUsers[token];
+    // Adicionar usuário e informações de autenticação ao request
+    const user = activeUsers[token];
+    (req as any).user = user;
+    (req as any).auth = { 
+      userId: user.id,
+      userRole: user.role
+    };
     next();
   };
 
@@ -219,8 +225,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    // Adicionar usuário ao request
+    // Adicionar usuário e informações de autenticação ao request
     (req as any).user = user;
+    (req as any).auth = { 
+      userId: user.id,
+      userRole: user.role
+    };
     next();
   };
 
@@ -245,8 +255,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    // Adicionar usuário ao request
+    // Adicionar usuário e informações de autenticação ao request
     (req as any).user = user;
+    (req as any).auth = { 
+      userId: user.id,
+      userRole: user.role
+    };
     next();
   };
 
@@ -524,6 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/v2/simplified-enrollments/:id/generate-payment-link', requireAuth, generatePaymentLink);
   app.post('/api/v2/simplified-enrollments/:id/update-payment-status', requireAuth, updatePaymentStatus);
   app.post('/api/v2/simplified-enrollments/:id/cancel', requireAuth, cancelEnrollment);
+  app.post('/api/v2/simplified-enrollments/:id/convert', requireAuth, convertSimplifiedEnrollment);
 
   return server;
 }
