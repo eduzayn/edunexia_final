@@ -291,11 +291,33 @@ export const AsaasDirectPaymentService = {
    */
   async createCustomer(customerData: AsaasCustomerRequest): Promise<AsaasCustomerResponse> {
     try {
+      // Log detalhado dos dados recebidos
+      console.log(`[ASAAS DIRECT] Dados recebidos para criação de cliente:`, JSON.stringify({
+        name: customerData.name,
+        email: customerData.email,
+        cpfCnpj: customerData.cpfCnpj,
+        mobilePhone: customerData.mobilePhone,
+        phone: customerData.phone,
+        personType: customerData.personType
+      }));
+      
       // Garantir que o CPF/CNPJ esteja no formato correto (apenas números)
       if (customerData.cpfCnpj) {
+        // Verificar tamanho antes da formatação
+        console.log(`[ASAAS DIRECT] Tamanho do CPF/CNPJ antes da formatação: ${customerData.cpfCnpj.length}`);
+        
         // Remover formatação (pontos, traços, barras)
-        customerData.cpfCnpj = customerData.cpfCnpj.replace(/[^\d]+/g, '');
-        console.log(`[ASAAS DIRECT] CPF/CNPJ formatado: ${customerData.cpfCnpj}`);
+        const formattedCpf = customerData.cpfCnpj.replace(/[^\d]+/g, '');
+        
+        // Verificar se o CPF/CNPJ tem o tamanho correto
+        if (formattedCpf.length !== 11 && formattedCpf.length !== 14) {
+          console.error(`[ASAAS DIRECT] CPF/CNPJ com tamanho inválido após formatação: ${formattedCpf.length} (valor: ${formattedCpf})`);
+        } else {
+          console.log(`[ASAAS DIRECT] CPF/CNPJ formatado corretamente: ${formattedCpf} (tamanho: ${formattedCpf.length})`);
+        }
+        
+        // Atualizar o valor no objeto
+        customerData.cpfCnpj = formattedCpf;
       }
       
       // Adicionar o tipo de pessoa se não estiver definido
@@ -304,6 +326,7 @@ export const AsaasDirectPaymentService = {
         console.log(`[ASAAS DIRECT] Tipo de pessoa definido para FISICA`);
       }
       
+      // Log dos dados que serão enviados para a API
       console.log(`[ASAAS DIRECT] Criando novo cliente no Asaas:`, JSON.stringify(customerData));
       
       try {
@@ -319,6 +342,15 @@ export const AsaasDirectPaymentService = {
           const apiErrors = createError.response.data.errors;
           errorMessage = apiErrors.map((err: any) => `${err.description} (${err.code})`).join('; ');
           console.error(`[ASAAS DIRECT] Erro detalhado da API: ${JSON.stringify(apiErrors)}`);
+          
+          // Verificar erros específicos de CPF/CNPJ
+          if (apiErrors.some((err: any) => 
+              err.code === 'invalid_cpfCnpj' || 
+              (err.description && err.description.includes('CPF')) ||
+              (err.description && err.description.includes('CNPJ'))
+          )) {
+            console.error(`[ASAAS DIRECT] Erro de validação de CPF/CNPJ. Valor enviado: ${customerData.cpfCnpj}`);
+          }
         }
         
         console.error(`[ASAAS DIRECT] Erro ao criar cliente: ${errorMessage}`);
