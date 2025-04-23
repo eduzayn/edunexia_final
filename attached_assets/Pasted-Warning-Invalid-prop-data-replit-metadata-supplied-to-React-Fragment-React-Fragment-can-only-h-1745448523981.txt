@@ -1,0 +1,64 @@
+Warning: Invalid prop `data-replit-metadata` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.
+    at Sidebar (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/layout/sidebar.tsx?t=1745448375999:35:3)
+    at div
+    at StudentDashboard (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/components/dashboard/student-dashboard.tsx?t=1745448375999:49:20)
+    at Route (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:191:16)
+    at ProtectedRoute (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/lib/protected-route.tsx?t=1745448375999:27:34)
+    at Switch (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a42d076b:247:17)
+    at Router (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/App.tsx?t=1745448449758&v=6JbBJ0eWpuSgrb9Te8jWU:117:31)
+    at AuthProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/src/hooks/use-auth.tsx:93:32)
+    at App
+    at QueryClientProvider (https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a42d076b:2805:3)
+Mt.forEach.n.<computed> @ VM5486 eruda.js:2
+printWarning @ VM5511 react_jsx-dev-runtime.js:64
+error @ VM5511 react_jsx-dev-runtime.js:48
+validateFragmentProps @ VM5511 react_jsx-dev-runtime.js:796
+jsxWithValidation @ VM5511 react_jsx-dev-runtime.js:874
+(anonymous) @ VM5679 sidebar.tsx:313
+Sidebar @ VM5679 sidebar.tsx:312
+renderWithHooks @ VM5514 chunk-276SZO74.js:11548
+updateFunctionComponent @ VM5514 chunk-276SZO74.js:14582
+beginWork @ VM5514 chunk-276SZO74.js:15924
+beginWork$1 @ VM5514 chunk-276SZO74.js:19753
+performUnitOfWork @ VM5514 chunk-276SZO74.js:19198
+workLoopSync @ VM5514 chunk-276SZO74.js:19137
+renderRootSync @ VM5514 chunk-276SZO74.js:19116
+performConcurrentWorkOnRoot @ VM5514 chunk-276SZO74.js:18678
+workLoop @ VM5514 chunk-276SZO74.js:197
+flushWork @ VM5514 chunk-276SZO74.js:176
+performWorkUntilDeadline @ VM5514 chunk-276SZO74.js:384Understand this error
+Console.js:61 QueryClient fazendo requisição para: /api-json/user
+Console.js:61 getQueryFn - Token de autenticação recuperado do localStorage: Não
+queryClient.ts:95 
+            
+            
+           GET https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api-json/user 401 (Unauthorized)
+window.fetch @ Network.js:219
+(anonymous) @ queryClient.ts:95
+fetchFn @ @tanstack_react-query.js?v=a42d076b:840
+run @ @tanstack_react-query.js?v=a42d076b:494
+start @ @tanstack_react-query.js?v=a42d076b:536
+fetch @ @tanstack_react-query.js?v=a42d076b:926
+executeFetch_fn @ @tanstack_react-query.js?v=a42d076b:2211
+onSubscribe @ @tanstack_react-query.js?v=a42d076b:1898
+subscribe @ @tanstack_react-query.js?v=a42d076b:24
+(anonymous) @ @tanstack_react-query.js?v=a42d076b:3022
+subscribeToStore @ chunk-276SZO74.js?v=a42d076b:11984
+commitHookEffectListMount @ chunk-276SZO74.js?v=a42d076b:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=a42d076b:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=a42d076b:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=a42d076b:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=a42d076b:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=a42d076b:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=a42d076b:19447
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a42d076b:18868
+flushSyncCallbacks @ chunk-276SZO74.js?v=a42d076b:9119
+commitRootImpl @ chunk-276SZO74.js?v=a42d076b:19432
+commitRoot @ chunk-276SZO74.js?v=a42d076b:19277
+finishConcurrentRender @ chunk-276SZO74.js?v=a42d076b:18805
+performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=a42d076b:18718
+workLoop @ chunk-276SZO74.js?v=a42d076b:197
+flushWork @ chunk-276SZO74.js?v=a42d076b:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=a42d076b:384Understand this error
+Console.js:61 Resposta da requisição para /api-json/user: 401
+Console.js:61 Retornando null para requisição não autenticada: /api-json/user

@@ -254,11 +254,14 @@ export function Sidebar({
           
           <ScrollArea className="h-[calc(100vh-180px)]">
             <nav className="space-y-1 pr-4">
-              {items.map((item, index) => (
-                <React.Fragment key={isCategory(item) ? `category-${item.name}` : `item-${item.name}-${index}`}>
-                  {renderSidebarItemOrCategory(item)}
-                </React.Fragment>
-              ))}
+              {items.map((item, index) => {
+                const itemKey = isCategory(item) ? `category-${item.name}` : `item-${item.name}-${index}`;
+                return (
+                  <div key={itemKey} className="sidebar-item-wrapper">
+                    {renderSidebarItemOrCategory(item)}
+                  </div>
+                );
+              })}
             </nav>
           </ScrollArea>
         </div>
@@ -332,11 +335,14 @@ export function Sidebar({
             
             <ScrollArea className="h-[calc(100vh-180px)]">
               <nav className="space-y-1 pr-4">
-                {items.map((item, index) => (
-                  <React.Fragment key={isCategory(item) ? `mobile-category-${item.name}` : `mobile-item-${item.name}-${index}`}>
-                    {renderSidebarItemOrCategory(item, true)}
-                  </React.Fragment>
-                ))}
+                {items.map((item, index) => {
+                  const itemKey = isCategory(item) ? `mobile-category-${item.name}` : `mobile-item-${item.name}-${index}`;
+                  return (
+                    <div key={itemKey} className="sidebar-mobile-item-wrapper">
+                      {renderSidebarItemOrCategory(item, true)}
+                    </div>
+                  );
+                })}
               </nav>
             </ScrollArea>
             
