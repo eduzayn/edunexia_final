@@ -288,3 +288,51 @@ export function useVerifyDocument() {
     }
   });
 }
+
+// Interface para a criação de solicitação em lote
+export interface CreateBatchCertificationRequest {
+  title: string;
+  description?: string;
+  institutionId: number;
+  unitPrice: number;
+  students: {
+    name: string;
+    cpf: string;
+    email: string;
+    phone?: string;
+    courseId: number;
+    courseName: string;
+  }[];
+}
+
+// Hook para criar solicitações de certificação em lote
+export function useCreateBatchCertification() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (requestData: CreateBatchCertificationRequest) => {
+      const res = await apiRequest("POST", `/api/certification/requests`, requestData);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Solicitação enviada",
+        description: "A solicitação de certificação foi enviada com sucesso e está aguardando pagamento.",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/certification/requests'] });
+      
+      // Se tiver link de pagamento, retornar na resposta para poder redirecionar
+      return data;
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao enviar solicitação",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  });
+}

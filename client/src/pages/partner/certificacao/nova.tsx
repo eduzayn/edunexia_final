@@ -35,6 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Form, 
   FormControl, 
@@ -52,6 +53,7 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useCreateBatchCertification } from "@/hooks/use-certification-requests";
 
 import {
   ChartIcon,
@@ -93,6 +95,7 @@ export default function NovaSolicitacaoCertificacaoPage() {
   const [alunosLote, setAlunosLote] = useState<AlunoLote[]>([]);
   const [csvAlunosLote, setCsvAlunosLote] = useState<AlunoLote[]>([]);
   const [showResumoLote, setShowResumoLote] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [valorCertificado, setValorCertificado] = useState(79.90); // Valor padrão por certificado
   
   // Estados para o formulário de lote
@@ -249,13 +252,64 @@ export default function NovaSolicitacaoCertificacaoPage() {
     setShowResumoLote(true);
   };
   
+  // Hook para criar solicitação em lote
+  const createBatchCertification = useCreateBatchCertification();
+  const { toast } = useToast();
+  
   // Função para enviar a solicitação em lote
-  const enviarSolicitacaoLote = () => {
-    // Aqui você implementaria a lógica para enviar a solicitação em lote para o backend
-    console.log("Enviando solicitação em lote:", alunosLote);
-    
-    // Redirecionar de volta para a página de certificação após o envio
-    setLocation("/partner/certificacao");
+  const enviarSolicitacaoLote = async () => {
+    try {
+      // Exibir loading state
+      setShowResumoLote(false);
+      
+      // Converter alunos do formato da interface para o formato esperado pela API
+      const students = alunosLote.map(aluno => {
+        const cursoId = parseInt(aluno.curso);
+        const cursoObj = cursos.find(c => c.id === cursoId);
+        
+        return {
+          name: aluno.nome,
+          cpf: aluno.cpf,
+          email: aluno.email,
+          phone: aluno.telefone,
+          courseId: cursoId,
+          courseName: cursoObj ? cursoObj.nome : 'Curso não encontrado'
+        };
+      });
+      
+      // Criar solicitação com os dados necessários
+      const certificationRequest = {
+        title: `Lote de Certificação - ${new Date().toLocaleDateString()}`,
+        description: `Solicitação de certificação em lote com ${alunosLote.length} alunos`,
+        institutionId: 1, // Por enquanto fixo, idealmente viria de uma seleção
+        unitPrice: valorCertificado,
+        students: students
+      };
+      
+      console.log("Enviando solicitação em lote:", certificationRequest);
+      
+      // Enviar para a API
+      const response = await createBatchCertification.mutateAsync(certificationRequest);
+      
+      // Se tiver link de pagamento, redirecionar
+      if (response.paymentLink) {
+        window.location.href = response.paymentLink;
+      } else {
+        // Redirecionar de volta para a página de certificação após o envio
+        setLocation("/partner/certificacao");
+      }
+    } catch (error) {
+      console.error("Erro ao enviar solicitação:", error);
+      
+      toast({
+        title: "Erro ao enviar solicitação",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao processar sua solicitação",
+        variant: "destructive",
+      });
+      
+      // Reabrir o diálogo de resumo para o usuário poder tentar novamente
+      setShowResumoLote(true);
+    }
   };
   
   // Função para obter o nome do curso pelo ID
