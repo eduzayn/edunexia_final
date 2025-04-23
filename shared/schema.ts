@@ -3,6 +3,9 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Importações para exportação de tabelas de certificados
+import { certificates, certificateSigners, certificateTemplates, certificateDisciplines, certificateHistory } from './certificate-schema';
+
 // Tipos de portal
 export const portalTypes = ["student", "partner", "polo", "admin"] as const;
 export type PortalType = typeof portalTypes[number];

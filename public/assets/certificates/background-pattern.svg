@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600px" height="400px" viewBox="0 0 600 400" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Padrão de Fundo do Certificado</title>
+    <defs>
+        <pattern id="bg-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <rect x="0" y="0" width="20" height="20" fill="#FFFFFF"/>
+            <circle cx="10" cy="10" r="1" fill="#0D47A1" fill-opacity="0.05"/>
+        </pattern>
+    </defs>
+    <g id="background" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="pattern-bg" fill="url(#bg-pattern)" x="0" y="0" width="600" height="400"></rect>
+        
+        <!-- Decorative border -->
+        <rect id="border" stroke="#0D47A1" stroke-width="1" stroke-opacity="0.1" x="10" y="10" width="580" height="380"></rect>
+        
+        <!-- Corner decorations -->
+        <path d="M5,5 L25,5 L25,8 L8,8 L8,25 L5,25 Z" id="top-left" fill="#0D47A1" fill-opacity="0.1"></path>
+        <path d="M595,5 L575,5 L575,8 L592,8 L592,25 L595,25 Z" id="top-right" fill="#0D47A1" fill-opacity="0.1"></path>
+        <path d="M5,395 L25,395 L25,392 L8,392 L8,375 L5,375 Z" id="bottom-left" fill="#0D47A1" fill-opacity="0.1"></path>
+        <path d="M595,395 L575,395 L575,392 L592,392 L592,375 L595,375 Z" id="bottom-right" fill="#0D47A1" fill-opacity="0.1"></path>
+        
+        <!-- Center watermark -->
+        <text id="watermark" font-family="Arial-BoldMT, Arial" font-size="60" font-weight="bold" fill="#0D47A1" fill-opacity="0.03" text-anchor="middle">
+            <tspan x="300" y="220">EDUNEXA</tspan>
+        </text>
+    </g>
+</svg>

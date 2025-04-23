@@ -1,44 +1,39 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <!-- Fundo do Selo -->
-  <circle cx="100" cy="100" r="95" fill="#d4af37" stroke="#8b7500" stroke-width="2" />
-  <circle cx="100" cy="100" r="85" fill="#ffe97f" stroke="#8b7500" stroke-width="1" />
-  
-  <!-- Padrão de Borda Ornamentada -->
-  <path d="M100,15 C155,15 185,45 185,100 C185,155 155,185 100,185 C45,185 15,155 15,100 C15,45 45,15 100,15 Z" fill="none" stroke="#8b7500" stroke-width="3" stroke-dasharray="5,3" />
-  
-  <!-- Estrela Central -->
-  <path d="M100,40 L110,80 L150,80 L118,105 L130,145 L100,122 L70,145 L82,105 L50,80 L90,80 Z" fill="#d4af37" stroke="#8b7500" stroke-width="1" />
-  
-  <!-- Texto Circular Superior -->
-  <path id="topArc" d="M100,35 A65,65 0 0,1 100,165" fill="none" />
-  <text>
-    <textPath href="#topArc" startOffset="50%" text-anchor="middle" font-family="Times New Roman, serif" font-size="14" font-weight="bold" fill="#8b7500">
-      FACULDADE DYNAMUS DE CAMPINAS
-    </textPath>
-  </text>
-  
-  <!-- Texto Circular Inferior -->
-  <path id="bottomArc" d="M100,35 A65,65 0 0,0 100,165" fill="none" />
-  <text>
-    <textPath href="#bottomArc" startOffset="50%" text-anchor="middle" font-family="Times New Roman, serif" font-size="12" font-weight="bold" fill="#8b7500">
-      CERTIFICADO DE EXCELÊNCIA ACADÊMICA
-    </textPath>
-  </text>
-  
-  <!-- Ano no Centro -->
-  <text x="100" y="107" text-anchor="middle" font-family="Times New Roman, serif" font-size="16" font-weight="bold" fill="#8b7500">2025</text>
-  
-  <!-- Linhas Decorativas Radiais -->
-  <g stroke="#8b7500" stroke-width="1">
-    <line x1="100" y1="15" x2="100" y2="30" />
-    <line x1="100" y1="170" x2="100" y2="185" />
-    <line x1="15" y1="100" x2="30" y2="100" />
-    <line x1="170" y1="100" x2="185" y2="100" />
-    
-    <line x1="38" y1="38" x2="48" y2="48" />
-    <line x1="162" y1="38" x2="152" y2="48" />
-    <line x1="38" y1="162" x2="48" y2="152" />
-    <line x1="162" y1="162" x2="152" y2="152" />
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120px" height="120px" viewBox="0 0 120 120" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Selo Oficial</title>
+    <g id="seal" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <circle id="outer-circle" stroke="#0D47A1" stroke-width="3" fill-opacity="0.1" fill="#0D47A1" cx="60" cy="60" r="55"></circle>
+        <circle id="inner-circle" stroke="#0D47A1" stroke-width="2" cx="60" cy="60" r="45"></circle>
+        <circle id="center-circle" fill="#0D47A1" cx="60" cy="60" r="25"></circle>
+        
+        <!-- Decorative elements -->
+        <g id="stars" transform="translate(60.000000, 60.000000)" fill="#0D47A1">
+            <!-- Star points -->
+            <polygon id="star1" points="0 -50 3 -40 0 -30 -3 -40"></polygon>
+            <polygon id="star2" points="25 -43.3 28 -33.3 25 -23.3 22 -33.3"></polygon>
+            <polygon id="star3" points="43.3 -25 46.3 -15 43.3 -5 40.3 -15"></polygon>
+            <polygon id="star4" points="50 0 53 10 50 20 47 10"></polygon>
+            <polygon id="star5" points="43.3 25 46.3 35 43.3 45 40.3 35"></polygon>
+            <polygon id="star6" points="25 43.3 28 53.3 25 63.3 22 53.3"></polygon>
+            <polygon id="star7" points="0 50 3 60 0 70 -3 60"></polygon>
+            <polygon id="star8" points="-25 43.3 -22 53.3 -25 63.3 -28 53.3"></polygon>
+            <polygon id="star9" points="-43.3 25 -40.3 35 -43.3 45 -46.3 35"></polygon>
+            <polygon id="star10" points="-50 0 -47 10 -50 20 -53 10"></polygon>
+            <polygon id="star11" points="-43.3 -25 -40.3 -15 -43.3 -5 -46.3 -15"></polygon>
+            <polygon id="star12" points="-25 -43.3 -22 -33.3 -25 -23.3 -28 -33.3"></polygon>
+        </g>
+        
+        <!-- Text elements -->
+        <text id="top-text" font-family="Arial-BoldMT, Arial" font-size="8" font-weight="bold" fill="#0D47A1">
+            <tspan x="31" y="35">EDUNEXA ACADEMY</tspan>
+        </text>
+        <text id="bottom-text" font-family="Arial-BoldMT, Arial" font-size="8" font-weight="bold" fill="#0D47A1">
+            <tspan x="25" y="90">CERTIFICADO OFICIAL</tspan>
+        </text>
+        
+        <!-- Center logo/text -->
+        <text id="center-text" font-family="Arial-BoldMT, Arial" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">
+            <tspan x="60" y="65">EDU</tspan>
+        </text>
+    </g>
 </svg>
