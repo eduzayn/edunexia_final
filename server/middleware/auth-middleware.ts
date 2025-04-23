@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-// Variável externa que armazena usuários autenticados
-declare const activeUsers: { [token: string]: any };
+// Importar a variável activeUsers do arquivo routes.ts
+import { getActiveUsers } from '../shared/active-users';
 
 // Middleware para verificar se o usuário está autenticado
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {

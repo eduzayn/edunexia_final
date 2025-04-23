@@ -9,6 +9,7 @@ import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
+import activeUsers, { setActiveUser, removeActiveUser } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
@@ -52,7 +53,7 @@ import {
 } from './controllers/portal-access-report-controller';
 
 // Armazenamento de sessão simplificado (em memória)
-const activeUsers: Record<string, any> = {};
+// Definição movida para shared/active-users.ts
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = http.createServer(app);
