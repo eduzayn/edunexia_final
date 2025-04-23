@@ -168,7 +168,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     const sealSize = 120;
     try {
       // Tentamos usar o logo da instituição, mas temos um fallback
-      const fadycLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo.png');
+      const fadycLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo.svg');
       doc.image(fadycLogoPath, 70, 70, { width: sealSize });
     } catch (error) {
       console.error('Erro ao carregar logo da FADYC:', error);
@@ -179,7 +179,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     
     // Logo FADYC no canto superior direito
     try {
-      const fadycSmallLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo-small.png');
+      const fadycSmallLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo-small.svg');
       doc.image(fadycSmallLogoPath, doc.page.width - 170, 100, { width: 100 });
     } catch (error) {
       console.error('Erro ao carregar logo da FADYC pequeno:', error);
@@ -243,7 +243,13 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
         doc.moveTo(doc.page.width * 0.75 - 100, signatureY).lineTo(doc.page.width * 0.75 + 100, signatureY).stroke('#0a3d62');
       }
     } else {
-      doc.moveTo(doc.page.width * 0.75 - 100, signatureY).lineTo(doc.page.width * 0.75 + 100, signatureY).stroke('#0a3d62');
+      try {
+        // Usar assinatura padrão SVG
+        doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width * 0.75 - 50, signatureY - 35, { width: 100 });
+      } catch (error) {
+        console.error('Erro ao carregar assinatura padrão:', error);
+        doc.moveTo(doc.page.width * 0.75 - 100, signatureY).lineTo(doc.page.width * 0.75 + 100, signatureY).stroke('#0a3d62');
+      }
     }
     
     // Dados do Diretor
@@ -376,6 +382,12 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
         // Atualizar posição Y para a próxima linha
         rowY += rowHeight;
       });
+    } else {
+      // Se não houver disciplinas, exibir uma linha vazia
+      doc.rect(50, rowY, doc.page.width - 100, rowHeight).stroke();
+      doc.font('Helvetica').fontSize(9);
+      doc.text('Nenhuma disciplina registrada', 50 + 5, rowY + 8, { width: doc.page.width - 100 - 10, align: 'center' });
+      rowY += rowHeight;
     }
     
     // Adicionar seção de regime e critérios adotados
@@ -400,14 +412,10 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     doc.text('Faculdade Dynamus de Campinas - FADYC', 150, signatureBottomY);
     
     // Assinatura da Diretora à direita
-    if (certificateData.signerSignatureUrl) {
-      try {
-        doc.image(certificateData.signerSignatureUrl, doc.page.width - 250, signatureBottomY - 40, { width: 100 });
-      } catch (error) {
-        console.error('Erro ao carregar imagem da assinatura no histórico:', error);
-        doc.moveTo(doc.page.width - 300, signatureBottomY).lineTo(doc.page.width - 150, signatureBottomY).stroke();
-      }
-    } else {
+    try {
+      doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width - 250, signatureBottomY - 40, { width: 100 });
+    } catch (error) {
+      console.error('Erro ao carregar assinatura no histórico:', error);
       doc.moveTo(doc.page.width - 300, signatureBottomY).lineTo(doc.page.width - 150, signatureBottomY).stroke();
     }
     
@@ -419,7 +427,7 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     
     // Logo FADYC no canto inferior esquerdo ao lado do QR code
     try {
-      const fadycSmallLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo-small.png');
+      const fadycSmallLogoPath = path.join(process.cwd(), 'public/assets/certificates/fadyc-logo-small.svg');
       doc.image(fadycSmallLogoPath, 140, doc.page.height - 100, { width: 60 });
     } catch (error) {
       console.error('Erro ao carregar logo da FADYC pequeno no histórico:', error);
@@ -453,6 +461,7 @@ function getCourseTypeAbbreviation(courseType: string): string {
 // Função para gerar o histórico escolar
 export async function generateTranscriptPdf(certificateId: number): Promise<Buffer> {
   // Reutilizamos a função generateCertificatePdf, pois já implementamos a segunda página como histórico
+  // Na segunda página do certificado já está o histórico escolar
   return await generateCertificatePdf(certificateId);
 }
 
@@ -471,274 +480,4 @@ export async function saveCertificatePdf(certificateId: number, pdfBuffer: Buffe
   await fs.writeFile(filePath, pdfBuffer);
   
   return filePath;
-}
-
-// Função para gerar o histórico escolar
-export async function generateTranscriptPdf(certificateId: number): Promise<Buffer> {
-  const certificateData = await getCertificateData(certificateId);
-  
-  // Criar um buffer para armazenar o PDF
-  const chunks: Buffer[] = [];
-  
-  // Criar um novo documento PDF
-  const doc = new PDFDocument({
-    size: 'A4',
-    margin: 50,
-    info: {
-      Title: `Histórico Escolar - ${certificateData.studentName}`,
-      Author: certificateData.institutionName,
-      Subject: `Histórico Escolar - ${certificateData.courseName}`,
-      Keywords: 'histórico, escolar, certificado',
-      CreationDate: new Date(),
-    },
-  });
-  
-  // Coletar os chunks do PDF à medida que são gerados
-  doc.on('data', chunk => chunks.push(chunk));
-  
-  // Quando o documento for finalizado, resolver com o buffer completo
-  const pdfBuffer = new Promise<Buffer>((resolve, reject) => {
-    doc.on('end', () => {
-      resolve(Buffer.concat(chunks));
-    });
-    
-    doc.on('error', reject);
-  });
-
-  try {
-    // Gerar o QR Code com a URL de validação
-    const baseUrl = process.env.BASE_URL || 'https://portal.edunexa.com.br';
-    const verificationUrl = `${baseUrl}/validar-certificado/${certificateData.code}`;
-    const qrCodeBuffer = await generateQRCode(verificationUrl);
-    
-    // Título principal
-    doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('FACULDADE DYNAMUS', { align: 'center' });
-    
-    // Informações de credenciamento
-    doc.font('Helvetica').fontSize(10);
-    doc.moveDown();
-    doc.text('Educação de alta qualidade para formação continuada de profissionais', { align: 'center' });
-    
-    // Título do histórico
-    doc.moveDown();
-    doc.font('Helvetica-Bold').fontSize(14);
-    doc.text('HISTÓRICO ESCOLAR', { align: 'center' });
-    doc.moveDown();
-    
-    // Informações do curso e aluno
-    doc.fontSize(12);
-    
-    // Tabela de dados do aluno
-    doc.rect(50, doc.y, doc.page.width - 100, 100).stroke();
-    
-    // Primeira linha
-    const startY = doc.y;
-    
-    // Coluna 1
-    doc.text('Curso:', 60, startY + 10);
-    doc.text('Nome:', 60, startY + 30);
-    doc.text('Total de Horas:', 60, startY + 50);
-    
-    // Linha horizontal após a primeira linha
-    doc.moveTo(50, startY + 70).lineTo(doc.page.width - 50, startY + 70).stroke();
-    
-    // Coluna central - linha vertical
-    doc.moveTo(300, startY).lineTo(300, startY + 100).stroke();
-    
-    // Coluna 2
-    doc.text('Área de Conhecimento:', 310, startY + 10);
-    doc.text('Naturalidade:', 310, startY + 30);
-    doc.text('Período do Curso:', 310, startY + 50);
-    doc.text('Nascimento:', 310, startY + 70);
-    
-    // Avançar cursor para depois da tabela
-    doc.y = startY + 110;
-    
-    // Tabela de disciplinas
-    doc.moveDown();
-    doc.font('Helvetica-Bold').fontSize(12);
-    
-    // Cabeçalho da tabela
-    const tableTop = doc.y;
-    doc.rect(50, tableTop, doc.page.width - 100, 30).stroke();
-    
-    // Colunas do cabeçalho
-    const colWidths = [200, 130, 50, 50, 50, 70];
-    let currentX = 50;
-    
-    // Títulos das colunas
-    doc.text('DISCIPLINAS', currentX + 5, tableTop + 10);
-    currentX += colWidths[0];
-    doc.moveTo(currentX, tableTop).lineTo(currentX, tableTop + 30).stroke();
-    
-    doc.text('CORPO DOCENTE', currentX + 5, tableTop + 10);
-    currentX += colWidths[1];
-    doc.moveTo(currentX, tableTop).lineTo(currentX, tableTop + 30).stroke();
-    
-    doc.text('TITULAÇÃO', currentX + 5, tableTop + 10);
-    currentX += colWidths[2];
-    doc.moveTo(currentX, tableTop).lineTo(currentX, tableTop + 30).stroke();
-    
-    doc.text('CARGA HORÁRIA', currentX + 5, tableTop + 10, { width: colWidths[3], align: 'center' });
-    currentX += colWidths[3];
-    doc.moveTo(currentX, tableTop).lineTo(currentX, tableTop + 30).stroke();
-    
-    doc.text('FREQUÊNCIA', currentX + 5, tableTop + 10);
-    currentX += colWidths[4];
-    doc.moveTo(currentX, tableTop).lineTo(currentX, tableTop + 30).stroke();
-    
-    doc.text('APROVEITAMENTO', currentX + 5, tableTop + 10);
-    
-    // Conteúdo da tabela (disciplinas)
-    let rowY = tableTop + 30;
-    doc.font('Helvetica').fontSize(10);
-    
-    if (certificateData.disciplines && certificateData.disciplines.length > 0) {
-      certificateData.disciplines.forEach((discipline, index) => {
-        const rowHeight = 30;
-        
-        // Linha de borda
-        doc.rect(50, rowY, doc.page.width - 100, rowHeight).stroke();
-        
-        // Colunas da linha
-        currentX = 50;
-        
-        // Nome da disciplina
-        doc.text(discipline.name, currentX + 5, rowY + 10, { width: colWidths[0] - 10 });
-        currentX += colWidths[0];
-        doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
-        
-        // Professor
-        doc.text(discipline.professorName || '', currentX + 5, rowY + 10, { width: colWidths[1] - 10 });
-        currentX += colWidths[1];
-        doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
-        
-        // Titulação
-        doc.text(discipline.professorTitle || '', currentX + 5, rowY + 10, { width: colWidths[2] - 10 });
-        currentX += colWidths[2];
-        doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
-        
-        // Carga horária
-        doc.text(discipline.workload?.toString() || '', currentX + 5, rowY + 10, { width: colWidths[3] - 10, align: 'center' });
-        currentX += colWidths[3];
-        doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
-        
-        // Frequência
-        const frequencyText = discipline.attendance ? `${discipline.attendance}%` : '';
-        doc.text(frequencyText, currentX + 5, rowY + 10, { width: colWidths[4] - 10, align: 'center' });
-        currentX += colWidths[4];
-        doc.moveTo(currentX, rowY).lineTo(currentX, rowY + rowHeight).stroke();
-        
-        // Aproveitamento
-        const performanceText = discipline.performance ? `${discipline.performance}%` : '';
-        doc.text(performanceText, currentX + 5, rowY + 10, { width: colWidths[5] - 10, align: 'center' });
-        
-        rowY += rowHeight;
-      });
-    } else {
-      // Se não houver disciplinas, exibir uma linha vazia
-      const rowHeight = 30;
-      doc.rect(50, rowY, doc.page.width - 100, rowHeight).stroke();
-      doc.text('Nenhuma disciplina registrada', 50 + 5, rowY + 10, { width: doc.page.width - 100 - 10, align: 'center' });
-      rowY += rowHeight;
-    }
-    
-    // Seção de regime e critérios
-    doc.moveDown(2);
-    doc.font('Helvetica-Bold').fontSize(12);
-    doc.text('REGIME E CRITÉRIOS ADOTADOS', { align: 'left' });
-    doc.font('Helvetica').fontSize(10);
-    doc.moveDown();
-    
-    // Lista de critérios
-    const criterios = [
-      'Avaliação formativa e somativa, por disciplina, aferida através de trabalhos, provas e exercícios.',
-      'Aproveitamento mínimo de 70% (Setenta por cento).',
-      'Frequência de pelo menos 75% (Setenta e cinco por cento), da carga horária por disciplina.',
-      'Aprovação de Monografia Final.',
-      'O presente curso cumpriu todas as disposições da Resolução CNE/CES n° 1, de 06 de abril de 2018.'
-    ];
-    
-    criterios.forEach(criterio => {
-      doc.text(`- ${criterio}`, { continued: false });
-    });
-    
-    // Rodapé com assinatura
-    const footerY = doc.page.height - 120;
-    
-    // Linha separadora
-    doc.moveTo(50, footerY).lineTo(doc.page.width - 50, footerY).stroke();
-    
-    // Nome da instituição (lado esquerdo)
-    doc.font('Helvetica').fontSize(10);
-    doc.text('FACULDADE DYNAMUS', 150, footerY + 50, { align: 'center' });
-    
-    // Assinatura do diretor (lado direito)
-    if (certificateData.signerSignatureUrl) {
-      try {
-        doc.image(certificateData.signerSignatureUrl, doc.page.width - 200, footerY + 10, { width: 100 });
-      } catch (error) {
-        console.error('Erro ao carregar imagem da assinatura, usando assinatura padrão:', error);
-        try {
-          // Usar assinatura padrão SVG
-          doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width - 200, footerY + 10, { width: 100 });
-        } catch (fallbackError) {
-          console.error('Erro ao carregar assinatura padrão, usando linha:', fallbackError);
-          // Linha para assinatura manual
-          doc.moveTo(doc.page.width - 250, footerY + 40).lineTo(doc.page.width - 100, footerY + 40).stroke();
-        }
-      }
-    } else {
-      try {
-        // Usar assinatura padrão SVG
-        doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width - 200, footerY + 10, { width: 100 });
-      } catch (error) {
-        console.error('Erro ao carregar assinatura padrão:', error);
-        // Linha para assinatura manual
-        doc.moveTo(doc.page.width - 250, footerY + 40).lineTo(doc.page.width - 100, footerY + 40).stroke();
-      }
-    }
-    
-    doc.text(certificateData.signerName || 'Ana Lúcia Moreira Gonçalves', doc.page.width - 170, footerY + 50, { align: 'center' });
-    
-    // QR Code (rodapé esquerdo)
-    doc.image(qrCodeBuffer, 50, footerY + 10, { width: 80, height: 80 });
-    
-    // Logo da instituição
-    if (certificateData.institutionLogo) {
-      try {
-        doc.image(certificateData.institutionLogo, 50, footerY + 20, { width: 100 });
-      } catch (error) {
-        console.error('Erro ao carregar logo da instituição:', error);
-      }
-    }
-    
-    // Finalizar o documento
-    doc.end();
-    
-    // Aguardar a geração completa do buffer
-    return await pdfBuffer;
-  } catch (error) {
-    console.error('Erro ao gerar PDF do histórico escolar:', error);
-    throw error;
-  }
-}
-
-// Função para salvar o certificado em disco
-export async function saveCertificatePdf(certificateId: number, pdfBuffer: Buffer, type: 'certificate' | 'transcript'): Promise<string> {
-  const certificatesDir = path.join(process.cwd(), 'uploads/certificates');
-  
-  // Garantir que o diretório exista
-  await fs.mkdir(certificatesDir, { recursive: true });
-  
-  // Gerar um nome de arquivo baseado no ID do certificado
-  const fileName = `${type}_${certificateId}_${Date.now()}.pdf`;
-  const filePath = path.join(certificatesDir, fileName);
-  
-  // Salvar o arquivo
-  await fs.writeFile(filePath, pdfBuffer);
-  
-  // Retornar o caminho relativo (para URL)
-  return `uploads/certificates/${fileName}`;
 }
