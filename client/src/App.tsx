@@ -92,6 +92,7 @@ import AdvancedGenerateEBookPage from "@/pages/admin/ebooks/advanced-generate";
 import SecurityPage from "@/pages/admin/sistema/security-page";
 import SettingsPage from "@/pages/admin/sistema/settings-page";
 import InstitutionSettingsPage from "@/pages/admin/sistema/institution-settings-page";
+import PortalAccessControlPage from "@/pages/admin/sistema/portal-access-control-page";
 // Import polo pages
 import PoloEnrollmentsPage from "@/pages/polo/enrollments-page";
 import PoloNewEnrollmentPage from "@/pages/polo/new-enrollment-page";
@@ -569,6 +570,10 @@ function Router() {
       
       <Route path="/admin/sistema/institution-settings">
         {() => user?.portalType === "admin" ? <InstitutionSettingsPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/sistema/portal-access-control">
+        {() => user?.portalType === "admin" ? <PortalAccessControlPage /> : <Redirect to="/admin" />}
       </Route>
       
       <Route component={NotFound} />

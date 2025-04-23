@@ -2,6 +2,9 @@ import React, { ReactNode } from 'react';
 import AdminLayout from './admin-layout';
 import { useAuth } from '@/hooks/use-auth';
 
+// Exportando o AdminLayout para uso em outros arquivos
+export { AdminLayout };
+
 interface LayoutProps {
   children: ReactNode;
 }

@@ -49,7 +49,7 @@ import {
   BuildingIcon
 } from "@/components/ui/icons";
 import { AlertCircle, AlertTriangle, RefreshCw, Search } from "lucide-react";
-import BreadcrumbWithBackButton from "@/components/ui/breadcrumb-with-back";
+import BreadcrumbWithBackButton from "@/components/ui/breadcrumb-with-back-button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 

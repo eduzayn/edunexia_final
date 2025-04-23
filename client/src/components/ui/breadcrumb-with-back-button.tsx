@@ -12,7 +12,7 @@ interface BreadcrumbWithBackButtonProps {
   items: BreadcrumbItem[];
 }
 
-export function BreadcrumbWithBackButton({ items }: BreadcrumbWithBackButtonProps) {
+function BreadcrumbWithBackButton({ items }: BreadcrumbWithBackButtonProps) {
   return (
     <div className="flex items-center space-x-2">
       <Button variant="ghost" size="sm" asChild>
@@ -38,3 +38,5 @@ export function BreadcrumbWithBackButton({ items }: BreadcrumbWithBackButtonProp
     </div>
   );
 }
+
+export default BreadcrumbWithBackButton;
