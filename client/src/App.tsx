@@ -171,6 +171,14 @@ function Router() {
       <Route path="/create-charge" component={PublicCreateChargePage} />
       
       {/* Portal do Aluno - Rotas unificadas com verificação consistente */}
+      <Route path="/student">
+        {() => {
+          console.log("Rota /student acessada, redirecionando para dashboard");
+          return user?.portalType === "student" 
+            ? <Redirect to="/student/dashboard" /> 
+            : <Redirect to="/auth" />;
+        }}
+      </Route>
       <ProtectedRoute path="/student/dashboard" portalType="student" />
       <Route path="/student/courses">
         {() => {
