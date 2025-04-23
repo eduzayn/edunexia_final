@@ -72,7 +72,7 @@ export function usePermissions() {
   // Buscar permissões do usuário atual
   const permissionsQuery = useQuery({
     queryKey: ['/api/permissions/user'],
-    queryFn: () => apiRequest<Record<string, boolean>>('/api/permissions/user'),
+    queryFn: () => apiRequest<Record<string, boolean>>('GET', '/api/permissions/user'),
     enabled: !!user
   });
 
@@ -99,7 +99,7 @@ export function usePermissions() {
    */
   const checkInstitutionAccess = async (institutionId: number): Promise<boolean> => {
     try {
-      const result = await apiRequest<{ hasAccess: boolean }>(`/api/permissions/institution-access/${institutionId}`);
+      const result = await apiRequest<{ hasAccess: boolean }>('GET', `/api/permissions/institution-access/${institutionId}`);
       return result.hasAccess;
     } catch (error) {
       console.error('Erro ao verificar acesso à instituição:', error);
@@ -114,7 +114,7 @@ export function usePermissions() {
    */
   const checkPoloAccess = async (poloId: number): Promise<boolean> => {
     try {
-      const result = await apiRequest<{ hasAccess: boolean }>(`/api/permissions/polo-access/${poloId}`);
+      const result = await apiRequest<{ hasAccess: boolean }>('GET', `/api/permissions/polo-access/${poloId}`);
       return result.hasAccess;
     } catch (error) {
       console.error('Erro ao verificar acesso ao polo:', error);
@@ -143,20 +143,20 @@ export function useRoles() {
   // Listar papéis
   const rolesQuery = useQuery({
     queryKey: ['/api/permissions/roles'],
-    queryFn: () => apiRequest<Role[]>('/api/permissions/roles')
+    queryFn: () => apiRequest<Role[]>('GET', '/api/permissions/roles')
   });
 
   // Buscar papel por ID
   const useRole = (id: number) => useQuery({
     queryKey: ['/api/permissions/roles', id],
-    queryFn: () => apiRequest<Role>(`/api/permissions/roles/${id}`),
+    queryFn: () => apiRequest<Role>('GET', `/api/permissions/roles/${id}`),
     enabled: !!id
   });
 
   // Listar permissões de um papel
   const useRolePermissions = (roleId: number) => useQuery({
     queryKey: ['/api/permissions/roles', roleId, 'permissions'],
-    queryFn: () => apiRequest<RolePermission[]>(`/api/permissions/roles/${roleId}/permissions`),
+    queryFn: () => apiRequest<RolePermission[]>('GET', `/api/permissions/roles/${roleId}/permissions`),
     enabled: !!roleId
   });
 
@@ -288,7 +288,7 @@ export function usePermissionsList() {
   // Listar todas as permissões
   const permissionsQuery = useQuery({
     queryKey: ['/api/permissions/list'],
-    queryFn: () => apiRequest<Permission[]>('/api/permissions/list'),
+    queryFn: () => apiRequest<Permission[]>('GET', '/api/permissions/list'),
   });
 
   return {
@@ -309,7 +309,7 @@ export function useUserRoles(userId: number) {
   // Listar papéis do usuário
   const userRolesQuery = useQuery({
     queryKey: ['/api/permissions/users', userId, 'roles'],
-    queryFn: () => apiRequest<UserRole[]>(`/api/permissions/users/${userId}/roles`),
+    queryFn: () => apiRequest<UserRole[]>('GET', `/api/permissions/users/${userId}/roles`),
     enabled: !!userId
   });
 
@@ -399,7 +399,7 @@ export function useUserPermissions(userId: number) {
   // Listar permissões diretas do usuário
   const userPermissionsQuery = useQuery({
     queryKey: ['/api/permissions/users', userId, 'permissions'],
-    queryFn: () => apiRequest<UserPermission[]>(`/api/permissions/users/${userId}/permissions`),
+    queryFn: () => apiRequest<UserPermission[]>('GET', `/api/permissions/users/${userId}/permissions`),
     enabled: !!userId
   });
 
