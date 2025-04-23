@@ -453,6 +453,68 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
+  // Categoria: Parcerias (Portal do Parceiro)
+  const parceriasCategory: SidebarCategory = {
+    name: "Parcerias",
+    icon: <HandshakeIcon />,
+    expanded: hasCategoryActiveItem({
+      name: "Parcerias",
+      icon: <HandshakeIcon />,
+      items: [
+        { 
+          name: "Portal do Parceiro", 
+          icon: <StorefrontIcon />, 
+          href: "/admin/parcerias/portal",
+          active: currentPath === "/admin/parcerias/portal" || (currentPath && currentPath.includes("/admin/parcerias/portal/"))
+        },
+        { 
+          name: "Certificação de Alunos", 
+          icon: <AwardIcon />, 
+          href: "/admin/parcerias/certificacao",
+          active: currentPath === "/admin/parcerias/certificacao" || (currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
+        },
+        { 
+          name: "Solicitações Pendentes", 
+          icon: <InboxIcon />, 
+          href: "/admin/parcerias/solicitacoes",
+          active: currentPath === "/admin/parcerias/solicitacoes" || (currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
+        },
+        { 
+          name: "Relatórios", 
+          icon: <BarChartAltIcon />, 
+          href: "/admin/parcerias/relatorios",
+          active: currentPath === "/admin/parcerias/relatorios" || (currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
+        },
+      ]
+    }, currentPath),
+    items: [
+      { 
+        name: "Portal do Parceiro", 
+        icon: <StorefrontIcon />, 
+        href: "/admin/parcerias/portal",
+        active: currentPath === "/admin/parcerias/portal" || (currentPath && currentPath.includes("/admin/parcerias/portal/"))
+      },
+      { 
+        name: "Certificação de Alunos", 
+        icon: <AwardIcon />, 
+        href: "/admin/parcerias/certificacao",
+        active: currentPath === "/admin/parcerias/certificacao" || (currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
+      },
+      { 
+        name: "Solicitações Pendentes", 
+        icon: <InboxIcon />, 
+        href: "/admin/parcerias/solicitacoes",
+        active: currentPath === "/admin/parcerias/solicitacoes" || (currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
+      },
+      { 
+        name: "Relatórios", 
+        icon: <BarChartAltIcon />, 
+        href: "/admin/parcerias/relatorios",
+        active: currentPath === "/admin/parcerias/relatorios" || (currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
+      },
+    ]
+  };
+
   // Combinar todos os itens e categorias
   return [
     ...mainItems,
@@ -461,6 +523,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     crmCategory,
     communicationCategory,
     certificationCategory,
+    parceriasCategory,
     operationalCategory,
   ];
 }
