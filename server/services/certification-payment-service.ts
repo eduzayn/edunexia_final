@@ -9,7 +9,7 @@ import axios from 'axios';
 import { AsaasDirectPaymentService } from './asaas-direct-payment-service';
 import { db } from '../db';
 import { eq } from 'drizzle-orm';
-import { users } from '../../shared/schema';
+import { users } from '@shared/schema';
 
 // Chave específica para certificações (definida pelo usuário)
 const ASAAS_API_KEY = process.env.ASAAS_CERTIFIC_KEY || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmY4ZmQ2MTVhLWUwMmUtNDkxMC05NTQ3LTZmZTYzMTIyNzk4Nzo6JGFhY2hfNTlhMmU5NDYtMGE2ZC00OWExLWEwN2MtZDZiNzZkYjZjYmEz';
@@ -84,9 +84,14 @@ export const CertificationPaymentService = {
         throw new Error(`Usuário com ID ${partnerId} não é um parceiro`);
       }
       
-      // Como não temos campo asaasId na tabela user, vamos sempre buscar ou criar o cliente no Asaas
-      // utilizando o CPF do parceiro como identificador único
-      console.log(`[CERTIFICATION] Buscando/criando cliente Asaas para o parceiro ${partnerId}`);
+      // Agora que temos o campo asaasId na tabela users, vamos verificar se o parceiro já tem um ID Asaas
+      console.log(`[CERTIFICATION] Verificando ou criando cliente Asaas para o parceiro ${partnerId}`);
+      
+      // Verificar se o usuário já tem um ID Asaas armazenado
+      if (partner.asaasId) {
+        console.log(`[CERTIFICATION] Parceiro já possui ID Asaas armazenado: ${partner.asaasId}`);
+        return partner.asaasId;
+      }
       
       // Verificar se tem CPF
       if (!partner.cpf) {
@@ -98,6 +103,13 @@ export const CertificationPaymentService = {
       
       if (existingCustomer) {
         console.log(`[CERTIFICATION] Cliente já existe no Asaas com ID: ${existingCustomer.id}`);
+        
+        // Atualizar o registro do usuário com o ID Asaas encontrado
+        await db.update(users)
+          .set({ asaasId: existingCustomer.id })
+          .where(eq(users.id, partnerId));
+        
+        console.log(`[CERTIFICATION] ID Asaas ${existingCustomer.id} salvo no registro do parceiro ${partnerId}`);
         return existingCustomer.id;
       }
       
@@ -108,10 +120,12 @@ export const CertificationPaymentService = {
         partner.cpf
       );
       
-      // Atualizar o parceiro com o ID Asaas
-      // Como a tabela 'users' pode não ter o campo 'asaasId', armazenamos o ID em memória
-      // e o retornamos. Em uma implementação real, é necessário adicionar este campo à tabela.
-      console.log(`[CERTIFICATION] Parceiro ${partnerId} associado ao ID Asaas: ${asaasCustomer.id}`);
+      // Atualizar o parceiro com o ID Asaas no banco de dados
+      await db.update(users)
+        .set({ asaasId: asaasCustomer.id })
+        .where(eq(users.id, partnerId));
+      
+      console.log(`[CERTIFICATION] Parceiro ${partnerId} associado ao ID Asaas: ${asaasCustomer.id} e salvo no banco de dados`);
       
       return asaasCustomer.id;
     } catch (error) {
