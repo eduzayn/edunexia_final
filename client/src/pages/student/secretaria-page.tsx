@@ -2,7 +2,19 @@ import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { Sidebar } from "@/components/layout/sidebar";
-import { getStudentSidebarItems } from "@/components/layout/student-sidebar-items";
+import { 
+  LayoutDashboard,
+  BookOpenText, 
+  GraduationCap, 
+  FileQuestion, 
+  BriefcaseBusiness, 
+  Handshake, 
+  Banknote, 
+  Calendar, 
+  MessagesSquare, 
+  User,
+  BookMarked
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -521,9 +533,21 @@ export default function SecretariaPage() {
     });
   };
 
-  // Usar o componente padronizado para os itens da barra lateral
+  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
   const [location] = useLocation();
-  const sidebarItems = getStudentSidebarItems(location);
+  const sidebarItems = [
+    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
+    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
+    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
+    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
+    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
+    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
+    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
+    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
+    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
+    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
+    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" },
+  ];
 
   return (
     <div className="flex h-screen bg-gray-50">
