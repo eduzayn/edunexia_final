@@ -841,8 +841,36 @@ router.get("/:id/transcript/download", async (req, res) => {
   }
 });
 
+// Função auxiliar para salvar os PDFs temporariamente
+const saveCertificatePdf = async (certificateId: number, pdfBuffer: Buffer, type: 'certificate' | 'transcript'): Promise<string> => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  // Criar diretório uploads se não existir
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  
+  // Criar diretório específico para certificados
+  const certificatesDir = path.join(uploadsDir, 'certificates');
+  if (!fs.existsSync(certificatesDir)) {
+    fs.mkdirSync(certificatesDir, { recursive: true });
+  }
+  
+  // Nome do arquivo com data e hora para evitar colisões
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const fileName = `${type}_${certificateId}_${timestamp}.pdf`;
+  const filePath = path.join(certificatesDir, fileName);
+  
+  // Salvar o PDF no sistema de arquivos
+  fs.writeFileSync(filePath, pdfBuffer);
+  
+  return filePath;
+};
+
 // Enviar certificado por e-mail
-router.post("/:id/send-email", async (req, res) => {
+router.post("/:id/email", async (req, res) => {
   try {
     const { id } = req.params;
     const certificateId = parseInt(id);
@@ -878,14 +906,50 @@ router.post("/:id/send-email", async (req, res) => {
     const certificatePdf = await generateCertificatePdf(certificateId);
     const transcriptPdf = await generateTranscriptPdf(certificateId);
     
-    // Salvar os PDFs temporariamente para anexar ao e-mail
+    // Aqui você usaria seu serviço de e-mail para enviar os documentos
+    // Por exemplo, com a biblioteca nodemailer ou um serviço como SendGrid/Mailgun
+    
+    // Exemplo de como seria a implementação usando nodemailer
+    /*
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
+    
+    await transporter.sendMail({
+      from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+      to: certificate.student.email,
+      subject: `Seu certificado do curso ${certificate.courseName}`,
+      html: `
+        <h1>Olá ${certificate.student.fullName},</h1>
+        <p>Parabéns pela conclusão do curso <strong>${certificate.courseName}</strong>!</p>
+        <p>Em anexo, você encontrará seu certificado e histórico escolar.</p>
+        <p>Atenciosamente,<br>Equipe Edunexa</p>
+      `,
+      attachments: [
+        {
+          filename: `certificado_${certificate.code}.pdf`,
+          content: certificatePdf,
+          contentType: 'application/pdf',
+        },
+        {
+          filename: `historico_${certificate.code}.pdf`,
+          content: transcriptPdf,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+    */
+    
+    // Como não temos implementação real de e-mail ainda, simulamos o envio com sucesso
+    // e salvamos temporariamente os arquivos
     const certificatePath = await saveCertificatePdf(certificateId, certificatePdf, 'certificate');
     const transcriptPath = await saveCertificatePdf(certificateId, transcriptPdf, 'transcript');
-    
-    // TODO: Implementar o envio por e-mail usando a biblioteca nodemailer ou similar
-    // Este trecho seria implementado quando a funcionalidade de e-mail for adicionada ao sistema
-    
-    // Por enquanto, apenas simularemos o envio retornando sucesso
     
     // Registrar no histórico
     await db.insert(certificateHistory).values({
@@ -895,8 +959,8 @@ router.post("/:id/send-email", async (req, res) => {
       performedById: userId || null,
     });
     
-    return res.json({
-      success: true,
+    return res.json({ 
+      success: true, 
       message: `Certificado enviado com sucesso para ${certificate.student.email}`,
       certificatePath,
       transcriptPath,

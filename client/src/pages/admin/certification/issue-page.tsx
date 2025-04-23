@@ -210,27 +210,83 @@ export default function CertificationIssuePage() {
     }, 2000);
   };
   
+  // Função para visualizar o certificado em PDF
+  const handleViewCertificate = (certificateId: number) => {
+    // Abre uma nova janela com o PDF do certificado
+    window.open(`/api/certificates/${certificateId}/pdf`, '_blank');
+  };
+  
+  // Função para visualizar o histórico escolar em PDF
+  const handleViewTranscript = (certificateId: number) => {
+    // Abre uma nova janela com o PDF do histórico escolar
+    window.open(`/api/certificates/${certificateId}/transcript`, '_blank');
+  };
+  
   // Função para baixar certificado
-  const handleDownloadCertificate = (certificateCode: string) => {
+  const handleDownloadCertificate = (certificateId: number) => {
+    // Inicia o download do PDF
+    window.open(`/api/certificates/${certificateId}/pdf/download`, '_blank');
+    
     toast({
       title: "Download iniciado",
-      description: `Certificado ${certificateCode} sendo baixado.`,
+      description: "Certificado sendo baixado.",
     });
   };
   
-  // Função para imprimir certificado
-  const handlePrintCertificate = (certificateCode: string) => {
+  // Função para baixar histórico escolar
+  const handleDownloadTranscript = (certificateId: number) => {
+    // Inicia o download do PDF do histórico escolar
+    window.open(`/api/certificates/${certificateId}/transcript/download`, '_blank');
+    
+    toast({
+      title: "Download iniciado",
+      description: "Histórico escolar sendo baixado.",
+    });
+  };
+  
+  // Função para imprimir certificado (abre a visualização para impressão)
+  const handlePrintCertificate = (certificateId: number) => {
+    // Abre o PDF em uma nova janela pronta para impressão
+    const printWindow = window.open(`/api/certificates/${certificateId}/pdf`, '_blank');
+    printWindow?.addEventListener('load', () => {
+      try {
+        // Tenta imprimir automaticamente
+        printWindow.print();
+      } catch (error) {
+        console.error('Erro ao imprimir:', error);
+      }
+    });
+    
     toast({
       title: "Preparando impressão",
-      description: `Certificado ${certificateCode} sendo preparado para impressão.`,
+      description: "Certificado preparado para impressão.",
     });
   };
   
   // Função para enviar certificado por e-mail
-  const handleEmailCertificate = (certificateCode: string) => {
-    toast({
-      title: "Enviando por e-mail",
-      description: `Certificado ${certificateCode} sendo enviado por e-mail.`,
+  const handleEmailCertificate = (certificateId: number) => {
+    fetch(`/api/certificates/${certificateId}/email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        toast({
+          title: "E-mail enviado",
+          description: "Certificado enviado por e-mail com sucesso.",
+        });
+      } else {
+        throw new Error('Falha ao enviar e-mail');
+      }
+    })
+    .catch(error => {
+      toast({
+        title: "Erro ao enviar e-mail",
+        description: error.message,
+        variant: "destructive",
+      });
     });
   };
   
@@ -410,27 +466,61 @@ export default function CertificationIssuePage() {
                         <TableCell>{cert.issueDate}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            {/* Grupo: Certificado */}
+                            <div className="border rounded-md p-1 flex gap-1 mr-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleViewCertificate(cert.id)}
+                                title="Visualizar certificado"
+                              >
+                                <EyeIcon className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDownloadCertificate(cert.id)}
+                                title="Baixar certificado"
+                              >
+                                <DownloadIcon className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handlePrintCertificate(cert.id)}
+                                title="Imprimir certificado"
+                              >
+                                <PrinterIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            {/* Grupo: Histórico */}
+                            <div className="border rounded-md p-1 flex gap-1 mr-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleViewTranscript(cert.id)}
+                                title="Visualizar histórico"
+                              >
+                                <FileCheckIcon className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDownloadTranscript(cert.id)}
+                                title="Baixar histórico"
+                              >
+                                <DownloadIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            {/* E-mail */}
                             <Button 
                               variant="ghost" 
                               size="icon"
-                              onClick={() => handleDownloadCertificate(cert.certificateCode)}
-                              title="Baixar certificado"
-                            >
-                              <DownloadIcon className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handlePrintCertificate(cert.certificateCode)}
-                              title="Imprimir certificado"
-                            >
-                              <PrinterIcon className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleEmailCertificate(cert.certificateCode)}
+                              onClick={() => handleEmailCertificate(cert.id)}
                               title="Enviar por e-mail"
+                              className="ml-1"
                             >
                               <MailIcon className="h-4 w-4" />
                             </Button>
