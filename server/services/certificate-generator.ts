@@ -150,7 +150,8 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
 
   try {
     // Gerar o QR Code com a URL de validação
-    const verificationUrl = `https://portal.fadyc.com.br/validar-certificado/${certificateData.code}`;
+    const baseUrl = process.env.BASE_URL || 'https://portal.fadyc.com.br';
+    const verificationUrl = `${baseUrl}/validar-certificado/${certificateData.code}`;
     const qrCodeBuffer = await generateQRCode(verificationUrl);
     
     // Background com degradê dourado
@@ -161,16 +162,29 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     doc.rect(borderWidth, borderWidth, doc.page.width - 2 * borderWidth, doc.page.height - 2 * borderWidth).stroke('#d4af37');
     
     // Logo da instituição
-    if (certificateData.institutionLogo) {
-      doc.image(certificateData.institutionLogo, doc.page.width - 150, 30, { width: 120 });
+    const institutionLogoPath = certificateData.institutionLogo || path.join(process.cwd(), 'public/assets/certificates/institution-logo.svg');
+    try {
+      doc.image(institutionLogoPath, doc.page.width - 150, 30, { width: 120 });
+    } catch (error) {
+      console.error('Erro ao carregar logo da instituição, usando padrão:', error);
+      try {
+        doc.image(path.join(process.cwd(), 'public/assets/certificates/institution-logo.svg'), doc.page.width - 150, 30, { width: 120 });
+      } catch (fallbackError) {
+        console.error('Erro ao carregar logo padrão:', fallbackError);
+      }
     }
     
     // QR Code para validação
     doc.image(qrCodeBuffer, doc.page.width - 150, doc.page.height - 150, { width: 100, height: 100 });
     
     // Selo/Brasão da instituição
+    const sealPath = path.join(process.cwd(), 'public/assets/certificates/certificate-seal.svg');
     const sealSize = 100;
-    doc.image(path.join(process.cwd(), 'public/assets/certificate-seal.png'), 50, 50, { width: sealSize, height: sealSize });
+    try {
+      doc.image(sealPath, 50, 50, { width: sealSize, height: sealSize });
+    } catch (error) {
+      console.error('Erro ao carregar selo/brasão da instituição:', error);
+    }
     
     // Título principal
     doc.font('Helvetica-Bold').fontSize(32);
@@ -210,10 +224,28 @@ export async function generateCertificatePdf(certificateId: number): Promise<Buf
     
     // Assinatura do Diretor
     if (certificateData.signerSignatureUrl) {
-      doc.image(certificateData.signerSignatureUrl, 3 * doc.page.width / 4 - 50, doc.page.height - 150, { width: 100 });
+      try {
+        doc.image(certificateData.signerSignatureUrl, 3 * doc.page.width / 4 - 50, doc.page.height - 150, { width: 100 });
+      } catch (error) {
+        console.error('Erro ao carregar imagem da assinatura no certificado, usando assinatura padrão:', error);
+        try {
+          // Usar assinatura padrão SVG
+          doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), 3 * doc.page.width / 4 - 50, doc.page.height - 150, { width: 100 });
+        } catch (fallbackError) {
+          console.error('Erro ao carregar assinatura padrão no certificado, usando linha:', fallbackError);
+          // Linha para assinatura manual
+          doc.moveTo(3 * doc.page.width / 4 - 100, doc.page.height - 120).lineTo(3 * doc.page.width / 4 + 100, doc.page.height - 120).stroke();
+        }
+      }
     } else {
-      // Linha para assinatura manual
-      doc.moveTo(3 * doc.page.width / 4 - 100, doc.page.height - 120).lineTo(3 * doc.page.width / 4 + 100, doc.page.height - 120).stroke();
+      try {
+        // Usar assinatura padrão SVG
+        doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), 3 * doc.page.width / 4 - 50, doc.page.height - 150, { width: 100 });
+      } catch (error) {
+        console.error('Erro ao carregar assinatura padrão no certificado:', error);
+        // Linha para assinatura manual
+        doc.moveTo(3 * doc.page.width / 4 - 100, doc.page.height - 120).lineTo(3 * doc.page.width / 4 + 100, doc.page.height - 120).stroke();
+      }
     }
     
     // Dados do Diretor
@@ -440,13 +472,25 @@ export async function generateTranscriptPdf(certificateId: number): Promise<Buff
       try {
         doc.image(certificateData.signerSignatureUrl, doc.page.width - 200, footerY + 10, { width: 100 });
       } catch (error) {
-        console.error('Erro ao carregar imagem da assinatura:', error);
+        console.error('Erro ao carregar imagem da assinatura, usando assinatura padrão:', error);
+        try {
+          // Usar assinatura padrão SVG
+          doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width - 200, footerY + 10, { width: 100 });
+        } catch (fallbackError) {
+          console.error('Erro ao carregar assinatura padrão, usando linha:', fallbackError);
+          // Linha para assinatura manual
+          doc.moveTo(doc.page.width - 250, footerY + 40).lineTo(doc.page.width - 100, footerY + 40).stroke();
+        }
+      }
+    } else {
+      try {
+        // Usar assinatura padrão SVG
+        doc.image(path.join(process.cwd(), 'public/assets/certificates/signature.svg'), doc.page.width - 200, footerY + 10, { width: 100 });
+      } catch (error) {
+        console.error('Erro ao carregar assinatura padrão:', error);
         // Linha para assinatura manual
         doc.moveTo(doc.page.width - 250, footerY + 40).lineTo(doc.page.width - 100, footerY + 40).stroke();
       }
-    } else {
-      // Linha para assinatura manual
-      doc.moveTo(doc.page.width - 250, footerY + 40).lineTo(doc.page.width - 100, footerY + 40).stroke();
     }
     
     doc.text(certificateData.signerName || 'Ana Lúcia Moreira Gonçalves', doc.page.width - 170, footerY + 50, { align: 'center' });
