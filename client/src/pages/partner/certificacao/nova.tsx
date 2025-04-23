@@ -960,10 +960,10 @@ export default function NovaSolicitacaoCertificacaoPage() {
                         )}
                         
                         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-700 mt-6">
-                          <p className="flex items-center font-medium">
+                          <div className="flex items-center font-medium">
                             <AlertCircle className="h-4 w-4 mr-1" />
                             Atenção:
-                          </p>
+                          </div>
                           <p>
                             Os documentos dos alunos (RG, Diploma, etc.) deverão ser enviados individualmente após o envio desta solicitação.
                           </p>
@@ -971,10 +971,10 @@ export default function NovaSolicitacaoCertificacaoPage() {
                         
                         {alunosLote.length > 0 && (
                           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-blue-700 mt-4">
-                            <p className="flex items-center font-medium">
-                              <div className="h-5 w-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mr-2">i</div>
+                            <div className="flex items-center font-medium">
+                              <span className="h-5 w-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mr-2">i</span>
                               Informações de Pagamento:
-                            </p>
+                            </div>
                             <div className="mt-2 grid grid-cols-2 gap-2">
                               <div>Valor por certificado:</div>
                               <div className="font-semibold">R$ {valorCertificado.toFixed(2)}</div>
