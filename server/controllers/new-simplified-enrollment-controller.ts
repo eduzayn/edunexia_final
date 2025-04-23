@@ -293,8 +293,16 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
     // Gerar um ID de referência externa único se não foi fornecido
     const generatedExternalReference = externalReference || `enroll-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
 
+    // Gerar UUID único para a matrícula
+    const uuid = `enroll-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    
+    // Definir data de expiração (30 dias a partir de agora)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    
     // Criar a matrícula simplificada
     const [newEnrollment] = await db.insert(simplifiedEnrollments).values({
+      uuid, // UUID único gerado
       studentName,
       studentEmail,
       studentCpf,
@@ -303,9 +311,14 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       institutionId,
       poloId,
       amount,
+      fullPrice: amount, // Preço completo (obrigatório)
       status: 'pending',
       sourceChannel: sourceChannel || 'admin-portal',
       externalReference: generatedExternalReference, // Usar o valor gerado ou o fornecido
+      
+      // Campos obrigatórios que estavam faltando
+      expiresAt, // Data de expiração do link
+      paymentGateway: "asaas", // Gateway de pagamento padrão
       
       // Se tiver um ID de cliente Asaas, usar
       asaasCustomerId: asaasCustomerId || null,
