@@ -95,13 +95,15 @@ export function StudentDashboard() {
                 </div>
                 <div>
                   <h2 className="text-lg font-medium text-gray-900">Olá, {user?.fullName?.split(' ')[0] || 'Aluno'}!</h2>
-                  <p className="text-gray-600">
-                    {isLoading ? (
+                  {isLoading ? (
+                    <div className="text-gray-600">
                       <Skeleton className="h-4 w-52 mt-1" />
-                    ) : (
-                      "Você tem 3 atividades pendentes essa semana."
-                    )}
-                  </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600">
+                      Você tem 3 atividades pendentes essa semana.
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
