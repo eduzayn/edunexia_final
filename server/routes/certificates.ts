@@ -869,6 +869,184 @@ const saveCertificatePdf = async (certificateId: number, pdfBuffer: Buffer, type
   return filePath;
 };
 
+// Emissão em lote de certificados
+router.post("/batch-issue", async (req, res) => {
+  try {
+    const { studentIds, templateId } = req.body;
+    
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ 
+        message: "É necessário fornecer uma lista de IDs de alunos" 
+      });
+    }
+    
+    if (!templateId) {
+      return res.status(400).json({ 
+        message: "É necessário fornecer um ID de template" 
+      });
+    }
+    
+    const userId = req.user?.id;
+    const issuedCertificates = [];
+    
+    // Verificar se o template existe
+    const template = await db.query.certificateTemplates.findFirst({
+      where: eq(certificateTemplates.id, templateId),
+    });
+    
+    if (!template) {
+      return res.status(404).json({ message: "Template não encontrado" });
+    }
+    
+    // Obter as matrículas ativas para os alunos selecionados
+    const enrollmentsList = await db.select()
+      .from(enrollments)
+      .where(
+        and(
+          inArray(enrollments.studentId, studentIds),
+          eq(enrollments.status, "completed")
+        )
+      );
+    
+    if (enrollmentsList.length === 0) {
+      return res.status(404).json({ 
+        message: "Nenhuma matrícula concluída encontrada para os alunos selecionados" 
+      });
+    }
+    
+    // Mapear matrículas por ID do aluno
+    const enrollmentsByStudentId = enrollmentsList.reduce((acc, enrollment) => {
+      if (!acc[enrollment.studentId]) {
+        acc[enrollment.studentId] = [];
+      }
+      acc[enrollment.studentId].push(enrollment);
+      return acc;
+    }, {} as Record<number, typeof enrollmentsList>);
+    
+    // Obter informações dos alunos
+    const students = await db.select()
+      .from(users)
+      .where(inArray(users.id, studentIds));
+    
+    // Mapear alunos por ID
+    const studentsById = students.reduce((acc, student) => {
+      acc[student.id] = student;
+      return acc;
+    }, {} as Record<number, typeof users.$inferSelect>);
+    
+    // Criar certificados para cada aluno
+    for (const studentId of studentIds) {
+      const student = studentsById[studentId];
+      const studentEnrollments = enrollmentsByStudentId[studentId];
+      
+      if (!student || !studentEnrollments || studentEnrollments.length === 0) {
+        continue;
+      }
+      
+      // Pegar a primeira matrícula concluída
+      const enrollment = studentEnrollments[0];
+      
+      // Verificar se já existe um certificado para este aluno e curso
+      const existingCertificate = await db.query.certificates.findFirst({
+        where: and(
+          eq(certificates.studentId, studentId),
+          eq(certificates.courseId, enrollment.courseId)
+        ),
+      });
+      
+      if (existingCertificate) {
+        // Se o certificado já está emitido, apenas retorná-lo
+        if (existingCertificate.status === "issued") {
+          issuedCertificates.push(existingCertificate);
+          continue;
+        }
+        
+        // Se o certificado existe mas não está emitido, atualizá-lo para emitido
+        const [updatedCertificate] = await db.update(certificates)
+          .set({
+            status: "issued",
+            issuedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(certificates.id, existingCertificate.id))
+          .returning();
+        
+        // Registrar histórico
+        await db.insert(certificateHistory).values({
+          certificateId: existingCertificate.id,
+          action: "issued",
+          description: "Certificado emitido em lote",
+          performedById: userId || null,
+        });
+        
+        issuedCertificates.push(updatedCertificate);
+        continue;
+      }
+      
+      // Obter informações do curso
+      const course = await db.query.courses.findFirst({
+        where: eq(courses.id, enrollment.courseId),
+      });
+      
+      if (!course) {
+        continue;
+      }
+      
+      // Gerar código único para o certificado
+      const certificateCode = await generateUniqueCode("CERT");
+      
+      // Criar novo certificado
+      const [newCertificate] = await db.insert(certificates)
+        .values({
+          studentId: studentId,
+          courseId: enrollment.courseId,
+          courseName: course.name,
+          courseType: course.type,
+          title: "Certificado de Conclusão",
+          code: certificateCode,
+          templateId: templateId,
+          status: "issued",
+          issuedAt: new Date(),
+          totalWorkload: course.totalHours || 0,
+          createdById: userId || null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      
+      // Registrar histórico de criação e emissão
+      await db.insert(certificateHistory).values([
+        {
+          certificateId: newCertificate.id,
+          action: "created",
+          description: "Certificado criado",
+          performedById: userId || null,
+        },
+        {
+          certificateId: newCertificate.id,
+          action: "issued",
+          description: "Certificado emitido em lote",
+          performedById: userId || null,
+        }
+      ]);
+      
+      issuedCertificates.push(newCertificate);
+    }
+    
+    return res.json({
+      success: true,
+      message: `${issuedCertificates.length} certificado(s) emitido(s) com sucesso`,
+      certificates: issuedCertificates,
+    });
+  } catch (error) {
+    console.error("Erro ao emitir certificados em lote:", error);
+    return res.status(500).json({
+      message: "Erro ao emitir certificados em lote",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 // Enviar certificado por e-mail
 router.post("/:id/email", async (req, res) => {
   try {
