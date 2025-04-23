@@ -48,6 +48,7 @@ export interface IStorage {
   updateDiscipline(id: number, discipline: Partial<InsertDiscipline>): Promise<Discipline | undefined>;
   deleteDiscipline(id: number): Promise<boolean>;
   updateDisciplineContent(id: number, contentData: Partial<InsertDiscipline>): Promise<Discipline | undefined>;
+  getDisciplineContent(id: number): Promise<any | undefined>;
   checkDisciplineCompleteness(id: number): Promise<boolean>;
   
   // Cursos
@@ -290,6 +291,89 @@ export class DatabaseStorage implements IStorage {
   
   async updateDisciplineContent(id: number, contentData: Partial<InsertDiscipline>): Promise<Discipline | undefined> {
     return this.updateDiscipline(id, contentData);
+  }
+  
+  async getDisciplineContent(id: number): Promise<any | undefined> {
+    try {
+      // Verificar se a disciplina existe
+      const discipline = await this.getDiscipline(id);
+      if (!discipline) return undefined;
+      
+      // Dados mockados para teste
+      // Em uma implementação real, você consultaria as tabelas de conteúdo
+      return {
+        videos: [
+          {
+            id: 101,
+            title: "Introdução à disciplina",
+            description: "Visão geral dos conteúdos e objetivos",
+            videoSource: "youtube",
+            url: "https://www.youtube.com/watch?v=example1",
+            duration: "10:30",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          {
+            id: 102,
+            title: "Conceitos fundamentais",
+            description: "Explicação dos conceitos básicos da disciplina",
+            videoSource: "youtube",
+            url: "https://www.youtube.com/watch?v=example2",
+            duration: "15:45",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ],
+        materials: [
+          {
+            id: 201,
+            title: "Slides da aula 1",
+            description: "Material de apoio para a primeira aula",
+            url: "https://example.com/slides1.pdf",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ],
+        ebooks: [
+          {
+            id: 301,
+            title: "Manual completo",
+            description: "E-book completo sobre o tema da disciplina",
+            url: "https://example.com/ebook1.pdf",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ],
+        assessments: [
+          {
+            id: 401,
+            title: "Avaliação final",
+            description: "Avaliação para verificar o aprendizado",
+            type: "avaliacao_final",
+            questions: [
+              {
+                id: 501,
+                statement: "Qual a definição correta do conceito principal?",
+                options: [
+                  "Opção A incorreta",
+                  "Opção B incorreta",
+                  "Opção C correta",
+                  "Opção D incorreta"
+                ],
+                correctOption: 2,
+                explanation: "A opção C é correta porque..."
+              }
+            ],
+            passingScore: 7,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ]
+      };
+    } catch (error) {
+      console.error("Erro ao buscar conteúdo da disciplina:", error);
+      return undefined;
+    }
   }
   
   async checkDisciplineCompleteness(id: number): Promise<boolean> {
