@@ -14,6 +14,13 @@ import { eq, and, desc, inArray, like, isNull, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { generateUniqueCode } from "../utils";
+import { 
+  generateCertificatePdf, 
+  generateTranscriptPdf, 
+  saveCertificatePdf 
+} from "../services/certificate-generator";
+import fs from "fs";
+import path from "path";
 
 const router = express.Router();
 
