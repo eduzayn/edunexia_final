@@ -98,6 +98,9 @@ import PortalDoParceiroPage from "@/pages/admin/parcerias/portal-page";
 import CertificacaoAlunosPage from "@/pages/admin/parcerias/certificacao-page";
 import SolicitacoesPendentesPage from "@/pages/admin/parcerias/solicitacoes-page";
 import RelatoriosPage from "@/pages/admin/parcerias/relatorios-page";
+// Import partner pages
+import CertificacaoPartnerPage from "@/pages/partner/certificacao/index";
+import NovaSolicitacaoPartnerPage from "@/pages/partner/certificacao/nova";
 // Import polo pages
 import PoloEnrollmentsPage from "@/pages/polo/enrollments-page";
 import PoloNewEnrollmentPage from "@/pages/polo/new-enrollment-page";
@@ -208,19 +211,11 @@ function Router() {
         {() => user?.portalType === "student" ? <Redirect to="/student/financial" /> : <Redirect to="/auth" />}
       </Route>
       <ProtectedRoute path="/partner/dashboard" portalType="partner" />
-      <Route path="/partner/certificacao" exact>
-        {() => {
-          // Importação dinâmica para módulos de certificação
-          const CertificacaoPage = require("@/pages/partner/certificacao/index").default;
-          return user?.portalType === "partner" ? <CertificacaoPage /> : <Redirect to="/auth" />;
-        }}
+      <Route path="/partner/certificacao">
+        {() => user?.portalType === "partner" ? <CertificacaoPartnerPage /> : <Redirect to="/auth" />}
       </Route>
       <Route path="/partner/certificacao/nova">
-        {() => {
-          // Importação dinâmica para módulos de certificação
-          const NovaSolicitacaoPage = require("@/pages/partner/certificacao/nova").default;
-          return user?.portalType === "partner" ? <NovaSolicitacaoPage /> : <Redirect to="/auth" />;
-        }}
+        {() => user?.portalType === "partner" ? <NovaSolicitacaoPartnerPage /> : <Redirect to="/auth" />}
       </Route>
       <ProtectedRoute path="/polo/dashboard" portalType="polo" />
       <Route path="/polo/enrollments">
