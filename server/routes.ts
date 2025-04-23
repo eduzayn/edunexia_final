@@ -7,6 +7,8 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
+import authRouter from './routes/auth-route';
+import financeRouter from './routes/finance-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
@@ -621,8 +623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api-json/portal-access-report', requireAdmin, getPortalAccessReport);
 
   // Registrar as rotas
-  app.use('/api', authRoutes);
-  app.use('/api/admin', financeRoutes);
+  app.use('/api', authRouter);
+  app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   // Registre outras rotas conforme necessário
 

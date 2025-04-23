@@ -14,6 +14,13 @@ import { users, type User, type InsertUser,
   // Novas entidades
   simplifiedEnrollments, type SimplifiedEnrollment, type InsertSimplifiedEnrollment,
   simplifiedEnrollmentStatusLog, type SimplifiedEnrollmentStatusLog, type InsertSimplifiedEnrollmentStatusLog,
+  // Entidades do módulo financeiro
+  clients, type Client, type InsertClient,
+  products, type Product, type InsertProduct,
+  invoices, type Invoice, type InsertInvoice,
+  invoiceItems, type InvoiceItem, type InsertInvoiceItem,
+  payments, type Payment, type InsertPayment,
+  contracts, type Contract, type InsertContract,
 } from "@shared/schema";
 import session from "express-session";
 import { Store as SessionStore } from "express-session";

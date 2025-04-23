@@ -25,7 +25,6 @@ export const paymentGatewayEnum = pgEnum("payment_gateway", ["asaas", "lytex"]);
 export const integrationTypeEnum = pgEnum("integration_type", ["asaas", "lytex", "openai", "elevenlabs", "zapi"]);
 
 // Enums para o módulo CRM e Gestão e Matrículas
-// Enums para outros módulos
 export const clientTypeEnum = pgEnum("client_type", ["pf", "pj"]);  // Pessoa Física ou Pessoa Jurídica
 export const simplifiedEnrollmentStatusEnum = pgEnum("simplified_enrollment_status", ["pending", "waiting_payment", "payment_confirmed", "converted", "expired", "blocked", "cancelled"]);
 export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "pending", "paid", "overdue", "cancelled", "partial"]);
@@ -71,7 +70,65 @@ export const users = pgTable("users", {
   zipCode: text("zip_code"), // CEP
   birthDate: text("birth_date"), // Data de nascimento
   portalType: text("portal_type").notNull(),
-  poloId: integer("polo_id").references(() => polos.id), // Referência ao polo (para usuários do tipo "polo")
+  poloId: integer("polo_id"), // Referência ao polo (para usuários do tipo "polo")
+});
+
+// Instituições
+export const institutions = pgTable("institutions", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  cnpj: text("cnpj").notNull().unique(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  status: institutionStatusEnum("status").default("active").notNull(),
+  logo: text("logo"), // URL do logo
+  primaryColor: text("primary_color").default("#4CAF50"),
+  website: text("website"),
+  
+  // Campos para gerenciamento do trial
+  isOnTrial: boolean("is_on_trial").default(false),
+  trialStartDate: timestamp("trial_start_date"),
+  trialEndDate: timestamp("trial_end_date"),
+  
+  // Fase da instituição (para ABAC)
+  phase: institutionPhaseEnum("phase").default("trial").notNull(),
+  
+  // Plano atual
+  currentPlanId: integer("current_plan_id"),
+  
+  // Configurações de matrícula flexível
+  enrollmentAccessType: accessTypeEnum("enrollment_access_type").default("after_link_completion"),
+  daysUntilBlock: integer("days_until_block").default(10), // Dias de atraso para bloqueio
+  daysUntilCancellation: integer("days_until_cancellation").default(30), // Dias de atraso para cancelamento
+  accessPeriodDays: integer("access_period_days"), // Período padrão de acesso em dias após a concessão
+  
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Polos (unidades físicas da instituição)
+export const polos = pgTable("polos", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  institutionId: integer("institution_id").notNull(),
+  managerName: text("manager_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  postalCode: text("postal_code").notNull(),
+  status: poloStatusEnum("status").default("active").notNull(),
+  capacity: integer("capacity"), // Capacidade de alunos
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Disciplinas (blocos de construção dos cursos)
@@ -111,7 +168,7 @@ export const disciplines = pgTable("disciplines", {
   contentStatus: contentCompletionStatusEnum("content_status").default("incomplete").notNull(),
   
   // Metadados
-  createdById: integer("created_by_id").references(() => users.id),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -133,7 +190,7 @@ export const courses = pgTable("courses", {
   evaluationMethod: evaluationMethodEnum("evaluation_method").default("mixed"),
   
   // Metadados
-  createdById: integer("created_by_id").references(() => users.id),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   publishedAt: timestamp("published_at"), // Data de publicação
@@ -142,8 +199,8 @@ export const courses = pgTable("courses", {
 // Tabela de junção entre cursos e disciplinas
 export const courseDisciplines = pgTable("course_disciplines", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
-  disciplineId: integer("discipline_id").notNull().references(() => disciplines.id, { onDelete: 'cascade' }),
+  courseId: integer("course_id").notNull(),
+  disciplineId: integer("discipline_id").notNull(),
   order: integer("order").notNull(), // Ordem da disciplina no curso
   isRequired: boolean("is_required").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -152,13 +209,13 @@ export const courseDisciplines = pgTable("course_disciplines", {
 // Questões para simulados e avaliações
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull().references(() => disciplines.id, { onDelete: 'cascade' }),
+  disciplineId: integer("discipline_id").notNull(),
   statement: text("statement").notNull(), // Enunciado da questão
   options: json("options").$type<string[]>().notNull(), // Alternativas
   correctOption: integer("correct_option").notNull(), // Índice da alternativa correta
   explanation: text("explanation"), // Explicação para feedback
   questionType: text("question_type").default("multiple_choice").notNull(), // Tipo de questão
-  createdById: integer("created_by_id").references(() => users.id),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -166,13 +223,13 @@ export const questions = pgTable("questions", {
 // Avaliações (simulados e avaliações finais)
 export const assessments = pgTable("assessments", {
   id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull().references(() => disciplines.id, { onDelete: 'cascade' }),
+  disciplineId: integer("discipline_id").notNull(),
   title: text("title").notNull(), // Título da atividade
   description: text("description"), // Descrição da atividade
   type: assessmentTypeEnum("type").notNull(), // Tipo: simulado ou avaliação final
   passingScore: integer("passing_score").default(60).notNull(), // Nota mínima para aprovação (%)
   timeLimit: integer("time_limit"), // Tempo limite em minutos (opcional)
-  createdById: integer("created_by_id").references(() => users.id),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -180,93 +237,27 @@ export const assessments = pgTable("assessments", {
 // Relação entre atividades avaliativas e questões
 export const assessmentQuestions = pgTable("assessment_questions", {
   id: serial("id").primaryKey(),
-  assessmentId: integer("assessment_id").notNull().references(() => assessments.id, { onDelete: 'cascade' }),
-  questionId: integer("question_id").notNull().references(() => questions.id, { onDelete: 'cascade' }),
+  assessmentId: integer("assessment_id").notNull(),
+  questionId: integer("question_id").notNull(),
   order: integer("order").notNull(), // Ordem da questão na atividade
   weight: doublePrecision("weight").default(1).notNull(), // Peso da questão na nota final
 });
 
-// Instituições
-export const institutions = pgTable("institutions", {
-  id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  cnpj: text("cnpj").notNull().unique(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  status: institutionStatusEnum("status").default("active").notNull(),
-  logo: text("logo"), // URL do logo
-  primaryColor: text("primary_color").default("#4CAF50"),
-  website: text("website"),
-  
-  // Campos para gerenciamento do trial
-  isOnTrial: boolean("is_on_trial").default(false),
-  trialStartDate: timestamp("trial_start_date"),
-  trialEndDate: timestamp("trial_end_date"),
-  
-  // Fase da instituição (para ABAC)
-  phase: institutionPhaseEnum("phase").default("trial").notNull(),
-  
-  // Plano atual
-  currentPlanId: integer("current_plan_id").references(() => subscriptionPlans.id),
-  
-  // Configurações de matrícula flexível
-  enrollmentAccessType: accessTypeEnum("enrollment_access_type").default("after_link_completion"),
-  daysUntilBlock: integer("days_until_block").default(10), // Dias de atraso para bloqueio
-  daysUntilCancellation: integer("days_until_cancellation").default(30), // Dias de atraso para cancelamento
-  accessPeriodDays: integer("access_period_days"), // Período padrão de acesso em dias após a concessão
-  
-  createdById: integer("created_by_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Polos (unidades físicas da instituição)
-export const polos = pgTable("polos", {
-  id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
-  name: text("name").notNull(),
-  institutionId: integer("institution_id").notNull().references(() => institutions.id, { onDelete: 'cascade' }),
-  managerName: text("manager_name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone").notNull(),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  postalCode: text("postal_code").notNull(),
-  status: poloStatusEnum("status").default("active").notNull(),
-  capacity: integer("capacity"), // Capacidade de alunos
-  createdById: integer("created_by_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Transações financeiras
-export const financialTransactions = pgTable("financial_transactions", {
-  id: serial("id").primaryKey(),
-  type: text("type").notNull(), // entrada ou saida
-  amount: doublePrecision("amount").notNull(),
-  description: text("description").notNull(),
-  category: text("category").notNull(),
-  date: timestamp("date").defaultNow().notNull(),
-  status: text("status").notNull(), // concluído, pendente, agendado
-  institutionId: integer("institution_id").references(() => institutions.id),
-  createdById: integer("created_by_id").references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Categorias financeiras
-export const financialCategories = pgTable("financial_categories", {
+// Planos de assinatura
+export const subscriptionPlans = pgTable("subscription_plans", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  type: text("type").notNull(), // entrada ou saida
   description: text("description"),
-  institutionId: integer("institution_id").references(() => institutions.id),
-  createdById: integer("created_by_id").references(() => users.id),
+  price: doublePrecision("price").notNull(),
+  features: json("features").$type<string[]>(),
+  maxStudents: integer("max_students"),
+  maxCourses: integer("max_courses"),
+  maxDisciplines: integer("max_disciplines"),
+  maxPolos: integer("max_polos"),
+  hasWhiteLabel: boolean("has_white_label").default(false),
+  hasCustomDomain: boolean("has_custom_domain").default(false),
+  hasPremiumSupport: boolean("has_premium_support").default(false),
+  status: subscriptionStatusEnum("status").default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -275,11 +266,11 @@ export const financialCategories = pgTable("financial_categories", {
 export const enrollments = pgTable("enrollments", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(), // Código único da matrícula, ex: MAT2025001
-  studentId: integer("student_id").notNull().references(() => users.id),
-  courseId: integer("course_id").notNull().references(() => courses.id),
-  poloId: integer("polo_id").references(() => polos.id), // Opcional
-  institutionId: integer("institution_id").notNull().references(() => institutions.id),
-  partnerId: integer("partner_id").references(() => users.id), // Opcional, para comissões
+  studentId: integer("student_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  poloId: integer("polo_id"), // Opcional
+  institutionId: integer("institution_id").notNull(),
+  partnerId: integer("partner_id"), // Opcional, para comissões
   
   // Dados financeiros
   amount: doublePrecision("amount").notNull(), // Valor total da matrícula
@@ -301,202 +292,245 @@ export const enrollments = pgTable("enrollments", {
   // Controle de acesso ao portal
   accessGrantedAt: timestamp("access_granted_at"), // Data quando o acesso foi liberado
   accessExpiresAt: timestamp("access_expires_at"), // Data quando o acesso expira
-  accessPeriodDays: integer("access_period_days"), // Período de acesso em dias
-  blockReason: text("block_reason"), // Motivo do bloqueio
-  blockExecutedAt: timestamp("block_executed_at"), // Data real do bloqueio
-  blockEndsAt: timestamp("block_ends_at"), // Data de fim do bloqueio temporário
-  lastLoginAt: timestamp("last_login_at"), // Data do último login no portal
   
-  // Rastreamento e Auditoria
-  sourceChannel: text("source_channel"), // Canal de origem: admin, polo_portal, website, app, etc.
-  referenceCode: text("reference_code"), // Código de referência para rastreamento de campanhas  
-  
-  // Metadados
-  createdById: integer("created_by_id").references(() => users.id), // Quem criou a matrícula
-  updatedById: integer("updated_by_id").references(() => users.id), // Quem atualizou por último
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Histórico de status das matrículas
+// Histórico de status de matrículas
 export const enrollmentStatusHistory = pgTable("enrollment_status_history", {
   id: serial("id").primaryKey(),
-  enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
-  previousStatus: enrollmentStatusEnum("previous_status"),
+  enrollmentId: integer("enrollment_id").notNull(),
+  oldStatus: enrollmentStatusEnum("old_status").notNull(),
   newStatus: enrollmentStatusEnum("new_status").notNull(),
-  changeDate: timestamp("change_date").defaultNow().notNull(),
-  changeReason: text("change_reason"),
-  changedById: integer("changed_by_id").references(() => users.id),
-  metadata: json("metadata"), // Pode armazenar payloads de webhooks ou informações adicionais
-  poloId: integer("polo_id").references(() => polos.id), // Qual polo realizou a operação (se aplicável)
-  sourceChannel: text("source_channel"), // Canal de origem da operação (admin, polo, website)
-  ipAddress: text("ip_address"), // Endereço IP de onde veio a requisição
-  userAgent: text("user_agent"), // Informações do navegador/dispositivo
+  reason: text("reason"),
+  changedById: integer("changed_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Matrículas simplificadas (fluxo de captação rápida)
+// Tabelas para módulo de matrículas simplificadas
 export const simplifiedEnrollments = pgTable("simplified_enrollments", {
   id: serial("id").primaryKey(),
-  courseId: integer("course_id").notNull().references(() => courses.id, { onDelete: 'cascade' }),
-  institutionId: integer("institution_id").notNull().references(() => institutions.id),
+  uuid: text("uuid").notNull().unique(), // Identificador público para links
+  courseId: integer("course_id").notNull(),
+  institutionId: integer("institution_id").notNull(),
+  
+  // Dados do aluno potencial
   studentName: text("student_name").notNull(),
   studentEmail: text("student_email").notNull(),
-  studentPhone: text("student_phone"),
+  studentPhone: text("student_phone").notNull(),
   studentCpf: text("student_cpf"),
-  poloId: integer("polo_id").references(() => polos.id),
+  
+  // Histórico de preços
+  fullPrice: doublePrecision("full_price").notNull(),
+  discountPrice: doublePrecision("discount_price"),
+  
+  // Controle de acesso
+  expiresAt: timestamp("expires_at").notNull(), // Data quando o link expira
+  paymentGateway: paymentGatewayEnum("payment_gateway").notNull(),
+  paymentExternalId: text("payment_external_id"), // ID no gateway externo
+  paymentUrl: text("payment_url"), // URL do checkout
   status: simplifiedEnrollmentStatusEnum("status").default("pending").notNull(),
-  externalReference: text("external_reference"), // ID para integração com sistemas externos
-  paymentGateway: paymentGatewayEnum("payment_gateway"),
-  paymentUrl: text("payment_url"), // URL para pagamento
-  paymentLinkId: text("payment_link_id"), // ID do link de pagamento (Asaas)
-  paymentLinkUrl: text("payment_link_url"), // URL do link de pagamento (Asaas)
-  paymentId: text("payment_id"), // ID da cobrança/pagamento (Asaas)
-  asaasCustomerId: text("asaas_customer_id"), // ID do cliente no Asaas
-  amount: doublePrecision("amount"), // Valor da matrícula
   
-  // Campos para controle de acesso e datas para regras de negócio
-  accessGrantedAt: timestamp("access_granted_at"), // Data quando o acesso foi liberado
-  paymentConfirmedAt: timestamp("payment_confirmed_at"), // Data de confirmação do pagamento
-  blockScheduledAt: timestamp("block_scheduled_at"), // Data programada para bloqueio
-  blockExecutedAt: timestamp("block_executed_at"), // Data real do bloqueio
-  cancellationScheduledAt: timestamp("cancellation_scheduled_at"), // Data programada para cancelamento
-  cancellationExecutedAt: timestamp("cancellation_executed_at"), // Data real do cancelamento
-  paymentDueDate: timestamp("payment_due_date"), // Data de vencimento do pagamento
+  // Rastreamento
+  utm_source: text("utm_source"),
+  utm_medium: text("utm_medium"),
+  utm_campaign: text("utm_campaign"),
   
-  errorDetails: text("error_details"), // Detalhes do erro em caso de falha
-  sourceChannel: text("source_channel"), // Canal de origem (web, app, etc.)
-  processedAt: timestamp("processed_at"), // Data de processamento
-  processedById: integer("processed_by_id").references(() => users.id), // Usuário que processou
+  // Metadados
+  createdById: integer("created_by_id"),
+  poloId: integer("polo_id"), // Opcional, para rastreamento de origem
+  observations: text("observations"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  createdById: integer("created_by_id").references(() => users.id), // Usuário que criou
-  updatedById: integer("updated_by_id").references(() => users.id), // Usuário que atualizou
-  expiresAt: timestamp("expires_at"), // Data de expiração da matrícula simplificada
-  convertedEnrollmentId: integer("converted_enrollment_id").references(() => enrollments.id), // Referência à matrícula completa quando convertida
+  convertedToEnrollmentId: integer("converted_to_enrollment_id"), // ID da matrícula quando convertida
 });
 
-// Log de alterações de status das matrículas simplificadas
+// Histórico de status de inscrições simplificadas
 export const simplifiedEnrollmentStatusLog = pgTable("simplified_enrollment_status_log", {
   id: serial("id").primaryKey(),
-  enrollmentId: integer("enrollment_id").notNull().references(() => simplifiedEnrollments.id, { onDelete: 'cascade' }),
-  previousStatus: simplifiedEnrollmentStatusEnum("previous_status"),
+  simplifiedEnrollmentId: integer("simplified_enrollment_id").notNull(),
+  oldStatus: simplifiedEnrollmentStatusEnum("old_status").notNull(),
   newStatus: simplifiedEnrollmentStatusEnum("new_status").notNull(),
-  changeDate: timestamp("change_date").defaultNow().notNull(),
-  changeReason: text("change_reason"),
-  changedById: integer("changed_by_id").references(() => users.id),
-  metadata: json("metadata"), // Pode armazenar payloads de webhooks ou informações adicionais
-  ipAddress: text("ip_address"), // Endereço IP de onde veio a requisição
-  userAgent: text("user_agent"), // Informações do navegador/dispositivo
+  reason: text("reason"),
+  gatewayData: json("gateway_data"), // Dados adicionais do gateway
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Auditoria de matrículas (mais abrangente que o histórico de status)
-export const enrollmentAudits = pgTable("enrollment_audits", {
-  id: serial("id").primaryKey(),
-  enrollmentId: integer("enrollment_id").notNull().references(() => enrollments.id, { onDelete: 'cascade' }),
-  actionType: text("action_type").notNull(), // create, update, status_change, payment_update
-  performedById: integer("performed_by_id").references(() => users.id),
-  performedByType: text("performed_by_type").notNull(), // admin, polo, system, student
-  poloId: integer("polo_id").references(() => polos.id),
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  details: json("details"), // Detalhes específicos da ação
-  beforeState: json("before_state"), // Estado antes da alteração
-  afterState: json("after_state"), // Estado após a alteração
-});
-
-// Planos de assinatura
-export const subscriptionPlans = pgTable("subscription_plans", {
+// Tabelas para o módulo financeiro
+export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  code: text("code").notNull().unique(),
-  description: text("description").notNull(),
-  price: doublePrecision("price").notNull(),
-  billingCycle: text("billing_cycle").notNull(), // monthly, quarterly, yearly
-  features: json("features").$type<string[]>(), // Lista de recursos incluídos
-  isActive: boolean("is_active").default(true).notNull(),
-  createdById: integer("created_by_id").references(() => users.id),
+  cpfCnpj: text("cpf_cnpj").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  type: clientTypeEnum("type").default("pf").notNull(),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Templates de Contrato
-export const contractTemplates = pgTable("contract_templates", {
+export const products = pgTable("products", {
   id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-  type: text("type").default("generic").notNull(), // Tipo de contrato: matrícula, parceria, etc.
-  templateContent: text("template_content").notNull(), // Conteúdo do template com placeholders
-  institutionId: integer("institution_id").references(() => institutions.id),
-  courseTypeId: integer("course_type_id").references(() => courseTypes.id),
+  category: text("category"),
+  price: doublePrecision("price").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-  createdById: integer("created_by_id").references(() => users.id),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Contratos
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  clientId: integer("client_id"),
+  description: text("description"),
+  issueDate: timestamp("issue_date").defaultNow().notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  totalAmount: doublePrecision("total_amount").notNull(),
+  status: invoiceStatusEnum("status").default("draft").notNull(),
+  notes: text("notes"),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull(),
+  productId: integer("product_id"),
+  description: text("description").notNull(),
+  quantity: doublePrecision("quantity").notNull(),
+  unitPrice: doublePrecision("unit_price").notNull(),
+  discount: doublePrecision("discount").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull(),
+  amount: doublePrecision("amount").notNull(),
+  paymentDate: timestamp("payment_date").defaultNow().notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  status: paymentStatusEnum("status").default("pending").notNull(),
+  externalId: text("external_id"), // ID do pagamento no gateway
+  notes: text("notes"),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Transações financeiras
+export const financialTransactions = pgTable("financial_transactions", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // entrada ou saida
+  amount: doublePrecision("amount").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  status: text("status").notNull(), // concluído, pendente, agendado
+  institutionId: integer("institution_id"),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Categorias financeiras
+export const financialCategories = pgTable("financial_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // entrada ou saida
+  description: text("description"),
+  institutionId: integer("institution_id"),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const contracts = pgTable("contracts", {
   id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(), // Código único do contrato (ex: CONT2023001)
-  templateId: integer("template_id").references(() => contractTemplates.id),
-  studentId: integer("student_id").references(() => users.id),
-  enrollmentId: integer("enrollment_id").references(() => enrollments.id),
-  institutionId: integer("institution_id").references(() => institutions.id),
-  content: text("content").notNull(), // Conteúdo processado do contrato
-  signedByStudent: boolean("signed_by_student").default(false).notNull(),
-  signedByInstitution: boolean("signed_by_institution").default(false).notNull(),
-  studentSignatureDate: timestamp("student_signature_date"),
-  institutionSignatureDate: timestamp("institution_signature_date"),
-  status: text("status").default("pending").notNull(), // pending, active, completed, cancelled
-  expirationDate: timestamp("expiration_date"),
-  additionalData: json("additional_data"), // Dados adicionais como metadados de assinatura
-  createdById: integer("created_by_id").references(() => users.id),
+  clientId: integer("client_id").notNull(),
+  number: text("number").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  status: text("status").notNull(), // active, completed, cancelled
+  contractValue: doublePrecision("contract_value").notNull(),
+  documentUrl: text("document_url"),
+  createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Schemas e types para inserção
+// Exportar tabelas do módulo de certificação (importadas de certificate-schema.ts)
+export { certificates, certificateSigners, certificateTemplates, certificateDisciplines, certificateHistory };
+
+// Schemas de inserção e tipos para usuários
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// Schemas de inserção e tipos para disciplinas
 export const insertDisciplineSchema = createInsertSchema(disciplines).omit({ id: true });
 export type InsertDiscipline = z.infer<typeof insertDisciplineSchema>;
 export type Discipline = typeof disciplines.$inferSelect;
 
+// Schemas de inserção e tipos para cursos
 export const insertCourseSchema = createInsertSchema(courses).omit({ id: true });
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 
+// Schemas de inserção e tipos para curso-disciplinas
 export const insertCourseDisciplineSchema = createInsertSchema(courseDisciplines).omit({ id: true });
 export type InsertCourseDiscipline = z.infer<typeof insertCourseDisciplineSchema>;
 export type CourseDiscipline = typeof courseDisciplines.$inferSelect;
 
-export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
-export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
-export type Question = typeof questions.$inferSelect;
+// Schemas de inserção e tipos para módulo financeiro
+export const insertProductSchema = createInsertSchema(products).omit({ id: true });
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
 
-export const insertAssessmentSchema = createInsertSchema(assessments).omit({ id: true });
-export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
-export type Assessment = typeof assessments.$inferSelect;
+export const insertClientSchema = createInsertSchema(clients).omit({ id: true });
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
 
-export const insertAssessmentQuestionSchema = createInsertSchema(assessmentQuestions).omit({ id: true });
-export type InsertAssessmentQuestion = z.infer<typeof insertAssessmentQuestionSchema>;
-export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true });
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
 
-export const insertInstitutionSchema = createInsertSchema(institutions).omit({ id: true });
-export type InsertInstitution = z.infer<typeof insertInstitutionSchema>;
-export type Institution = typeof institutions.$inferSelect;
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({ id: true });
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
 
-export const insertPoloSchema = createInsertSchema(polos).omit({ id: true });
-export type InsertPolo = z.infer<typeof insertPoloSchema>;
-export type Polo = typeof polos.$inferSelect;
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true });
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
 
-export const insertEnrollmentSchema = createInsertSchema(enrollments).omit({ id: true });
-export type InsertEnrollment = z.infer<typeof insertEnrollmentSchema>;
-export type Enrollment = typeof enrollments.$inferSelect;
+export const insertContractSchema = createInsertSchema(contracts).omit({ id: true });
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contracts.$inferSelect;
 
+// Schemas para operações financeiras
+export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions).omit({ id: true });
+export type InsertFinancialTransaction = z.infer<typeof insertFinancialTransactionSchema>;
+export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+
+export const insertFinancialCategorySchema = createInsertSchema(financialCategories).omit({ id: true });
+export type InsertFinancialCategory = z.infer<typeof insertFinancialCategorySchema>;
+export type FinancialCategory = typeof financialCategories.$inferSelect;
+
+// Schemas de inserção e tipos para matrículas simplificadas
 export const insertSimplifiedEnrollmentSchema = createInsertSchema(simplifiedEnrollments).omit({ id: true });
 export type InsertSimplifiedEnrollment = z.infer<typeof insertSimplifiedEnrollmentSchema>;
 export type SimplifiedEnrollment = typeof simplifiedEnrollments.$inferSelect;
@@ -507,180 +541,83 @@ export type SimplifiedEnrollmentStatusLog = typeof simplifiedEnrollmentStatusLog
 
 // Relações entre tabelas
 export const usersRelations = relations(users, ({ many }) => ({
-  enrollments: many(enrollments, { relationName: "userEnrollments" }),
-  createdCourses: many(courses, { relationName: "courseCreator" }),
-  createdDisciplines: many(disciplines, { relationName: "disciplineCreator" }),
+  matriculas: many(enrollments),
 }));
 
 export const coursesRelations = relations(courses, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [courses.createdById],
-    references: [users.id],
-    relationName: "courseCreator",
-  }),
-  disciplines: many(courseDisciplines),
-  enrollments: many(enrollments),
+  disciplinas: many(courseDisciplines),
 }));
 
 export const disciplinesRelations = relations(disciplines, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [disciplines.createdById],
-    references: [users.id],
-    relationName: "disciplineCreator",
-  }),
-  courses: many(courseDisciplines),
-  questions: many(questions),
-  assessments: many(assessments),
+  cursos: many(courseDisciplines),
 }));
 
 export const courseDisciplinesRelations = relations(courseDisciplines, ({ one }) => ({
-  course: one(courses, {
+  curso: one(courses, {
     fields: [courseDisciplines.courseId],
     references: [courses.id],
   }),
-  discipline: one(disciplines, {
+  disciplina: one(disciplines, {
     fields: [courseDisciplines.disciplineId],
     references: [disciplines.id],
   }),
 }));
 
-export const institutionsRelations = relations(institutions, ({ one, many }) => ({
-  creator: one(users, {
-    fields: [institutions.createdById],
-    references: [users.id],
-  }),
-  polos: many(polos),
-  enrollments: many(enrollments),
-  subscriptionPlan: one(subscriptionPlans, {
-    fields: [institutions.currentPlanId],
-    references: [subscriptionPlans.id],
-  }),
-}));
-
-export const polosRelations = relations(polos, ({ one, many }) => ({
-  institution: one(institutions, {
-    fields: [polos.institutionId],
-    references: [institutions.id],
-  }),
-  enrollments: many(enrollments),
-  users: many(users),
-}));
-
-export const enrollmentsRelations = relations(enrollments, ({ one }) => ({
-  student: one(users, {
-    fields: [enrollments.studentId],
-    references: [users.id],
-    relationName: "userEnrollments",
-  }),
-  course: one(courses, {
-    fields: [enrollments.courseId],
-    references: [courses.id],
-  }),
-  institution: one(institutions, {
-    fields: [enrollments.institutionId],
-    references: [institutions.id],
-  }),
-  polo: one(polos, {
-    fields: [enrollments.poloId],
-    references: [polos.id],
-  }),
-  creator: one(users, {
-    fields: [enrollments.createdById],
-    references: [users.id],
-  }),
-}));
-
-export const simplifiedEnrollmentsRelations = relations(simplifiedEnrollments, ({ one, many }) => ({
-  course: one(courses, {
-    fields: [simplifiedEnrollments.courseId],
-    references: [courses.id],
-  }),
-  institution: one(institutions, {
-    fields: [simplifiedEnrollments.institutionId],
-    references: [institutions.id],
-  }),
-  polo: one(polos, {
-    fields: [simplifiedEnrollments.poloId],
-    references: [polos.id],
-  }),
-  creator: one(users, {
-    fields: [simplifiedEnrollments.createdById],
-    references: [users.id],
-  }),
-  statusLogs: many(simplifiedEnrollmentStatusLog),
-  convertedTo: one(enrollments, {
-    fields: [simplifiedEnrollments.convertedEnrollmentId],
-    references: [enrollments.id],
-  }),
-}));
-
-export const simplifiedEnrollmentStatusLogRelations = relations(simplifiedEnrollmentStatusLog, ({ one }) => ({
-  enrollment: one(simplifiedEnrollments, {
-    fields: [simplifiedEnrollmentStatusLog.enrollmentId],
-    references: [simplifiedEnrollments.id],
-  }),
-  changedBy: one(users, {
-    fields: [simplifiedEnrollmentStatusLog.changedById],
-    references: [users.id],
-  }),
-}));
-
-// Relações para contratos
-export const contractTemplateRelations = relations(contractTemplates, ({ one, many }) => ({
-  institution: one(institutions, {
-    fields: [contractTemplates.institutionId],
-    references: [institutions.id],
-  }),
-  courseType: one(courseTypes, {
-    fields: [contractTemplates.courseTypeId],
-    references: [courseTypes.id],
-  }),
+export const clientsRelations = relations(clients, ({ many }) => ({
+  invoices: many(invoices),
   contracts: many(contracts),
 }));
 
-export const contractRelations = relations(contracts, ({ one }) => ({
-  template: one(contractTemplates, {
-    fields: [contracts.templateId],
-    references: [contractTemplates.id],
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [invoices.clientId],
+    references: [clients.id],
+    relationName: 'invoiceToClient',
   }),
-  student: one(users, {
-    fields: [contracts.studentId],
-    references: [users.id],
+  items: many(invoiceItems),
+  payments: many(payments),
+}));
+
+export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [invoiceItems.invoiceId],
+    references: [invoices.id],
   }),
-  enrollment: one(enrollments, {
-    fields: [contracts.enrollmentId],
-    references: [enrollments.id],
-  }),
-  institution: one(institutions, {
-    fields: [contracts.institutionId],
-    references: [institutions.id],
+  product: one(products, {
+    fields: [invoiceItems.productId],
+    references: [products.id],
   }),
 }));
 
-export const insertContractTemplateSchema = createInsertSchema(contractTemplates).omit({ id: true });
-export type InsertContractTemplate = z.infer<typeof insertContractTemplateSchema>;
-export type ContractTemplate = typeof contractTemplates.$inferSelect;
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [payments.invoiceId],
+    references: [invoices.id],
+  }),
+}));
 
-export const insertContractSchema = createInsertSchema(contracts).omit({ id: true });
-export type InsertContract = z.infer<typeof insertContractSchema>;
-export type Contract = typeof contracts.$inferSelect;
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  client: one(clients, {
+    fields: [contracts.clientId],
+    references: [clients.id],
+  }),
+}));
 
-// Validação específica para inserção de usuários (exemplo)
-export const extendedInsertUserSchema = insertUserSchema.extend({
-  portalType: z.enum(portalTypes),
-  password: z.string().min(8, { message: "A senha deve ter no mínimo 8 caracteres" }),
-  passwordConfirmation: z.string(),
-}).refine(data => {
-  return data.password === data.passwordConfirmation;
-}, {
-  message: "As senhas não conferem",
-  path: ["passwordConfirmation"],
-});
+export const financialTransactionsRelations = relations(financialTransactions, ({ one }) => ({
+  category: one(financialCategories, {
+    fields: [financialTransactions.category],
+    references: [financialCategories.name],
+  }),
+}));
 
-// Schema de autenticação
+export const financialCategoriesRelations = relations(financialCategories, ({ many }) => ({
+  transactions: many(financialTransactions),
+}));
+
+// Modelo para login
 export const loginSchema = z.object({
-  username: z.string().min(1, { message: "O nome de usuário é obrigatório" }),
-  password: z.string().min(1, { message: "A senha é obrigatória" }),
+  username: z.string().min(1, "Nome de usuário é obrigatório"),
+  password: z.string().min(1, "Senha é obrigatória"),
 });
 
 export type LoginCredentials = z.infer<typeof loginSchema>;
