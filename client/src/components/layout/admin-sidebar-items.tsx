@@ -379,13 +379,13 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
-  // Categoria: Operacional (mantida)
+  // Categoria: Sistema & Operacional (reformulada para incluir itens de Administração)
   const operationalCategory: SidebarCategory = {
-    name: "Operacional",
-    icon: <FolderIcon />,
+    name: "Sistema",
+    icon: <BuildIcon />,
     expanded: hasCategoryActiveItem({
-      name: "Operacional",
-      icon: <FolderIcon />,
+      name: "Sistema",
+      icon: <BuildIcon />,
       items: [
         { 
           name: "Relatórios", 
@@ -398,6 +398,42 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           icon: <LockIcon />, 
           href: "/admin/sistema/portal-access-control",
           active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+        },
+        { 
+          name: "Permissões Contextuais (ABAC)", 
+          icon: <BadgeCheckIcon />, 
+          href: "/admin/pessoas/abac-permissions",
+          active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+        },
+        { 
+          name: "Funções & Permissões", 
+          icon: <SecurityIcon />, 
+          href: "/admin/pessoas/roles",
+          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+        },
+        { 
+          name: "Usuários Admin", 
+          icon: <GroupIcon />, 
+          href: "/admin/pessoas/admin-users",
+          active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+        },
+        { 
+          name: "Integrações", 
+          icon: <CloudIcon />, 
+          href: "/admin/integracoes/integrations",
+          active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
+        },
+        { 
+          name: "Auditoria", 
+          icon: <FileCheckIcon />, 
+          href: "/admin/auditoria/logs",
+          active: currentPath === "/admin/auditoria/logs" || (currentPath && currentPath.includes("/admin/auditoria/"))
+        },
+        { 
+          name: "Configurações", 
+          icon: <SettingsIcon />, 
+          href: "/admin/sistema/settings",
+          active: currentPath === "/admin/sistema/settings" || (currentPath && currentPath.includes("/admin/sistema/settings"))
         },
       ]
     }, currentPath),
@@ -413,6 +449,42 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         icon: <LockIcon />, 
         href: "/admin/sistema/portal-access-control",
         active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+      },
+      { 
+        name: "Permissões Contextuais (ABAC)", 
+        icon: <BadgeCheckIcon />, 
+        href: "/admin/pessoas/abac-permissions",
+        active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+      },
+      { 
+        name: "Funções & Permissões", 
+        icon: <SecurityIcon />, 
+        href: "/admin/pessoas/roles",
+        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+      },
+      { 
+        name: "Usuários Admin", 
+        icon: <GroupIcon />, 
+        href: "/admin/pessoas/admin-users",
+        active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+      },
+      { 
+        name: "Integrações", 
+        icon: <CloudIcon />, 
+        href: "/admin/integracoes/integrations",
+        active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
+      },
+      { 
+        name: "Auditoria", 
+        icon: <FileCheckIcon />, 
+        href: "/admin/auditoria/logs",
+        active: currentPath === "/admin/auditoria/logs" || (currentPath && currentPath.includes("/admin/auditoria/"))
+      },
+      { 
+        name: "Configurações", 
+        icon: <SettingsIcon />, 
+        href: "/admin/sistema/settings",
+        active: currentPath === "/admin/sistema/settings" || (currentPath && currentPath.includes("/admin/sistema/settings"))
       },
     ]
   };
