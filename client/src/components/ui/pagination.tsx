@@ -41,16 +41,14 @@ export function PaginationLink({
 export function PaginationPrevious({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+}: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <PaginationLink
-      aria-label="Ir para a página anterior"
-      size="icon"
-      className={cn("gap-1", className)}
+    <div 
+      className={cn("flex items-center gap-1", className)} 
       {...props}
     >
       <ChevronLeftIcon className="h-4 w-4" />
-    </PaginationLink>
+    </div>
   );
 }
 
