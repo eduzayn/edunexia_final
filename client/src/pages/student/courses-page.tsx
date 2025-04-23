@@ -1,9 +1,7 @@
 import { useState, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import { getStudentSidebarItems } from "@/components/layout/student-sidebar-items";
-import { Sidebar } from "@/components/layout/sidebar";
+import { Link } from "wouter";
 import {
   Card,
   CardContent,
@@ -14,13 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  ChartIcon,
-  SchoolIcon,
   MenuBookIcon,
-  EventNoteIcon,
-  DescriptionIcon,
-  PaymentsIcon,
-  HelpOutlineIcon,
   ClockIcon,
   SearchIcon,
   SortIcon,
@@ -45,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { StudentLayout } from "@/components/layout/student-layout";
 
 // Definindo a interface para os cursos
 interface StudentCourse {
@@ -64,16 +57,15 @@ export default function StudentCoursesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Não precisamos mais gerenciar o estado do menu mobile, o StudentLayout cuida disso
 
   const { data: courses = [], isLoading } = useQuery<StudentCourse[]>({
     queryKey: ["/api-json/student/courses"],
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  // Usar o componente compartilhado para os itens do sidebar
-  const [location] = useLocation();
-  const sidebarItems = getStudentSidebarItems(location);
+  // Já não precisamos mais recuperar os itens da sidebar aqui
+  // O StudentLayout cuida disso internamente
 
   // Filter and sort courses
   const filteredCourses = courses
@@ -126,24 +118,10 @@ export default function StudentCoursesPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Meus Cursos</h1>
-            <p className="text-gray-600">Gerencie e acesse todos os seus cursos</p>
-          </div>
+    <StudentLayout
+      title="Meus Cursos"
+      subtitle="Gerencie e acesse todos os seus cursos"
+    >
 
           {/* Filters and Search */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -264,8 +242,6 @@ export default function StudentCoursesPage() {
                 ))
               )}
           </div>
-        </div>
-      </div>
-    </div>
+    </StudentLayout>
   );
 }

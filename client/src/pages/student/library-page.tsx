@@ -1,41 +1,25 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Sidebar } from "@/components/layout/sidebar";
-import { getStudentSidebarItems } from "@/components/layout/student-sidebar-items";
+import { StudentLayout } from "@/components/layout/student-layout";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
-  ChartIcon,
-  SchoolIcon,
   MenuBookIcon,
-  EventNoteIcon,
-  DescriptionIcon,
-  PaymentsIcon,
-  HelpOutlineIcon,
   SearchIcon,
   BookmarkIcon,
   FilterIcon,
   SortIcon,
-  PictureAsPdfIcon,
   BookIcon,
   LayersIcon,
-  CloudIcon,
-  FileTextIcon,
-  UploadIcon,
 } from "@/components/ui/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -51,7 +35,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 // Interface para materiais da biblioteca
@@ -76,7 +59,6 @@ export default function LibraryPage() {
   const [sortBy, setSortBy] = useState("title");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterType, setFilterType] = useState("all");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [myBookmarks, setMyBookmarks] = useState<number[]>([]);
@@ -217,9 +199,8 @@ export default function LibraryPage() {
     }
   ];
 
-  // Usar o componente padronizado para os itens da barra lateral
-  const [location] = useLocation();
-  const sidebarItems = getStudentSidebarItems(location);
+  // Já não precisamos mais recuperar os itens da sidebar aqui
+  // O StudentLayout cuida disso internamente
 
   // Filtrar e ordenar itens da biblioteca
   const filteredItems = mockLibraryItems
@@ -376,7 +357,11 @@ export default function LibraryPage() {
         <DialogFooter>
           <Button variant="outline" onClick={() => setSelectedItem(null)}>Fechar</Button>
           <Button>
-            <UploadIcon className="h-4 w-4 mr-2" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
             Download
           </Button>
         </DialogFooter>
@@ -494,227 +479,210 @@ export default function LibraryPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <StudentLayout
+      title="Biblioteca Digital"
+      subtitle="Acesse e-books, artigos, teses e outros materiais digitais"
+    >
+      {/* Tabs */}
+      <Tabs defaultValue="all" className="mb-6" value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList>
+          <TabsTrigger value="all">Todos</TabsTrigger>
+          <TabsTrigger value="borrowed">Meus Empréstimos</TabsTrigger>
+          <TabsTrigger value="bookmarked">Favoritos</TabsTrigger>
+          <TabsTrigger value="recent">Adicionados Recentemente</TabsTrigger>
+        </TabsList>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Biblioteca Digital</h1>
-            <p className="text-gray-600">Acesse e-books, artigos, teses e outros materiais digitais</p>
+        <TabsContent value="all">
+          {/* Filters and Search */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <Input
+              placeholder="Buscar por título, autor ou descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="md:w-1/3"
+              icon={<SearchIcon className="h-4 w-4" />}
+            />
+            <div className="flex gap-4 flex-1">
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full md:w-40">
+                  <div className="flex items-center">
+                    <FilterIcon className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Categoria" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as categorias</SelectItem>
+                  {uniqueCategories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full md:w-40">
+                  <div className="flex items-center">
+                    <FilterIcon className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Tipo" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="ebook">E-books</SelectItem>
+                  <SelectItem value="article">Artigos</SelectItem>
+                  <SelectItem value="thesis">Teses</SelectItem>
+                  <SelectItem value="textbook">Livros Didáticos</SelectItem>
+                  <SelectItem value="paper">Artigos Científicos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full md:w-40">
+                  <div className="flex items-center">
+                    <SortIcon className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Ordenar por" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="title">Título (A-Z)</SelectItem>
+                  <SelectItem value="author">Autor (A-Z)</SelectItem>
+                  <SelectItem value="recent">Mais recentes</SelectItem>
+                  <SelectItem value="category">Categoria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant={viewType === "grid" ? "default" : "outline"} 
+                size="icon"
+                onClick={() => setViewType("grid")}
+                className="w-10 h-10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" />
+                  <rect x="14" y="3" width="7" height="7" />
+                  <rect x="3" y="14" width="7" height="7" />
+                  <rect x="14" y="14" width="7" height="7" />
+                </svg>
+              </Button>
+              <Button 
+                variant={viewType === "list" ? "default" : "outline"} 
+                size="icon"
+                onClick={() => setViewType("list")}
+                className="w-10 h-10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </Button>
+            </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="all" className="mb-6" value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList>
-              <TabsTrigger value="all">Todos</TabsTrigger>
-              <TabsTrigger value="borrowed">Meus Empréstimos</TabsTrigger>
-              <TabsTrigger value="bookmarked">Favoritos</TabsTrigger>
-              <TabsTrigger value="recent">Adicionados Recentemente</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="all">
-              {/* Filters and Search */}
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <Input
-                  placeholder="Buscar por título, autor ou descrição..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="md:w-1/3"
-                  icon={<SearchIcon className="h-4 w-4" />}
-                />
-                <div className="flex gap-4 flex-1">
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <div className="flex items-center">
-                        <FilterIcon className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Categoria" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as categorias</SelectItem>
-                      {uniqueCategories.map((category) => (
-                        <SelectItem key={category} value={category}>{category}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <div className="flex items-center">
-                        <FilterIcon className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Tipo" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os tipos</SelectItem>
-                      <SelectItem value="ebook">E-books</SelectItem>
-                      <SelectItem value="article">Artigos</SelectItem>
-                      <SelectItem value="thesis">Teses</SelectItem>
-                      <SelectItem value="textbook">Livros Didáticos</SelectItem>
-                      <SelectItem value="paper">Artigos Científicos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <div className="flex items-center">
-                        <SortIcon className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Ordenar por" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="title">Título (A-Z)</SelectItem>
-                      <SelectItem value="author">Autor (A-Z)</SelectItem>
-                      <SelectItem value="recent">Mais recentes</SelectItem>
-                      <SelectItem value="category">Categoria</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant={viewType === "grid" ? "default" : "outline"} 
-                    size="icon"
-                    onClick={() => setViewType("grid")}
-                    className="w-10 h-10"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                      <rect x="14" y="14" width="7" height="7" />
-                    </svg>
-                  </Button>
-                  <Button 
-                    variant={viewType === "list" ? "default" : "outline"} 
-                    size="icon"
-                    onClick={() => setViewType("list")}
-                    className="w-10 h-10"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="8" y1="6" x2="21" y2="6" />
-                      <line x1="8" y1="12" x2="21" y2="12" />
-                      <line x1="8" y1="18" x2="21" y2="18" />
-                      <line x1="3" y1="6" x2="3.01" y2="6" />
-                      <line x1="3" y1="12" x2="3.01" y2="12" />
-                      <line x1="3" y1="18" x2="3.01" y2="18" />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Library Items Grid/List */}
-              {filteredItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <LayersIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum item encontrado</h3>
-                  <p className="text-gray-600 mb-4">
-                    {searchTerm || filterCategory !== "all" || filterType !== "all"
-                      ? "Tente ajustar seus filtros de busca"
-                      : "Não há itens disponíveis na biblioteca"}
-                  </p>
-                  {(searchTerm || filterCategory !== "all" || filterType !== "all") && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setFilterCategory("all");
-                        setFilterType("all");
-                      }}
-                    >
-                      Limpar filtros
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className={viewType === "grid" 
-                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
-                  : "space-y-4"
-                }>
-                  {viewType === "grid"
-                    ? filteredItems.map(item => renderGridItem(item))
-                    : filteredItems.map(item => renderListItem(item))
-                  }
-                </div>
+          {/* Library Items Grid/List */}
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-12">
+              <LayersIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum item encontrado</h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || filterCategory !== "all" || filterType !== "all"
+                  ? "Tente ajustar seus filtros de busca"
+                  : "Não há itens disponíveis na biblioteca"}
+              </p>
+              {(searchTerm || filterCategory !== "all" || filterType !== "all") && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterCategory("all");
+                    setFilterType("all");
+                  }}
+                >
+                  Limpar filtros
+                </Button>
               )}
-            </TabsContent>
+            </div>
+          ) : (
+            <div className={viewType === "grid" 
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
+              : "space-y-4"
+            }>
+              {viewType === "grid"
+                ? filteredItems.map(item => renderGridItem(item))
+                : filteredItems.map(item => renderListItem(item))
+              }
+            </div>
+          )}
+        </TabsContent>
 
-            <TabsContent value="borrowed">
-              {myBorrowings.length === 0 ? (
-                <div className="text-center py-12">
-                  <BookIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum empréstimo ativo</h3>
-                  <p className="text-gray-600 mb-4">
-                    Você não possui nenhum material emprestado no momento.
-                  </p>
-                  <Button onClick={() => navigateToAllTab()}>
-                    Explorar biblioteca
-                  </Button>
-                </div>
-              ) : (
-                <div className={viewType === "grid" 
-                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
-                  : "space-y-4"
-                }>
-                  {viewType === "grid"
-                    ? mockLibraryItems.filter(item => myBorrowings.includes(item.id)).map(item => renderGridItem(item))
-                    : mockLibraryItems.filter(item => myBorrowings.includes(item.id)).map(item => renderListItem(item))
-                  }
-                </div>
-              )}
-            </TabsContent>
+        <TabsContent value="borrowed">
+          {myBorrowings.length === 0 ? (
+            <div className="text-center py-12">
+              <BookIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum empréstimo ativo</h3>
+              <p className="text-gray-600 mb-4">
+                Você não possui nenhum material emprestado no momento.
+              </p>
+              <Button onClick={() => navigateToAllTab()}>
+                Explorar biblioteca
+              </Button>
+            </div>
+          ) : (
+            <div className={viewType === "grid" 
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
+              : "space-y-4"
+            }>
+              {viewType === "grid"
+                ? mockLibraryItems.filter(item => myBorrowings.includes(item.id)).map(item => renderGridItem(item))
+                : mockLibraryItems.filter(item => myBorrowings.includes(item.id)).map(item => renderListItem(item))
+              }
+            </div>
+          )}
+        </TabsContent>
 
-            <TabsContent value="bookmarked">
-              {myBookmarks.length === 0 ? (
-                <div className="text-center py-12">
-                  <BookmarkIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum favorito</h3>
-                  <p className="text-gray-600 mb-4">
-                    Você ainda não adicionou itens aos seus favoritos.
-                  </p>
-                  <Button onClick={() => navigateToAllTab()}>
-                    Explorar biblioteca
-                  </Button>
-                </div>
-              ) : (
-                <div className={viewType === "grid" 
-                  ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
-                  : "space-y-4"
-                }>
-                  {viewType === "grid"
-                    ? mockLibraryItems.filter(item => myBookmarks.includes(item.id)).map(item => renderGridItem(item))
-                    : mockLibraryItems.filter(item => myBookmarks.includes(item.id)).map(item => renderListItem(item))
-                  }
-                </div>
-              )}
-            </TabsContent>
+        <TabsContent value="bookmarked">
+          {myBookmarks.length === 0 ? (
+            <div className="text-center py-12">
+              <BookmarkIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum favorito</h3>
+              <p className="text-gray-600 mb-4">
+                Você ainda não adicionou itens aos seus favoritos.
+              </p>
+              <Button onClick={() => navigateToAllTab()}>
+                Explorar biblioteca
+              </Button>
+            </div>
+          ) : (
+            <div className={viewType === "grid" 
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
+              : "space-y-4"
+            }>
+              {viewType === "grid"
+                ? mockLibraryItems.filter(item => myBookmarks.includes(item.id)).map(item => renderGridItem(item))
+                : mockLibraryItems.filter(item => myBookmarks.includes(item.id)).map(item => renderListItem(item))
+              }
+            </div>
+          )}
+        </TabsContent>
 
-            <TabsContent value="recent">
-              <div className={viewType === "grid" 
-                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
-                : "space-y-4"
-              }>
-                {viewType === "grid"
-                  ? mockLibraryItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 8).map(item => renderGridItem(item))
-                  : mockLibraryItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 8).map(item => renderListItem(item))
-                }
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+        <TabsContent value="recent">
+          <div className={viewType === "grid" 
+            ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" 
+            : "space-y-4"
+          }>
+            {viewType === "grid"
+              ? mockLibraryItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 8).map(item => renderGridItem(item))
+              : mockLibraryItems.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()).slice(0, 8).map(item => renderListItem(item))
+            }
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Item Detail Dialog */}
       <Dialog open={!!selectedItem} onOpenChange={(isOpen) => !isOpen && setSelectedItem(null)}>
         {renderItemDetails()}
       </Dialog>
-    </div>
+    </StudentLayout>
   );
 }
