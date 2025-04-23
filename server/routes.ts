@@ -9,6 +9,7 @@ import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
 import authRouter from './routes/auth-route';
 import financeRouter from './routes/finance-routes';
+import certificationPaymentRoutes from './routes/certification-payment-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
@@ -626,6 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', authRouter);
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
+  app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   // Registre outras rotas conforme necessário
 
   return server;
