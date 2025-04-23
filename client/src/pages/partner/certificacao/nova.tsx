@@ -63,6 +63,16 @@ import {
   AwardIcon
 } from "@/components/ui/icons";
 
+// Interface para alunos no lote
+interface AlunoLote {
+  id: number;
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone: string;
+  curso: string;
+}
+
 export default function NovaSolicitacaoCertificacaoPage() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -70,6 +80,12 @@ export default function NovaSolicitacaoCertificacaoPage() {
   const [location, setLocation] = useLocation();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  
+  // Estados para solicitação em lote
+  const [alunosLote, setAlunosLote] = useState<AlunoLote[]>([]);
+  const [csvAlunosLote, setCsvAlunosLote] = useState<AlunoLote[]>([]);
+  const [showResumoLote, setShowResumoLote] = useState(false);
+  const [valorCertificado, setValorCertificado] = useState(79.90); // Valor padrão por certificado
 
   // Form handling
   const form = useForm({
@@ -104,7 +120,7 @@ export default function NovaSolicitacaoCertificacaoPage() {
     { name: "Configurações", icon: <SettingsIcon />, href: "/partner/settings" },
   ];
 
-  // Função para lidar com o envio do formulário
+  // Função para lidar com o envio do formulário - solicitação individual
   const onSubmit = (data: any) => {
     console.log("Dados do formulário:", data);
     console.log("Arquivos enviados:", uploadedFiles);
@@ -128,6 +144,110 @@ export default function NovaSolicitacaoCertificacaoPage() {
     const newFiles = [...uploadedFiles];
     newFiles.splice(index, 1);
     setUploadedFiles(newFiles);
+  };
+  
+  // Função para adicionar um aluno na lista de lote
+  const adicionarAlunoLote = () => {
+    const novoAluno: AlunoLote = {
+      id: alunosLote.length + 1,
+      nome: document.getElementById('nome1') ? (document.getElementById('nome1') as HTMLInputElement).value : '',
+      cpf: document.getElementById('cpf1') ? (document.getElementById('cpf1') as HTMLInputElement).value : '',
+      email: document.getElementById('email1') ? (document.getElementById('email1') as HTMLInputElement).value : '',
+      telefone: document.getElementById('telefone1') ? (document.getElementById('telefone1') as HTMLInputElement).value : '',
+      curso: document.getElementById('curso1') ? (document.getElementById('curso1') as HTMLInputElement).value : '',
+    };
+    
+    // Verifica se os campos obrigatórios foram preenchidos
+    if (!novoAluno.nome || !novoAluno.cpf || !novoAluno.email || !novoAluno.curso) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+    
+    setAlunosLote([...alunosLote, novoAluno]);
+    
+    // Limpa os campos do formulário
+    if (document.getElementById('nome1')) (document.getElementById('nome1') as HTMLInputElement).value = '';
+    if (document.getElementById('cpf1')) (document.getElementById('cpf1') as HTMLInputElement).value = '';
+    if (document.getElementById('email1')) (document.getElementById('email1') as HTMLInputElement).value = '';
+    if (document.getElementById('telefone1')) (document.getElementById('telefone1') as HTMLInputElement).value = '';
+    if (document.getElementById('curso1')) (document.getElementById('curso1') as HTMLInputElement).value = '';
+  };
+  
+  // Função para processar o upload de CSV
+  const processarCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (event.target && event.target.result) {
+          const csvData = event.target.result as string;
+          const linhas = csvData.split('\n');
+          
+          // Remove o cabeçalho
+          linhas.shift();
+          
+          const alunosImportados: AlunoLote[] = [];
+          
+          linhas.forEach((linha, index) => {
+            if (linha.trim()) {
+              const colunas = linha.split(',');
+              if (colunas.length >= 5) {
+                alunosImportados.push({
+                  id: index + 1,
+                  nome: colunas[0].trim(),
+                  cpf: colunas[1].trim(),
+                  email: colunas[2].trim(),
+                  telefone: colunas[3].trim(),
+                  curso: colunas[4].trim(),
+                });
+              }
+            }
+          });
+          
+          setCsvAlunosLote(alunosImportados);
+          setAlunosLote([...alunosLote, ...alunosImportados]);
+        }
+      };
+      
+      reader.readAsText(file);
+    }
+  };
+  
+  // Função para remover um aluno do lote
+  const removerAlunoLote = (id: number) => {
+    const novosAlunos = alunosLote.filter(aluno => aluno.id !== id);
+    setAlunosLote(novosAlunos);
+  };
+  
+  // Função para mostrar o resumo da solicitação em lote
+  const mostrarResumoLote = () => {
+    if (alunosLote.length === 0) {
+      alert('Adicione pelo menos um aluno antes de prosseguir.');
+      return;
+    }
+    
+    setShowResumoLote(true);
+  };
+  
+  // Função para enviar a solicitação em lote
+  const enviarSolicitacaoLote = () => {
+    // Aqui você implementaria a lógica para enviar a solicitação em lote para o backend
+    console.log("Enviando solicitação em lote:", alunosLote);
+    
+    // Redirecionar de volta para a página de certificação após o envio
+    setLocation("/partner/certificacao");
+  };
+  
+  // Função para obter o nome do curso pelo ID
+  const getNomeCurso = (cursoId: string) => {
+    const curso = cursos.find(c => c.id.toString() === cursoId);
+    return curso ? curso.nome : 'Curso não encontrado';
+  };
+  
+  // Calcular o valor total do lote
+  const calcularValorTotal = () => {
+    return alunosLote.length * valorCertificado;
   };
 
   return (
