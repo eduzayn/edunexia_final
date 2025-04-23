@@ -3,16 +3,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   title: string;
   link: string;
 }
 
-interface BreadcrumbWithBackButtonProps {
+export interface BreadcrumbWithBackButtonProps {
   items: BreadcrumbItem[];
 }
 
-function BreadcrumbWithBackButton({ items }: BreadcrumbWithBackButtonProps) {
+export const BreadcrumbWithBackButton = ({ items }: BreadcrumbWithBackButtonProps) => {
   return (
     <div className="flex items-center space-x-2">
       <Button variant="ghost" size="sm" asChild>
@@ -37,6 +37,4 @@ function BreadcrumbWithBackButton({ items }: BreadcrumbWithBackButtonProps) {
       </div>
     </div>
   );
-}
-
-export default BreadcrumbWithBackButton;
+};
