@@ -560,6 +560,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api-json/block-access/:id', requireAdmin, blockAccess);
   app.post('/api-json/unblock-access/:id', requireAdmin, unblockAccess);
   app.get('/api-json/check-access/:id', requireAuth, checkAccessStatus);
+  
+  // Portal do Aluno - Configurações de Acesso
+  app.get('/api-json/institution-access-config/:id', requireAdmin, getInstitutionAccessConfig);
+  app.put('/api-json/institution-access-config/:id', requireAdmin, updateInstitutionAccessConfig);
+  app.get('/api-json/portal-access-report', requireAdmin, getPortalAccessReport);
 
   return server;
 }

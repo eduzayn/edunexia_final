@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { storage } from '../storage';
 import { db } from '../db';
-import { enrollments, students, courses, institutions } from '@shared/schema';
+import { enrollments, users, courses, institutions } from '@shared/schema';
 import { eq, and, like, isNull, isNotNull, gt, lt, desc, or } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -93,8 +93,8 @@ export const getPortalAccessReport = async (req: Request, res: Response) => {
       whereConditions.push(
         or(
           like(enrollments.code, searchTerm),
-          like(students.fullName, searchTerm),
-          like(students.email, searchTerm)
+          like(users.fullName, searchTerm),
+          like(users.email, searchTerm)
         )
       );
     }
@@ -105,8 +105,8 @@ export const getPortalAccessReport = async (req: Request, res: Response) => {
         id: enrollments.id,
         code: enrollments.code,
         studentId: enrollments.studentId,
-        studentName: students.fullName,
-        studentEmail: students.email,
+        studentName: users.fullName,
+        studentEmail: users.email,
         courseId: enrollments.courseId,
         courseName: courses.name,
         institutionId: enrollments.institutionId,
@@ -125,7 +125,7 @@ export const getPortalAccessReport = async (req: Request, res: Response) => {
         END`
       })
       .from(enrollments)
-      .leftJoin(students, eq(enrollments.studentId, students.id))
+      .leftJoin(users, eq(enrollments.studentId, users.id))
       .leftJoin(courses, eq(enrollments.courseId, courses.id))
       .leftJoin(institutions, eq(enrollments.institutionId, institutions.id));
     
