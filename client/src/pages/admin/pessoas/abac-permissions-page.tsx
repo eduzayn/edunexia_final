@@ -144,7 +144,7 @@ export default function AbacPermissionsPage() {
   // Consulta para buscar permissões disponíveis
   const permissionsQuery = useQuery({
     queryKey: ['/api/permissions/list'],
-    queryFn: () => apiRequest<Permission[]>('/api/permissions/list')
+    queryFn: () => apiRequest<Permission[]>('GET', '/api/permissions/list')
   });
 
   // Extrair recursos únicos das permissões ou usar recursos fixos
@@ -202,17 +202,17 @@ export default function AbacPermissionsPage() {
   // Consultas para buscar dados
   const institutionPhaseQuery = useQuery({
     queryKey: ['/api/permissions/abac/institution-phase'],
-    queryFn: () => apiRequest<InstitutionPhasePermission[]>('/api/permissions/abac/institution-phase')
+    queryFn: () => apiRequest<InstitutionPhasePermission[]>('GET', '/api/permissions/abac/institution-phase')
   });
 
   const periodPermissionQuery = useQuery({
     queryKey: ['/api/permissions/abac/period-rules'],
-    queryFn: () => apiRequest<PeriodPermissionRule[]>('/api/permissions/abac/period-rules')
+    queryFn: () => apiRequest<PeriodPermissionRule[]>('GET', '/api/permissions/abac/period-rules')
   });
 
   const paymentStatusQuery = useQuery({
     queryKey: ['/api/permissions/abac/payment-status'],
-    queryFn: () => apiRequest<PaymentStatusPermission[]>('/api/permissions/abac/payment-status')
+    queryFn: () => apiRequest<PaymentStatusPermission[]>('GET', '/api/permissions/abac/payment-status')
   });
 
   // Mutação para criar regra de permissão de fase de instituição
