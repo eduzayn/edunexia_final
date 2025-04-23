@@ -9,6 +9,14 @@ import {
   CardTitle, 
   CardFooter 
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -252,6 +260,65 @@ export default function NovaSolicitacaoCertificacaoPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Dialog de Resumo do Lote */}
+      <Dialog open={showResumoLote} onOpenChange={setShowResumoLote}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Resumo da Solicitação em Lote</DialogTitle>
+            <DialogDescription>
+              Confira os detalhes da sua solicitação de certificações em lote antes de prosseguir.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-sm font-medium">Quantidade de alunos:</div>
+              <div className="text-sm font-bold">{alunosLote.length}</div>
+              
+              <div className="text-sm font-medium">Valor por certificado:</div>
+              <div className="text-sm font-bold">R$ {valorCertificado.toFixed(2)}</div>
+              
+              <div className="text-sm font-medium">Valor total:</div>
+              <div className="text-sm font-bold text-green-600">R$ {calcularValorTotal().toFixed(2)}</div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h4 className="text-sm font-medium mb-2">Alunos incluídos:</h4>
+              <ScrollArea className="h-[200px] rounded-md border p-4">
+                <div className="space-y-2">
+                  {alunosLote.map((aluno) => (
+                    <div key={aluno.id} className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium">{aluno.nome}</p>
+                        <p className="text-xs text-gray-500">
+                          {getNomeCurso(aluno.curso)} • CPF: {aluno.cpf}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+            
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-blue-700">
+              <p className="font-medium mb-1">Informações de pagamento:</p>
+              <p>Após confirmar, você será redirecionado para nossa página de pagamento segura, onde poderá realizar o pagamento único para todas as certificações deste lote.</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResumoLote(false)}>
+              Voltar
+            </Button>
+            <Button onClick={enviarSolicitacaoLote}>
+              Confirmar e Pagar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Sidebar
         items={sidebarItems}
         user={user}
@@ -632,17 +699,68 @@ export default function NovaSolicitacaoCertificacaoPage() {
                               </div>
                             </div>
                           </CardContent>
+                          <CardFooter className="flex justify-end border-t pt-4">
+                            <Button 
+                              onClick={adicionarAlunoLote}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Adicionar
+                            </Button>
+                          </CardFooter>
                         </Card>
                         
-                        <Button 
-                          variant="outline" 
-                          className="w-full border-dashed"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Adicionar Aluno
-                        </Button>
+                        {alunosLote.length > 0 && (
+                          <div className="mt-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-base font-semibold">
+                                Alunos no Lote ({alunosLote.length})
+                              </h4>
+                              {alunosLote.length > 0 && (
+                                <div className="flex items-center text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">
+                                  <span className="font-medium">Total: R$ {calcularValorTotal().toFixed(2)}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="rounded-md border overflow-hidden">
+                              <div className="overflow-auto max-h-[300px]">
+                                <table className="w-full text-sm">
+                                  <thead className="bg-muted/50">
+                                    <tr>
+                                      <th className="font-medium text-left p-2">Nome</th>
+                                      <th className="font-medium text-left p-2">CPF</th>
+                                      <th className="font-medium text-left p-2 hidden md:table-cell">Email</th>
+                                      <th className="font-medium text-left p-2 hidden md:table-cell">Curso</th>
+                                      <th className="font-medium text-center p-2 w-[80px]">Ações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {alunosLote.map((aluno) => (
+                                      <tr key={aluno.id} className="border-t">
+                                        <td className="p-2">{aluno.nome}</td>
+                                        <td className="p-2">{aluno.cpf}</td>
+                                        <td className="p-2 hidden md:table-cell">{aluno.email}</td>
+                                        <td className="p-2 hidden md:table-cell">{getNomeCurso(aluno.curso)}</td>
+                                        <td className="p-2 text-center">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                            onClick={() => removerAlunoLote(aluno.id)}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-700">
+                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-700 mt-6">
                           <p className="flex items-center font-medium">
                             <AlertCircle className="h-4 w-4 mr-1" />
                             Atenção:
@@ -651,6 +769,25 @@ export default function NovaSolicitacaoCertificacaoPage() {
                             Os documentos dos alunos (RG, Diploma, etc.) deverão ser enviados individualmente após o envio desta solicitação.
                           </p>
                         </div>
+                        
+                        {alunosLote.length > 0 && (
+                          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-sm text-blue-700 mt-4">
+                            <p className="flex items-center font-medium">
+                              <div className="h-5 w-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mr-2">i</div>
+                              Informações de Pagamento:
+                            </p>
+                            <div className="mt-2 grid grid-cols-2 gap-2">
+                              <div>Valor por certificado:</div>
+                              <div className="font-semibold">R$ {valorCertificado.toFixed(2)}</div>
+                              
+                              <div>Quantidade de alunos:</div>
+                              <div className="font-semibold">{alunosLote.length}</div>
+                              
+                              <div>Valor total do lote:</div>
+                              <div className="font-semibold text-green-600">R$ {calcularValorTotal().toFixed(2)}</div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>
@@ -662,10 +799,17 @@ export default function NovaSolicitacaoCertificacaoPage() {
                   >
                     Cancelar
                   </Button>
-                  <Button>
-                    <Save className="h-4 w-4 mr-2" />
-                    Enviar Solicitação
-                  </Button>
+                  {showResumoLote && activeTab === "lote" ? (
+                    <Button onClick={enviarSolicitacaoLote}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Confirmar e Pagar
+                    </Button>
+                  ) : (
+                    <Button onClick={activeTab === "lote" ? mostrarResumoLote : undefined}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {activeTab === "lote" ? "Revisar Solicitação" : "Enviar Solicitação"}
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             </TabsContent>
