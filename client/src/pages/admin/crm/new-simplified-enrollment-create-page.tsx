@@ -220,7 +220,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       // Campos obrigatórios para a API
       uuid: `enroll-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
       fullPrice: values.amount, // Mesmo valor do amount
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 dias a partir de agora como objeto Date
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias a partir de agora no formato ISO string
       paymentGateway: "asaas",
       
       // Adicionar dados adicionais para o Asaas
