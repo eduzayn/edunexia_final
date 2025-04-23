@@ -331,7 +331,7 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
+      createdById: 18 // ID do usuário admin no banco de dados, corresponde ao username 'admin'
     }).returning();
     
     // Adicionar os campos extras para a resposta
@@ -606,7 +606,7 @@ export async function updatePaymentStatus(req: Request, res: Response) {
         .set({
           status: newStatus,
           updatedAt: new Date(),
-          updatedById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
+          updatedById: 18 // ID do usuário admin no banco de dados, corresponde ao username 'admin'
         })
         .where(eq(simplifiedEnrollments.id, enrollmentId));
       
@@ -691,7 +691,7 @@ export async function cancelEnrollment(req: Request, res: Response) {
       .set({
         status: 'cancelled',
         updatedAt: new Date(),
-        updatedById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
+        updatedById: 18 // ID do usuário admin no banco de dados, corresponde ao username 'admin'
       })
       .where(eq(simplifiedEnrollments.id, enrollmentId));
     
