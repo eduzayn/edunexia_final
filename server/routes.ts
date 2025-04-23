@@ -212,15 +212,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
     
-    if (!token || !activeUsers[token]) {
+    if (!token) {
       return res.status(401).json({ 
         success: false,
         message: 'Você precisa estar autenticado para acessar este recurso.' 
       });
     }
     
+    const user = getActiveUserByToken(token);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Sessão inválida ou expirada. Faça login novamente.' 
+      });
+    }
+    
     // Adicionar usuário e informações de autenticação ao request
-    const user = activeUsers[token];
     (req as any).user = user;
     (req as any).auth = { 
       userId: user.id,
