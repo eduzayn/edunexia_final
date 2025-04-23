@@ -1035,6 +1035,17 @@ export class DatabaseStorage implements IStorage {
     return enrollment || undefined;
   }
   
+  /**
+   * Busca uma matrícula simplificada pelo seu externalReference
+   * Método essencial para processar notificações de pagamento do Asaas
+   */
+  async getSimplifiedEnrollmentByExternalReference(externalReference: string): Promise<SimplifiedEnrollment | undefined> {
+    const [enrollment] = await db.select()
+      .from(simplifiedEnrollments)
+      .where(eq(simplifiedEnrollments.externalReference, externalReference));
+    return enrollment || undefined;
+  }
+  
   async getSimplifiedEnrollments(
     search?: string,
     status?: string,

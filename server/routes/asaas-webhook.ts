@@ -1,10 +1,137 @@
 /**
  * Webhook para receber notificações do Asaas sobre pagamentos
+ * e processar automaticamente matrículas simplificadas
  */
 
 import express from 'express';
+import { storage } from '../storage';
+import { accessTypeEnum } from '@shared/schema';
 
 const router = express.Router();
+
+/**
+ * Processa a matrícula simplificada após receber notificação de pagamento
+ * Inclui a lógica para respeitar o modelo de negócio da instituição:
+ * - Algumas instituições liberam acesso após o link ser preenchido
+ * - Outras aguardam a confirmação do pagamento
+ */
+async function processSimplifiedEnrollment(externalReference: string, paymentEvent: string, paymentId: string) {
+  try {
+    console.log(`[ASAAS WEBHOOK] Processando matrícula com ref: ${externalReference}`);
+    
+    // Localizar a matrícula simplificada pelo externalReference
+    const enrollment = await storage.getSimplifiedEnrollmentByExternalReference(externalReference);
+    
+    if (!enrollment) {
+      console.error(`[ASAAS WEBHOOK] Matrícula não encontrada para referência: ${externalReference}`);
+      return { success: false, message: 'Matrícula não encontrada' };
+    }
+    
+    console.log(`[ASAAS WEBHOOK] Matrícula localizada ID: ${enrollment.id}, status atual: ${enrollment.status}`);
+    
+    // Verificar se matrícula já foi convertida ou já está com pagamento confirmado
+    if (enrollment.convertedEnrollmentId) {
+      console.log(`[ASAAS WEBHOOK] Matrícula já foi convertida anteriormente: ${enrollment.convertedEnrollmentId}`);
+      return { success: true, message: 'Matrícula já convertida anteriormente', alreadyProcessed: true };
+    }
+    
+    if (enrollment.status === 'payment_confirmed') {
+      console.log(`[ASAAS WEBHOOK] Pagamento já foi confirmado anteriormente`);
+      return { success: true, message: 'Pagamento já confirmado anteriormente', alreadyProcessed: true };
+    }
+    
+    // Verificar evento de pagamento e atualizar status
+    let shouldConvert = false;
+    
+    if (paymentEvent === 'PAYMENT_CONFIRMED' || paymentEvent === 'PAYMENT_RECEIVED') {
+      // Atualizar o status da matrícula para payment_confirmed
+      console.log(`[ASAAS WEBHOOK] Atualizando status para payment_confirmed`);
+      
+      await storage.updateSimplifiedEnrollmentStatus(
+        enrollment.id, 
+        'payment_confirmed',
+        `Pagamento confirmado via webhook Asaas (${paymentEvent})`,
+        undefined, // sem usuário específico
+        { paymentId, paymentEvent }
+      );
+      
+      // Buscar a instituição para verificar a regra de acesso
+      const institution = await storage.getInstitution(enrollment.institutionId);
+      
+      if (!institution) {
+        console.error(`[ASAAS WEBHOOK] Instituição não encontrada: ${enrollment.institutionId}`);
+        return { success: false, message: 'Instituição não encontrada' };
+      }
+      
+      // Verificar se devemos converter baseado na regra da instituição
+      if (institution.enrollmentAccessType === accessTypeEnum.enum.after_payment_confirmation) {
+        // Nesta regra, converte apenas após pagamento confirmado, o que ocorreu agora
+        shouldConvert = true;
+        console.log(`[ASAAS WEBHOOK] Regra da instituição: converter após pagamento`);
+      } else {
+        // Para a regra "after_link_completion", a conversão deve ter sido feita logo após o link ser preenchido
+        // Porém, por segurança, verificamos se foi convertida e, se não foi, convertemos agora
+        shouldConvert = !enrollment.convertedEnrollmentId;
+        console.log(`[ASAAS WEBHOOK] Regra da instituição: converter após link preenchido, status atual da conversão: ${shouldConvert ? 'pendente' : 'já realizada'}`);
+      }
+    } else if (paymentEvent === 'PAYMENT_OVERDUE') {
+      // Pagamento atrasado - não converter, apenas registrar
+      console.log(`[ASAAS WEBHOOK] Pagamento atrasado, atualizando status`);
+      
+      await storage.updateSimplifiedEnrollmentStatus(
+        enrollment.id, 
+        'waiting_payment',
+        `Pagamento atrasado via webhook Asaas (${paymentEvent})`,
+        undefined,
+        { paymentId, paymentEvent }
+      );
+    } else if (paymentEvent === 'PAYMENT_DELETED' || paymentEvent === 'PAYMENT_REFUNDED') {
+      // Pagamento cancelado/estornado - não converter, registrar cancelamento
+      console.log(`[ASAAS WEBHOOK] Pagamento cancelado/estornado, atualizando status`);
+      
+      await storage.updateSimplifiedEnrollmentStatus(
+        enrollment.id, 
+        'cancelled',
+        `Pagamento cancelado via webhook Asaas (${paymentEvent})`,
+        undefined,
+        { paymentId, paymentEvent }
+      );
+    }
+    
+    // Se determinamos que a matrícula deve ser convertida, fazemos isso agora
+    if (shouldConvert) {
+      console.log(`[ASAAS WEBHOOK] Iniciando conversão da matrícula simplificada para completa`);
+      
+      const newEnrollment = await storage.convertSimplifiedToFullEnrollment(enrollment.id);
+      
+      if (!newEnrollment) {
+        console.error(`[ASAAS WEBHOOK] Erro ao converter matrícula: ${enrollment.id}`);
+        return { success: false, message: 'Erro ao converter matrícula' };
+      }
+      
+      console.log(`[ASAAS WEBHOOK] Matrícula convertida com sucesso! Nova ID: ${newEnrollment.id}`);
+      
+      return { 
+        success: true, 
+        message: 'Matrícula processada e convertida com sucesso', 
+        convertedEnrollmentId: newEnrollment.id 
+      };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Status da matrícula atualizado com sucesso', 
+      newStatus: enrollment.status
+    };
+  } catch (error) {
+    console.error('[ASAAS WEBHOOK] Erro ao processar matrícula:', error);
+    return { 
+      success: false, 
+      message: 'Erro ao processar matrícula', 
+      error: error instanceof Error ? error.message : String(error) 
+    };
+  }
+}
 
 // Rota para webhook do Asaas
 router.post('/payment-notification', async (req, res) => {
@@ -30,20 +157,35 @@ router.post('/payment-notification', async (req, res) => {
     // Resposta básica para confirmação de recebimento
     console.log(`[ASAAS WEBHOOK] Evento: ${event} | ID: ${paymentId} | Status: ${paymentStatus} | Ref: ${externalReference}`);
     
-    // Apenas log nesta versão simplificada
-    // Na versão completa, faríamos o processamento do pagamento e a atualização do status da solicitação
+    // Verificar se temos uma referência externa válida para processar
+    if (!externalReference) {
+      console.warn('[ASAAS WEBHOOK] Sem referência externa, ignorando processamento');
+      return res.status(200).json({ 
+        message: 'Notificação recebida, mas sem referência externa para processar',
+        event,
+        paymentId
+      });
+    }
     
+    // Processar a matrícula simplificada associada a este pagamento
+    const processingResult = await processSimplifiedEnrollment(externalReference, event, paymentId);
+    
+    // Responder ao webhook (sempre com sucesso 200 para evitar reenvios desnecessários)
     return res.status(200).json({ 
-      message: 'Notificação recebida com sucesso',
+      message: 'Notificação processada com sucesso',
       event,
       paymentId,
-      reference: externalReference
+      reference: externalReference,
+      processingResult
     });
   } catch (error) {
     console.error('[ASAAS WEBHOOK] Erro ao processar notificação:', error);
-    return res.status(500).json({ 
-      error: 'Erro interno ao processar notificação',
-      message: error instanceof Error ? error.message : String(error)
+    
+    // Mesmo em caso de erro, respondemos com 200 para evitar reenvios
+    // O erro é registrado em logs para investigação posterior
+    return res.status(200).json({ 
+      message: 'Notificação recebida, mas ocorreu um erro no processamento',
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });

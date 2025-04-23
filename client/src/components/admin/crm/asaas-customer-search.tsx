@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, Search, User, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, KeyboardEvent } from 'react';
+import { Loader2, Search, User, X, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { DialogTitle } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { FormDescription } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
 
 // Interface para clientes Asaas
 interface AsaasCustomer {
@@ -52,6 +53,8 @@ export function AsaasCustomerSearch({
   const [inputValue, setInputValue] = useState(value);
   const debouncedSearch = useDebounce(inputValue, 500);
   const inputRef = useRef<HTMLInputElement>(null);
+  const commandInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   
   // Buscar clientes Asaas pelo nome
   const { data, isFetching } = useQuery({
@@ -80,6 +83,38 @@ export function AsaasCustomerSearch({
     setOpen(false);
   }, [onChange, onCustomerSelect]);
   
+  // Função para criar um novo cliente quando nenhum é encontrado
+  const handleCreateNewCustomer = useCallback(() => {
+    if (debouncedSearch && debouncedSearch.length >= 3) {
+      // Criar um cliente fictício com os dados da busca para continuar o fluxo
+      const newCustomer: AsaasCustomer = {
+        id: 'new_customer', // Será substituído quando criar no backend
+        name: debouncedSearch, // Usar o termo de busca como nome
+        email: '', // Serão preenchidos pelo usuário no formulário
+        cpfCnpj: '',
+      };
+      
+      // Notificar o usuário sobre o que está acontecendo
+      toast({
+        title: "Criando novo cliente",
+        description: `Preencha os dados do novo cliente: ${debouncedSearch}`,
+      });
+      
+      onChange(debouncedSearch);
+      onCustomerSelect(newCustomer);
+      setOpen(false);
+    }
+  }, [debouncedSearch, onChange, onCustomerSelect, toast]);
+  
+  // Função para tratar o pressionamento da tecla Enter no diálogo
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    // Se pressionar Enter quando nenhum cliente foi encontrado e pesquisa tem pelo menos 3 caracteres
+    if (e.key === 'Enter' && customers.length === 0 && debouncedSearch.length >= 3 && !isFetching) {
+      e.preventDefault();
+      handleCreateNewCustomer();
+    }
+  }, [customers.length, debouncedSearch, handleCreateNewCustomer, isFetching]);
+  
   // Função para limpar o campo
   const handleClear = () => {
     setInputValue('');
@@ -105,6 +140,13 @@ export function AsaasCustomerSearch({
           onChange={(e) => {
             setInputValue(e.target.value);
             onChange(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            // Se pressionar Enter e o campo tem pelo menos 3 caracteres, abre o diálogo
+            if (e.key === 'Enter' && inputValue.length >= 3) {
+              e.preventDefault();
+              setOpen(true);
+            }
           }}
           placeholder={placeholder}
           className="pr-16"
@@ -151,9 +193,11 @@ export function AsaasCustomerSearch({
       <CommandDialog open={open} onOpenChange={setOpen}>
         <DialogTitle className="sr-only">Buscar clientes no Asaas</DialogTitle>
         <CommandInput
+          ref={commandInputRef}
           placeholder="Buscar clientes no Asaas..."
           value={inputValue}
           onValueChange={setInputValue}
+          onKeyDown={handleKeyDown}
         />
         <CommandList>
           <CommandEmpty>
@@ -162,10 +206,29 @@ export function AsaasCustomerSearch({
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <div className="py-6 text-center text-sm">
-                {debouncedSearch.length < 3 ? 
-                  'Digite pelo menos 3 caracteres para buscar' : 
-                  'Nenhum cliente encontrado. Continue digitando para criar um novo.'}
+              <div className="py-4 flex flex-col items-center justify-center gap-3">
+                {debouncedSearch.length < 3 ? (
+                  <div className="text-center text-sm">
+                    Digite pelo menos 3 caracteres para buscar
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-center text-sm">
+                      Nenhum cliente encontrado com esse nome
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={handleCreateNewCustomer}
+                      className="mt-2"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Criar novo cliente
+                    </Button>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Pressione <span className="font-semibold">Enter</span> para criar um novo cliente
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </CommandEmpty>
