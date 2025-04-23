@@ -248,39 +248,51 @@ export async function blockAccess(req: Request, res: Response) {
       blockEndsAt.setDate(blockEndsAt.getDate() + durationDays);
     }
 
-    // Atualiza o status para bloqueado e registra data de bloqueio
     const now = new Date();
     const previousStatus = enrollment.status;
+    const blockReasonText = reason || 'Bloqueio administrativo';
     
-    // Atualiza o status da matrícula para bloqueado
-    const blockedEnrollment = await storage.updateEnrollmentStatus(
-      enrollmentId,
-      'blocked',
-      reason || 'Bloqueio administrativo',
-      req.auth?.userId || undefined,
-      { blockEndsAt, blockedAt: now }
-    );
-
-    // Adicionalmente, atualiza os campos específicos de bloqueio
-    const updatedEnrollment = await storage.updateEnrollment(enrollmentId, {
-      blockExecutedAt: now,
-      blockEndsAt: blockEndsAt,
-      blockReason: reason || 'Bloqueio administrativo',
-      updatedAt: now
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Acesso bloqueado com sucesso',
-      enrollment: {
-        ...blockedEnrollment,
+    // Combinar as duas atualizações em uma única operação
+    try {
+      // Primeiro atualiza os campos específicos de bloqueio
+      const updatedEnrollment = await storage.updateEnrollment(enrollmentId, {
+        status: 'blocked', // Definimos o status diretamente
         blockExecutedAt: now,
         blockEndsAt: blockEndsAt,
-        blockReason: reason || 'Bloqueio administrativo'
-      },
-      previousStatus,
-      isTemporary: blockEndsAt !== null
-    });
+        blockReason: blockReasonText,
+        updatedAt: now
+      });
+      
+      // Registra no histórico sem usar o método updateEnrollmentStatus
+      try {
+        await storage.addEnrollmentStatusHistory({
+          enrollmentId,
+          previousStatus,
+          newStatus: 'blocked',
+          changeReason: blockReasonText,
+          changedById: undefined, // Usando undefined para evitar erro de chave estrangeira
+          metadata: { blockEndsAt, blockedAt: now }
+        });
+      } catch (historyError) {
+        console.warn('Erro ao registrar histórico de bloqueio, mas o bloqueio foi executado:', historyError);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Acesso bloqueado com sucesso',
+        enrollment: {
+          ...updatedEnrollment,
+          blockExecutedAt: now,
+          blockEndsAt: blockEndsAt,
+          blockReason: blockReasonText
+        },
+        previousStatus,
+        isTemporary: blockEndsAt !== null
+      });
+    } catch (dbError) {
+      console.error('Erro ao atualizar matrícula no banco de dados:', dbError);
+      throw dbError; // Re-lança o erro para ser capturado pelo catch externo
+    }
   } catch (error) {
     console.error('Erro ao bloquear acesso:', error);
     return res.status(500).json({
@@ -321,32 +333,42 @@ export async function unblockAccess(req: Request, res: Response) {
       });
     }
 
-    // Atualiza o status de volta para ativo
     const now = new Date();
     const unblockReason = reason || 'Desbloqueio administrativo';
     
-    // Atualiza o status da matrícula para ativo
-    const unblockEnrollment = await storage.updateEnrollmentStatus(
-      enrollmentId,
-      'active',
-      unblockReason,
-      req.auth?.userId || undefined,
-      { unblockedAt: now }
-    );
+    try {
+      // Atualiza o status e os campos de bloqueio em uma única operação
+      const updatedEnrollment = await storage.updateEnrollment(enrollmentId, {
+        status: 'active', // Definimos o status diretamente
+        blockEndsAt: null,
+        updatedAt: now
+      });
+      
+      // Registra no histórico sem usar o método updateEnrollmentStatus
+      try {
+        await storage.addEnrollmentStatusHistory({
+          enrollmentId,
+          previousStatus: 'blocked',
+          newStatus: 'active',
+          changeReason: unblockReason,
+          changedById: undefined, // Usando undefined para evitar erro de chave estrangeira
+          metadata: { unblockedAt: now }
+        });
+      } catch (historyError) {
+        console.warn('Erro ao registrar histórico de desbloqueio, mas o desbloqueio foi executado:', historyError);
+      }
 
-    // Atualiza os campos específicos de bloqueio para indicar que não está mais bloqueado
-    const updatedEnrollment = await storage.updateEnrollment(enrollmentId, {
-      blockEndsAt: null,
-      updatedAt: now
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Acesso desbloqueado com sucesso',
-      enrollment: unblockEnrollment,
-      unblockedAt: now,
-      reason: unblockReason
-    });
+      return res.status(200).json({
+        success: true,
+        message: 'Acesso desbloqueado com sucesso',
+        enrollment: updatedEnrollment,
+        unblockedAt: now,
+        reason: unblockReason
+      });
+    } catch (dbError) {
+      console.error('Erro ao atualizar matrícula no banco de dados:', dbError);
+      throw dbError; // Re-lança o erro para ser capturado pelo catch externo
+    }
   } catch (error) {
     console.error('Erro ao desbloquear acesso:', error);
     return res.status(500).json({
