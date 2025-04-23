@@ -632,6 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
+  app.use('/api', certificationStatsRouter); // Estatísticas de certificação
   
   // Webhooks para integrações externas (não requerem autenticação)
   app.use('/api/webhooks/asaas', asaasWebhookRoutes); // Webhooks do Asaas

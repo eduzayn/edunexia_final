@@ -53,7 +53,7 @@ router.get("/certification/stats", requireAuth, async (req, res) => {
     }).from(certificationRequests)
     .where(
       and(
-        eq(certificationRequests.status, certificationRequestStatusEnum.enum.payment_confirmed),
+        eq(certificationRequests.status, "payment_confirmed"),
       )
     );
 
@@ -62,14 +62,16 @@ router.get("/certification/stats", requireAuth, async (req, res) => {
     }).from(certificationRequests)
     .where(
       and(
-        eq(certificationRequests.status, certificationRequestStatusEnum.enum.payment_confirmed),
+        eq(certificationRequests.status, "payment_confirmed"),
         gte(certificationRequests.paidAt, thirtyDaysAgoStr)
       )
     );
 
     // Contagem de certificações por status
+    const statusValues = ["pending", "under_review", "approved", "rejected", "payment_pending", "payment_confirmed", "processing", "completed", "cancelled"];
+    
     const statusCounts = await Promise.all(
-      Object.values(certificationRequestStatusEnum.enum).map(async (status) => {
+      statusValues.map(async (status) => {
         const result = await db.select({
           count: count()
         }).from(certificationRequests)
@@ -86,7 +88,11 @@ router.get("/certification/stats", requireAuth, async (req, res) => {
     }, {} as Record<string, number>);
 
     // Solicitações recentes
-    const recentRequests = await db.select()
+    const recentRequests = await db.select({
+        certification_requests: certificationRequests,
+        institutions: institutions,
+        users: users
+      })
       .from(certificationRequests)
       .leftJoin(institutions, eq(certificationRequests.institutionId, institutions.id))
       .leftJoin(users, eq(certificationRequests.partnerId, users.id))
@@ -116,33 +122,33 @@ router.get("/certification/stats", requireAuth, async (req, res) => {
       totalRevenue: revenueResult[0].total || 0,
       revenueLastMonth: recentRevenueResult[0].total || 0,
       total: Object.values(statusCountsObj).reduce((sum, count) => sum + count, 0),
-      pending: statusCountsObj[certificationRequestStatusEnum.enum.pending] || 0,
-      underReview: statusCountsObj[certificationRequestStatusEnum.enum.under_review] || 0,
-      approved: statusCountsObj[certificationRequestStatusEnum.enum.approved] || 0,
-      rejected: statusCountsObj[certificationRequestStatusEnum.enum.rejected] || 0,
-      paymentPending: statusCountsObj[certificationRequestStatusEnum.enum.payment_pending] || 0,
-      paymentConfirmed: statusCountsObj[certificationRequestStatusEnum.enum.payment_confirmed] || 0,
-      processing: statusCountsObj[certificationRequestStatusEnum.enum.processing] || 0,
-      completed: statusCountsObj[certificationRequestStatusEnum.enum.completed] || 0,
-      cancelled: statusCountsObj[certificationRequestStatusEnum.enum.cancelled] || 0,
+      pending: statusCountsObj["pending"] || 0,
+      underReview: statusCountsObj["under_review"] || 0,
+      approved: statusCountsObj["approved"] || 0,
+      rejected: statusCountsObj["rejected"] || 0,
+      paymentPending: statusCountsObj["payment_pending"] || 0,
+      paymentConfirmed: statusCountsObj["payment_confirmed"] || 0,
+      processing: statusCountsObj["processing"] || 0,
+      completed: statusCountsObj["completed"] || 0,
+      cancelled: statusCountsObj["cancelled"] || 0,
       // Estruturar as solicitações recentes
-      recentRequests: recentRequests.map(({ certificationRequests, institutions, users }) => ({
-        id: certificationRequests.id,
-        code: certificationRequests.code,
-        title: certificationRequests.title,
-        totalStudents: certificationRequests.totalStudents,
-        totalAmount: certificationRequests.totalAmount,
-        status: certificationRequests.status,
-        submittedAt: certificationRequests.submittedAt,
-        institution: institutions ? {
-          id: institutions.id,
-          name: institutions.name,
-          code: institutions.code
+      recentRequests: recentRequests.map((row) => ({
+        id: row.certification_requests.id,
+        code: row.certification_requests.code,
+        title: row.certification_requests.title,
+        totalStudents: row.certification_requests.totalStudents,
+        totalAmount: row.certification_requests.totalAmount,
+        status: row.certification_requests.status,
+        submittedAt: row.certification_requests.submittedAt,
+        institution: row.institutions ? {
+          id: row.institutions.id,
+          name: row.institutions.name,
+          code: row.institutions.code
         } : null,
-        partner: users ? {
-          id: users.id,
-          fullName: users.fullName,
-          email: users.email
+        partner: row.users ? {
+          id: row.users.id,
+          fullName: row.users.fullName,
+          email: row.users.email
         } : null
       })),
       certificatesByInstitution
