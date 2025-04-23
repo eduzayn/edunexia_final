@@ -407,6 +407,42 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Templates de Contrato
+export const contractTemplates = pgTable("contract_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").default("generic").notNull(), // Tipo de contrato: matrícula, parceria, etc.
+  templateContent: text("template_content").notNull(), // Conteúdo do template com placeholders
+  institutionId: integer("institution_id").references(() => institutions.id),
+  courseTypeId: integer("course_type_id").references(() => courseTypes.id),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Contratos
+export const contracts = pgTable("contracts", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(), // Código único do contrato (ex: CONT2023001)
+  templateId: integer("template_id").references(() => contractTemplates.id),
+  studentId: integer("student_id").references(() => users.id),
+  enrollmentId: integer("enrollment_id").references(() => enrollments.id),
+  institutionId: integer("institution_id").references(() => institutions.id),
+  content: text("content").notNull(), // Conteúdo processado do contrato
+  signedByStudent: boolean("signed_by_student").default(false).notNull(),
+  signedByInstitution: boolean("signed_by_institution").default(false).notNull(),
+  studentSignatureDate: timestamp("student_signature_date"),
+  institutionSignatureDate: timestamp("institution_signature_date"),
+  status: text("status").default("pending").notNull(), // pending, active, completed, cancelled
+  expirationDate: timestamp("expiration_date"),
+  additionalData: json("additional_data"), // Dados adicionais como metadados de assinatura
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Schemas e types para inserção
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -575,6 +611,46 @@ export const simplifiedEnrollmentStatusLogRelations = relations(simplifiedEnroll
     references: [users.id],
   }),
 }));
+
+// Relações para contratos
+export const contractTemplateRelations = relations(contractTemplates, ({ one, many }) => ({
+  institution: one(institutions, {
+    fields: [contractTemplates.institutionId],
+    references: [institutions.id],
+  }),
+  courseType: one(courseTypes, {
+    fields: [contractTemplates.courseTypeId],
+    references: [courseTypes.id],
+  }),
+  contracts: many(contracts),
+}));
+
+export const contractRelations = relations(contracts, ({ one }) => ({
+  template: one(contractTemplates, {
+    fields: [contracts.templateId],
+    references: [contractTemplates.id],
+  }),
+  student: one(users, {
+    fields: [contracts.studentId],
+    references: [users.id],
+  }),
+  enrollment: one(enrollments, {
+    fields: [contracts.enrollmentId],
+    references: [enrollments.id],
+  }),
+  institution: one(institutions, {
+    fields: [contracts.institutionId],
+    references: [institutions.id],
+  }),
+}));
+
+export const insertContractTemplateSchema = createInsertSchema(contractTemplates).omit({ id: true });
+export type InsertContractTemplate = z.infer<typeof insertContractTemplateSchema>;
+export type ContractTemplate = typeof contractTemplates.$inferSelect;
+
+export const insertContractSchema = createInsertSchema(contracts).omit({ id: true });
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contracts.$inferSelect;
 
 // Validação específica para inserção de usuários (exemplo)
 export const extendedInsertUserSchema = insertUserSchema.extend({
