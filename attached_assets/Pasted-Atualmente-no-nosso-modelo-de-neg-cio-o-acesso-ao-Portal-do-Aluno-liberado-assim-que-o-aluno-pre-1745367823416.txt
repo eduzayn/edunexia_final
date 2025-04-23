@@ -1,0 +1,63 @@
+Atualmente, no nosso modelo de negócio, o acesso ao Portal do Aluno é liberado assim que o aluno preenche o link de pagamento gerado via Asaas — ou seja, antes mesmo do pagamento da primeira parcela.
+
+Essa abordagem tem como objetivo gerar confiança, permitindo que o aluno conheça a plataforma, tenha acesso ao conteúdo inicial e se sinta mais seguro para efetuar o pagamento. Após esse primeiro acesso, seguimos com as seguintes regras:
+
+📌 Regras atuais de acesso à plataforma:
+🟢 Para novos alunos:
+Acesso liberado imediatamente após o preenchimento do link de pagamento.
+
+O aluno tem 10 dias após o vencimento da primeira parcela para efetuar o pagamento.
+
+Caso o pagamento não ocorra até o 10º dia de atraso, o acesso à plataforma é bloqueado.
+
+Com 30 dias de inadimplência, a matrícula é cancelada definitivamente.
+
+🔵 Para alunos já matriculados (ativos):
+Se o aluno atrasar por 60 dias, o acesso é automaticamente bloqueado.
+
+Com 90 dias de atraso, a matrícula é cancelada, sendo necessário realizar uma nova inscrição.
+
+🎯 Objetivo da nova proposta
+Desejamos flexibilizar esse processo, permitindo que cada instituição possa definir suas próprias regras de acesso, tornando o sistema mais adaptável a diferentes modelos de negócio e estratégias de captação.
+
+🛠️ Plano de Implementação da Flexibilização de Matrícula
+1. Adicionar nova configuração no Painel Administrativo
+Criar um campo de configuração por instituição:
+
+🔘 [ ] Liberar acesso após preenchimento do link
+
+🔘 [ ] Liberar acesso apenas após o pagamento da primeira parcela
+
+Essa configuração deve estar localizada nas preferências da instituição, acessível apenas por administradores master.
+
+2. Alterar fluxo de liberação de acesso
+Atualizar a lógica do sistema de matrícula para verificar a configuração antes de liberar o acesso ao Portal do Aluno.
+
+A liberação será feita com base na regra definida:
+
+Se “preenchimento do link”: acesso imediato com temporizador de 10 dias.
+
+Se “pagamento confirmado”: acesso somente após status = paid.
+
+3. Manter regras de inadimplência personalizadas
+Permitir que cada instituição defina:
+
+Número de dias para bloqueio automático por inadimplência.
+
+Número de dias para cancelamento definitivo.
+
+Essa flexibilidade também deve constar no Painel Administrativo como um campo numérico configurável por instituição.
+
+4. Log e auditoria
+Registrar todas as mudanças de status de matrícula e acesso (liberado, bloqueado, cancelado) com data e usuário responsável.
+
+5. Relatórios
+Atualizar os relatórios de gestão de matrículas para incluir:
+
+Regra de acesso aplicada
+
+Status atual (liberado, bloqueado, cancelado)
+
+Data de vencimento da 1ª parcela
+
+Dias de inadimplência
