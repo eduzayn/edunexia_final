@@ -17,7 +17,8 @@ import {
   Loader2,
   ArrowRight
 } from "lucide-react";
-import { useCertificationStats, useCertificationRequests } from "@/hooks/use-certification-requests";
+import { useCertificationRequests } from "@/hooks/use-certification-requests";
+import { useCertificationStats } from "@/hooks/use-certification-stats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 
