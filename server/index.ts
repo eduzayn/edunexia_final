@@ -87,8 +87,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Usa a porta definida no ambiente ou 5000 como padrão
-  const port = process.env.PORT || 5000;
+  // Usa a porta 5000 para o deploy no Replit
+  const port = 5000; // Forçando a porta 5000 para compatibilidade com o deploy
   server.listen({
     port: Number(port),
     host: "0.0.0.0",
