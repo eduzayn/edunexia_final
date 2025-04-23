@@ -8,7 +8,7 @@
 
 import axios from 'axios';
 
-// Configurações da API do Asaas
+// Configurações da API do Asaas - usando a chave correta
 const ASAAS_API_KEY = process.env.ASAAS_ZAYN_KEY;
 // Sempre usar ambiente de produção
 const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
@@ -16,6 +16,12 @@ const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://api.asaas.com/v3';
 // Log para rastrear a configuração
 console.log(`[ASAAS DIRECT] Utilizando ambiente de produção: ${ASAAS_API_URL}`);
 console.log(`[ASAAS DIRECT] Token da API (ASAAS_ZAYN_KEY): ${ASAAS_API_KEY?.substring(0, 10)}...`);
+
+// Verificar se a chave está definida
+if (!ASAAS_API_KEY) {
+  console.error('[ASAAS DIRECT] ERRO CRÍTICO: Chave de API Asaas não encontrada!');
+  console.error('[ASAAS DIRECT] Verifique a variável de ambiente: ASAAS_ZAYN_KEY');
+}
 
 // Configuração do cliente Axios para a API do Asaas
 const asaasClient = axios.create({
