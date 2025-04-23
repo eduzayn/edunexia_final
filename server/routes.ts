@@ -630,6 +630,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', authRouter);
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
+  app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação
