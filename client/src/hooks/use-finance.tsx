@@ -73,7 +73,7 @@ export function useProducts(category?: string) {
   // Listar produtos
   const productsQuery = useQuery({
     queryKey: ['/api/finance/products', { category }],
-    queryFn: () => apiRequest<Product[]>(category 
+    queryFn: () => apiRequest<Product[]>('GET', category 
       ? `/api/finance/products?category=${category}` 
       : '/api/finance/products'),
   });

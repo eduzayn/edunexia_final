@@ -102,7 +102,7 @@ export default function RolesPage() {
   // Verificar se o usuário tem permissão para criar papéis
   const permissionsQuery = useQuery({
     queryKey: ['/api/permissions/user'],
-    queryFn: () => apiRequest<Record<string, boolean>>('/api/permissions/user'),
+    queryFn: () => apiRequest<Record<string, boolean>>('GET', '/api/permissions/user'),
   });
 
   const hasCreatePermission = React.useMemo(() => {
@@ -113,14 +113,13 @@ export default function RolesPage() {
   // Consulta para buscar todos os papéis
   const rolesQuery = useQuery({
     queryKey: ['/api/permissions/roles'],
-    queryFn: () => apiRequest<Role[]>('/api/permissions/roles'),
+    queryFn: () => apiRequest<Role[]>('GET', '/api/permissions/roles'),
   });
 
   // Mutação para criar um novo papel
   const createRoleMutation = useMutation({
     mutationFn: (data: RoleFormValues) => 
-      apiRequest<Role>('/api/permissions/roles', { 
-        method: 'POST', 
+      apiRequest<Role>('POST', '/api/permissions/roles', { 
         data 
       }),
     onSuccess: () => {
@@ -144,7 +143,7 @@ export default function RolesPage() {
   // Mutação para excluir um papel
   const deleteRoleMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest<{}>(`/api/permissions/roles/${id}`, { method: 'DELETE' }),
+      apiRequest<{}>('DELETE', `/api/permissions/roles/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/roles'] });
       toast({
