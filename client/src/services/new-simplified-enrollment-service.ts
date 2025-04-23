@@ -1,5 +1,11 @@
 /**
- * Serviço para comunicação com a API v2 de matrículas simplificadas
+ * AVISO DE PROTEÇÃO: Este arquivo contém lógica crítica para o sistema de matrículas simplificadas.
+ * Não faça alterações neste código a menos que seja absolutamente necessário.
+ * Qualquer modificação requer aprovação e deve ser feita com extremo cuidado.
+ * Data de estabilização: 23/04/2025
+ * 
+ * Este serviço é responsável pela comunicação entre o frontend e o backend para o
+ * módulo de matrículas simplificadas, essencial para o processo de integração com Asaas.
  */
 
 import { apiRequest } from '../lib/queryClient';

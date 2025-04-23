@@ -1,5 +1,11 @@
 /**
- * Controlador para o módulo de matrículas simplificadas
+ * AVISO DE PROTEÇÃO: Este arquivo contém lógica crítica para o sistema de matrículas simplificadas.
+ * Não faça alterações neste código a menos que seja absolutamente necessário.
+ * Qualquer modificação requer aprovação e deve ser feita com extremo cuidado.
+ * Data de estabilização: 23/04/2025
+ * 
+ * Este controlador gerencia todas as operações de CRUD para matrículas simplificadas e
+ * implementa integrações críticas com serviços de pagamento.
  */
 
 import { Request, Response } from 'express';
