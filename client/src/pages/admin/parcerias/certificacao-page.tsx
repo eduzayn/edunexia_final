@@ -421,6 +421,254 @@ export default function CertificacaoAlunosPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      {/* Modal de Detalhes da Solicitação */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Solicitação de Certificação</DialogTitle>
+            <DialogDescription>
+              Analise a documentação e aprove ou rejeite a solicitação
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSolicitacao && (
+            <>
+              <div className="grid grid-cols-2 gap-6">
+                {/* Seção Dados do Aluno */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center">
+                      <Users className="mr-2 h-5 w-5" />
+                      Dados do Aluno
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Nome Completo</Label>
+                        <p className="font-medium">{mockSolicitacao.aluno.nome}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">CPF</Label>
+                        <p>{mockSolicitacao.aluno.cpf}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">E-mail</Label>
+                        <p>{mockSolicitacao.aluno.email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Telefone</Label>
+                        <p>{mockSolicitacao.aluno.telefone}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Seção Dados do Curso */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center">
+                      <BookOpen className="mr-2 h-5 w-5" />
+                      Dados do Curso
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Curso</Label>
+                        <p className="font-medium">{mockSolicitacao.curso.nome}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Categoria</Label>
+                        <p>{mockSolicitacao.curso.categoria}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Carga Horária Total</Label>
+                        <p>{mockSolicitacao.curso.cargaHoraria} horas</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Instituição</Label>
+                        <p>{mockSolicitacao.instituicao.nome}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {/* Seção Documentos */}
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <File className="mr-2 h-5 w-5" />
+                    Documentos
+                  </CardTitle>
+                  <CardDescription>
+                    Valide cada documento para aprovar a solicitação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {mockSolicitacao.documentos.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-md">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{doc.nome}</p>
+                            <p className="text-xs text-muted-foreground">{doc.tipo}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Visualizar
+                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroup 
+                              value={validacaoDocumentos[doc.id] ? "valid" : "invalid"}
+                              onValueChange={(value) => handleDocumentoValidacaoChange(doc.id, value === "valid")}
+                              className="flex space-x-2"
+                            >
+                              <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="valid" id={`valid-${doc.id}`} />
+                                <Label htmlFor={`valid-${doc.id}`} className="text-green-600 flex items-center">
+                                  <ThumbsUp className="h-3.5 w-3.5 mr-1" />
+                                  Válido
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="invalid" id={`invalid-${doc.id}`} />
+                                <Label htmlFor={`invalid-${doc.id}`} className="text-red-600 flex items-center">
+                                  <ThumbsDown className="h-3.5 w-3.5 mr-1" />
+                                  Inválido
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Seção de Pagamento */}
+              <Card className="mt-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <CircleDollarSign className="mr-2 h-5 w-5" />
+                    Informações de Pagamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Valor da Certificação</Label>
+                      <p className="font-medium text-lg">R$ {mockSolicitacao.valorCertificacao.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Status do Pagamento</Label>
+                      <Badge 
+                        variant={
+                          mockSolicitacao.statusPagamento === 'pago' ? 'success' : 
+                          mockSolicitacao.statusPagamento === 'pendente' ? 'pending' : 'error'
+                        }
+                        className="mt-1"
+                      >
+                        {mockSolicitacao.statusPagamento === 'pago' ? 'Pago' : 
+                          mockSolicitacao.statusPagamento === 'pendente' ? 'Pendente' : 'Atrasado'}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Observações */}
+              <div className="mt-4">
+                <Label htmlFor="observacoes">Observações</Label>
+                <Textarea 
+                  id="observacoes" 
+                  placeholder="Adicione observações sobre esta solicitação" 
+                  value={observacoes}
+                  onChange={(e) => setObservacoes(e.target.value)}
+                  className="h-24 mt-1"
+                />
+              </div>
+              
+              <DialogFooter className="mt-6 flex justify-between">
+                <Button 
+                  variant="destructive" 
+                  onClick={handleRejeitarSolicitacao}
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Rejeitar Solicitação
+                </Button>
+                <div className="space-x-2">
+                  <Button variant="outline" onClick={handleCloseDetails}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleAprovarSolicitacao}
+                    disabled={Object.values(validacaoDocumentos).some(v => !v)}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Aprovar Solicitação
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo de Confirmação */}
+      <Dialog open={confirmacaoDialogAberta} onOpenChange={setConfirmacaoDialogAberta}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {acaoConfirmacao === 'aprovar' ? 'Confirmar Aprovação' : 'Confirmar Rejeição'}
+            </DialogTitle>
+            <DialogDescription>
+              {acaoConfirmacao === 'aprovar' 
+                ? 'Você está prestes a aprovar esta solicitação de certificação. Esta ação não poderá ser desfeita.'
+                : 'Você está prestes a rejeitar esta solicitação de certificação. Esta ação não poderá ser desfeita.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {acaoConfirmacao === 'rejeitar' && (
+            <div className="my-4">
+              <Label htmlFor="motivo-rejeicao" className="text-destructive font-medium">
+                Motivo da rejeição <span className="text-destructive">*</span>
+              </Label>
+              <Textarea 
+                id="motivo-rejeicao" 
+                placeholder="Informe o motivo da rejeição da solicitação"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mt-1"
+              />
+              {!rejectionReason && (
+                <p className="text-xs text-destructive mt-1 flex items-center">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  O motivo da rejeição é obrigatório
+                </p>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmacaoDialogAberta(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant={acaoConfirmacao === 'aprovar' ? 'default' : 'destructive'}
+              onClick={handleConfirmarAcao}
+              disabled={acaoConfirmacao === 'rejeitar' && !rejectionReason}
+            >
+              {acaoConfirmacao === 'aprovar' ? 'Aprovar' : 'Rejeitar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
