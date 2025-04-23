@@ -54,7 +54,7 @@ export default function NewSimplifiedEnrollmentPage() {
     isError,
     error,
   } = useQuery({
-    queryKey: ['/api/v2/simplified-enrollments', { page: currentPage, search: searchQuery, status: statusFilter }],
+    queryKey: ['/api-json/v2/simplified-enrollments', { page: currentPage, search: searchQuery, status: statusFilter }],
     queryFn: () => listSimplifiedEnrollments({
       page: currentPage,
       limit: 10,

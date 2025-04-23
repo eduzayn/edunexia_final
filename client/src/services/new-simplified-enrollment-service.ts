@@ -148,7 +148,7 @@ export const createSimplifiedEnrollment = async (
   try {
     const response = await apiRequest(
       'POST',
-      '/api/v2/simplified-enrollments',
+      '/api-json/v2/simplified-enrollments',
       enrollmentData
     );
     
@@ -168,7 +168,7 @@ export const generatePaymentLink = async (
   try {
     const response = await apiRequest(
       'POST',
-      `/api/v2/simplified-enrollments/${enrollmentId}/generate-payment-link`
+      `/api-json/v2/simplified-enrollments/${enrollmentId}/generate-payment-link`
     );
     
     return await response.json();
@@ -187,7 +187,7 @@ export const updatePaymentStatus = async (
   try {
     const response = await apiRequest(
       'POST',
-      `/api/v2/simplified-enrollments/${enrollmentId}/update-payment-status`
+      `/api-json/v2/simplified-enrollments/${enrollmentId}/update-payment-status`
     );
     
     return await response.json();
@@ -206,7 +206,7 @@ export const cancelEnrollment = async (
   try {
     const response = await apiRequest(
       'POST',
-      `/api/v2/simplified-enrollments/${enrollmentId}/cancel`
+      `/api-json/v2/simplified-enrollments/${enrollmentId}/cancel`
     );
     
     return await response.json();

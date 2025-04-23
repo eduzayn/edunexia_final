@@ -161,12 +161,16 @@ export async function listSimplifiedEnrollments(req: Request, res: Response) {
     const parsedLimit = parseInt(limit as string, 10);
     const parsedOffset = parseInt(offset as string, 10);
     
+    // Obter termos de pesquisa
+    const search = req.query.search as string;
+    
     // Buscar matrículas com filtros
     const enrollments = await storage.getSimplifiedEnrollments(
+      search,
       status as string,
+      parsedInstitutionId,
       parsedCourseId,
       parsedPoloId,
-      parsedInstitutionId,
       parsedLimit,
       parsedOffset
     );
