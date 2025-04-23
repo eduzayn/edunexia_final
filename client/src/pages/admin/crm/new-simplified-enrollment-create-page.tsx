@@ -221,11 +221,27 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     setIsSubmitting(true);
     
     // Log para debug
-    console.log('Valores do formulário:', { 
+    console.log('⚠️ Valores originais do formulário:', { 
       nome: values.studentName, 
       cpf: values.studentCpf, 
       email: values.studentEmail
     });
+    
+    // ⚠️ IMPORTANTE: Detectar substituição indesejada de nomes
+    // Se o valor no formulário não for o mesmo que o que foi digitado pelo usuário
+    // Este é o ponto onde o valor está sendo alterado incorretamente
+    if (selectedAsaasCustomer && selectedAsaasCustomer.name !== values.studentName) {
+      console.warn('🔴 DETECTADA SUBSTITUIÇÃO DE NOME:', {
+        formValue: values.studentName,
+        selectedCustomerName: selectedAsaasCustomer.name,
+        originalInputValue: selectedAsaasCustomer.name // Esta deve ser a referência correta
+      });
+      
+      // Forçar o uso do nome correto que foi digitado pelo usuário
+      values.studentName = selectedAsaasCustomer.name;
+      
+      console.log('🟢 Nome corrigido para:', values.studentName);
+    }
     
     // Garantir que o CPF tenha só números e que o nome esteja sem espaços extras
     const formattedCpf = values.studentCpf.replace(/\D/g, '');
@@ -242,8 +258,19 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       return;
     }
     
+    // Usar diretamente a referência do cliente selecionado para garantir consistência
+    const correctName = selectedAsaasCustomer ? selectedAsaasCustomer.name.trim() : formattedName;
+    
+    // Verificação final para garantir que estamos usando o nome correto
+    console.log('🔄 Verificação final do nome:', {
+      formattedName,
+      correctName,
+      selectedCustomerExists: !!selectedAsaasCustomer,
+      selectedCustomerName: selectedAsaasCustomer ? selectedAsaasCustomer.name : 'Nenhum'
+    });
+    
     const enrollmentData = {
-      studentName: formattedName,
+      studentName: correctName, // Usar nome garantidamente correto
       studentEmail: values.studentEmail.trim(),
       studentCpf: formattedCpf, // CPF já formatado
       studentPhone: values.studentPhone.replace(/\D/g, ''), // Remover formatação
@@ -275,10 +302,11 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       fine: values.fine,
     };
     
-    // Log para debug
-    console.log('Dados enviados para o servidor:', { 
+    // Log para debug final antes do envio
+    console.log('⚠️ Dados FINAIS enviados para o servidor:', { 
       nome: enrollmentData.studentName, 
-      cpf: enrollmentData.studentCpf 
+      cpf: enrollmentData.studentCpf,
+      asaasCustomerId: selectedAsaasCustomer?.id || 'Novo cliente'
     });
     
     // Se tiver um cliente Asaas selecionado, incluir o ID
@@ -331,20 +359,23 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     cpfCnpj: string;
     mobilePhone?: string;
   }) => {
-    console.log('Cliente selecionado:', customer);
+    console.log('⚠️ CLIENTE SELECIONADO DO ASAAS SEARCH:', JSON.stringify(customer));
     
-    // Realizar uma cópia do cliente para evitar possíveis referências
-    const customerCopy = {
+    // IMPORTANTE: Este é o ponto crítico onde o bug estava ocorrendo
+    // O cliente chegava corretamente aqui, mas era substituído em algum 
+    // lugar entre aqui e o envio ao servidor.
+    // Vamos criar uma cópia profunda para evitar referências compartilhadas
+    const customerCopy = JSON.parse(JSON.stringify({
       id: customer.id,
       name: customer.name.trim(), // Garantir que não haja espaços extras
       email: customer.email,
       cpfCnpj: customer.cpfCnpj,
       mobilePhone: customer.mobilePhone
-    };
+    }));
     
     // Se for um novo cliente (criado no componente de busca)
     if (customerCopy.id.startsWith('new_customer')) {
-      console.log('Novo cliente criado a partir da busca:', customerCopy.name);
+      console.log('🟢 NOVO CLIENTE criado a partir da busca:', customerCopy.name);
       
       // Limpar ou formatar CPF somente se estiver vazio
       if (!customerCopy.cpfCnpj) {
@@ -357,14 +388,18 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       // Cliente existente do Asaas - garantir que o CPF esteja formatado
       const formattedCpf = customerCopy.cpfCnpj.replace(/\D/g, '');
       customerCopy.cpfCnpj = formattedCpf;
-      console.log('Cliente existente encontrado:', customerCopy.name, 'CPF:', formattedCpf);
+      console.log('🔵 CLIENTE EXISTENTE encontrado:', customerCopy.name, 'CPF:', formattedCpf);
     }
     
-    // Atualizar estado do cliente selecionado
-    setSelectedAsaasCustomer(customerCopy);
+    // ARMAZENAR UMA CÓPIA LOCAL do nome selecionado para verificação no submit
+    const selectedName = customerCopy.name;
+    console.log('🔶 NOME GUARDADO PARA VERIFICAÇÃO:', selectedName);
+    
+    // Importante: substituir a referência do objeto para evitar efeitos colaterais
+    setSelectedAsaasCustomer({...customerCopy});
     
     // Atualizar campos do formulário com os dados do cliente tratados
-    form.setValue('studentName', customerCopy.name);
+    form.setValue('studentName', selectedName);
     form.setValue('studentEmail', customerCopy.email || '');
     
     // Aplicar formatação ao CPF para exibição
@@ -380,6 +415,24 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     if (customerCopy.mobilePhone) {
       form.setValue('studentPhone', formatPhone(customerCopy.mobilePhone));
     }
+    
+    // Verificação imediata para garantir que o nome está correto no formulário
+    setTimeout(() => {
+      const currentName = form.getValues('studentName');
+      if (currentName !== selectedName) {
+        console.error('🔴 NOME SUBSTITUÍDO IMEDIATAMENTE:', {
+          deveriaSer: selectedName,
+          foiTrocadoPara: currentName
+        });
+        
+        // Corrigir imediatamente
+        form.setValue('studentName', selectedName);
+        
+        console.log('🟢 Nome corrigido para:', selectedName);
+      } else {
+        console.log('✅ Nome mantido corretamente como:', currentName);
+      }
+    }, 100);
     
     // Exibir mensagem apropriada
     if (customerCopy.id.startsWith('new_customer')) {

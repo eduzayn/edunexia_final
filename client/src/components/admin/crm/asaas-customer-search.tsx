@@ -78,8 +78,25 @@ export function AsaasCustomerSearch({
   
   // Função para selecionar um cliente
   const handleCustomerSelect = useCallback((customer: AsaasCustomer) => {
-    onChange(customer.name);
-    onCustomerSelect(customer);
+    // Preservar o nome original do cliente
+    const customerName = customer.name.trim();
+    
+    console.log('⚠️ Cliente selecionado de lista existente:', customerName);
+    
+    // IMPORTANTE: A ordem aqui é crítica para evitar perdas de estado
+    // 1. Atualizar o valor do input interno para garantir coerência visual
+    setInputValue(customerName);
+    
+    // 2. Atualizar o valor no formulário
+    onChange(customerName);
+    
+    // 3. Notificar o componente pai com as informações do cliente
+    onCustomerSelect({
+      ...customer,
+      name: customerName // Garantir que o nome está corretamente formatado
+    });
+    
+    // 4. Fechar o diálogo somente depois que todas as atualizações são feitas
     setOpen(false);
   }, [onChange, onCustomerSelect]);
   
@@ -97,7 +114,7 @@ export function AsaasCustomerSearch({
         cpfCnpj: '',
       };
       
-      console.log('Criando novo cliente com nome:', name);
+      console.log('⚠️ Criando novo cliente com nome:', name);
       
       // Notificar o usuário sobre o que está acontecendo
       toast({
@@ -105,9 +122,11 @@ export function AsaasCustomerSearch({
         description: `Preencha os dados do novo cliente: ${name}`,
       });
       
-      // Usar o valor exato do input para garantir que o nome não será alterado
-      onChange(name);
-      onCustomerSelect(newCustomer);
+      // Importante: manter o nome exato digitado pelo usuário em sincronia
+      // Este é um ponto crítico onde o nome pode ser substituído se não for feito corretamente
+      setInputValue(name); // Garantir que o inputValue está atualizado
+      onChange(name);      // Atualizar o valor do campo do formulário
+      onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
       setOpen(false);
     }
   }, [debouncedSearch, inputValue, onChange, onCustomerSelect, toast]);
