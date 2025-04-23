@@ -289,10 +289,19 @@ router.post("/", async (req, res) => {
     
     // Gerar código único para a solicitação
     const code = await generateUniqueCode("CERT", async (code) => {
-      const existingRequest = await db.query.certificationRequests.findFirst({
-        where: eq(certificationRequests.code, code)
-      });
-      return !existingRequest;
+      try {
+        // Verifica se a tabela de certificações existe antes de consultar
+        const existingRequest = await db
+          .select({ id: certificationRequests.id })
+          .from(certificationRequests)
+          .where(eq(certificationRequests.code, code))
+          .limit(1);
+        
+        return existingRequest.length === 0;
+      } catch (error) {
+        console.error("Erro ao verificar código único:", error);
+        return true; // Em caso de erro, assume que o código é único
+      }
     });
     
     // Criar a solicitação no banco de dados

@@ -29,7 +29,8 @@ import {
   Plus,
   File,
   X,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
