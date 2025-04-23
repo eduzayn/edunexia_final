@@ -83,8 +83,12 @@ const formSchema = z.object({
     .transform((val) => val ? parseInt(val) : 7)
     .optional(),
   allowInstallments: z.boolean().default(true),
-  interestRate: z.string().optional(),
-  fine: z.string().optional(),
+  interestRate: z.string()
+    .transform((val) => val ? parseFloat(val.replace(',', '.')) : 0)
+    .optional(),
+  fine: z.string()
+    .transform((val) => val ? parseFloat(val.replace(',', '.')) : 0)
+    .optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -163,17 +167,17 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       studentCity: '',
       studentState: '',
       studentPostalCode: '',
-      courseId: '',
-      institutionId: '',
-      amount: '',
-      poloId: '',
+      courseId: '' as any,
+      institutionId: '' as any,
+      amount: '' as any,
+      poloId: '' as any,
       sourceChannel: 'admin-portal',
       billingType: 'UNDEFINED',
-      maxInstallmentCount: '12',
-      dueDateLimitDays: '30',
+      maxInstallmentCount: '12' as any,
+      dueDateLimitDays: '30' as any,
       allowInstallments: true,
-      interestRate: '0',
-      fine: '0',
+      interestRate: '0' as any,
+      fine: '0' as any,
     },
   });
 
@@ -235,8 +239,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
       studentState: values.studentState,
       studentPostalCode: values.studentPostalCode?.replace(/\D/g, ''),
       allowInstallments: values.allowInstallments,
-      interestRate: parseFloat(values.interestRate || '0'),
-      fine: parseFloat(values.fine || '0'),
+      interestRate: values.interestRate,
+      fine: values.fine,
     };
     
     // Se tiver um cliente Asaas selecionado, incluir o ID
@@ -448,7 +452,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                   form.setValue('amount', formattedPrice);
                                 }
                               }}
-                              defaultValue={field.value}
+                              defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -526,7 +530,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                             <FormLabel>Instituição*</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -604,7 +608,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                             <FormLabel>Polo (opcional)</FormLabel>
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
                                 <SelectTrigger>
