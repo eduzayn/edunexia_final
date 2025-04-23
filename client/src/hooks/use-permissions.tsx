@@ -414,8 +414,7 @@ export function useUserPermissions(userId: number) {
       poloId?: number,
       expiresAt?: string
     }) => 
-      apiRequest<{}>(`/api/permissions/users/${userId}/permissions`, { 
-        method: 'POST', 
+      apiRequest<{}>('POST', `/api/permissions/users/${userId}/permissions`, { 
         data: { permissionId, institutionId, poloId, expiresAt } 
       }),
     onSuccess: () => {
@@ -438,7 +437,7 @@ export function useUserPermissions(userId: number) {
   // Remover permissão direta do usuário
   const removePermissionFromUserMutation = useMutation({
     mutationFn: (permissionId: number) => 
-      apiRequest<{}>(`/api/permissions/users/${userId}/permissions/${permissionId}`, { method: 'DELETE' }),
+      apiRequest<{}>('DELETE', `/api/permissions/users/${userId}/permissions/${permissionId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/users', userId, 'permissions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/permissions/user'] });
