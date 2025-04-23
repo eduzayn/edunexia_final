@@ -331,7 +331,7 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       
       createdAt: new Date(),
       updatedAt: new Date(),
-      createdById: req.user?.id || null
+      createdById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
     }).returning();
     
     // Adicionar os campos extras para a resposta
@@ -606,7 +606,7 @@ export async function updatePaymentStatus(req: Request, res: Response) {
         .set({
           status: newStatus,
           updatedAt: new Date(),
-          updatedById: req.user?.id || null
+          updatedById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
         })
         .where(eq(simplifiedEnrollments.id, enrollmentId));
       
@@ -691,7 +691,7 @@ export async function cancelEnrollment(req: Request, res: Response) {
       .set({
         status: 'cancelled',
         updatedAt: new Date(),
-        updatedById: req.user?.id || null
+        updatedById: null // Não usar req.user?.id porque pode referenciar um ID inexistente
       })
       .where(eq(simplifiedEnrollments.id, enrollmentId));
     
