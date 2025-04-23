@@ -780,6 +780,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     communicationCategory,
     certificationCategory,
     operationalCategory,
-    administrationCategory, // Nova categoria no final do menu
+    // administrationCategory foi removida
   ];
 }
