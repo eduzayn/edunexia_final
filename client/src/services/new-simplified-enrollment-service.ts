@@ -106,12 +106,12 @@ export const listSimplifiedEnrollments = async (
       queryParams.append('status', status);
     }
     
-    console.log(`Realizando requisição GET /api/v2/simplified-enrollments?${queryParams.toString()}`);
+    console.log(`Realizando requisição GET /api-json/v2/simplified-enrollments?${queryParams.toString()}`);
     
     // A ordem correta é: método, URL, data, headers
     const response = await apiRequest(
       'GET',
-      `/api/v2/simplified-enrollments?${queryParams.toString()}`
+      `/api-json/v2/simplified-enrollments?${queryParams.toString()}`
     );
     
     return await response.json();
@@ -130,7 +130,7 @@ export const getSimplifiedEnrollmentById = async (
   try {
     const response = await apiRequest(
       'GET',
-      `/api/v2/simplified-enrollments/${id}`
+      `/api-json/v2/simplified-enrollments/${id}`
     );
     return await response.json();
   } catch (error) {
