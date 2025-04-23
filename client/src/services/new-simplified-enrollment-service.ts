@@ -50,6 +50,11 @@ export interface CreateSimplifiedEnrollmentData {
   poloId?: number | null;
   amount: number;
   sourceChannel?: string;
+  // Campos obrigatórios para criação de pagamento
+  uuid?: string; // Será gerado pelo backend se não for fornecido
+  fullPrice?: number; // Será o mesmo que amount se não for fornecido
+  expiresAt?: Date | string; // Será definido pelo backend (30 dias) se não for fornecido
+  paymentGateway?: string; // Default "asaas"
   // Dados de endereço do aluno
   studentAddress?: string;
   studentAddressNumber?: string;
