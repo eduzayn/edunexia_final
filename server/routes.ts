@@ -491,6 +491,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
+  
+  // Rota específica para /api-json/admin/disciplines/:id
+  app.get('/api-json/admin/disciplines/:id', requireAuth, async (req, res) => {
+    try {
+      console.log(`GET /api-json/admin/disciplines/${req.params.id} - Obtendo disciplina específica`);
+      // Garantir que a resposta seja JSON
+      res.setHeader('Content-Type', 'application/json');
+      
+      const id = parseInt(req.params.id);
+      const discipline = await storage.getDiscipline(id);
+
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+
+      return res.json(discipline);
+    } catch (error) {
+      console.error("Erro ao buscar disciplina:", error);
+      return res.status(500).json({ 
+        message: "Erro ao buscar disciplina",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Rota para obter o conteúdo de uma disciplina
+  app.get('/api-json/admin/disciplines/:id/content', requireAuth, async (req, res) => {
+    try {
+      console.log(`GET /api-json/admin/disciplines/${req.params.id}/content - Obtendo conteúdo da disciplina`);
+      // Garantir que a resposta seja JSON
+      res.setHeader('Content-Type', 'application/json');
+      
+      const id = parseInt(req.params.id);
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(id);
+      
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Obter o conteúdo da disciplina
+      const content = await storage.getDisciplineContent(id);
+      
+      return res.json(content || {
+        videos: [],
+        materials: [],
+        ebooks: [],
+        assessments: []
+      });
+    } catch (error) {
+      console.error("Erro ao buscar conteúdo da disciplina:", error);
+      return res.status(500).json({ 
+        message: "Erro ao buscar conteúdo da disciplina",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Rota para obter o status de completude de uma disciplina
+  app.get('/api-json/admin/disciplines/:id/completeness', requireAuth, async (req, res) => {
+    try {
+      console.log(`GET /api-json/admin/disciplines/${req.params.id}/completeness - Obtendo status de completude`);
+      // Garantir que a resposta seja JSON
+      res.setHeader('Content-Type', 'application/json');
+      
+      const id = parseInt(req.params.id);
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(id);
+      
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Calcular completude (simplificado)
+      const content = await storage.getDisciplineContent(id);
+      const hasVideos = content?.videos?.length > 0;
+      const hasMaterials = content?.materials?.length > 0;
+      const hasEbooks = content?.ebooks?.length > 0;
+      const hasAssessments = content?.assessments?.length > 0;
+      
+      const completenessItems = [
+        { id: "info", label: "Informações básicas", status: discipline ? "completed" : "pending" },
+        { id: "videos", label: "Vídeo-aulas", status: hasVideos ? "completed" : "pending" },
+        { id: "materials", label: "Materiais de apoio", status: hasMaterials ? "completed" : "pending" },
+        { id: "ebooks", label: "E-books", status: hasEbooks ? "completed" : "pending" },
+        { id: "assessments", label: "Avaliações", status: hasAssessments ? "completed" : "pending" },
+      ];
+      
+      // Calcular porcentagem de completude
+      const completedItems = completenessItems.filter(item => item.status === "completed").length;
+      const totalItems = completenessItems.length;
+      const completionPercentage = Math.round((completedItems / totalItems) * 100);
+      
+      return res.json({
+        items: completenessItems,
+        completionPercentage
+      });
+    } catch (error) {
+      console.error("Erro ao buscar status de completude da disciplina:", error);
+      return res.status(500).json({ 
+        message: "Erro ao buscar status de completude",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Redirecionar rotas obsoletas para novos endpoints
   // - Antigos endpoints de clientes agora são redirecionados para a implementação do Asaas
