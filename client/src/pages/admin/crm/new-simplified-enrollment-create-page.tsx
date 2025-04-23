@@ -340,7 +340,7 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                 <TabsContent value="basic" className="space-y-6">
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Dados do Aluno</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         control={form.control}
                         name="studentName"
@@ -361,6 +361,9 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           </FormItem>
                         )}
                       />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="studentEmail"
