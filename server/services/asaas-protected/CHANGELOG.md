@@ -7,6 +7,7 @@
 - ✅ Adição de tipo de pessoa (personType) com valor padrão 'FISICA'
 - ✅ Tratamento detalhado de erros da API Asaas
 - ✅ Correção de duplicidade na interface AsaasPaymentResponse (creditCardToken)
+- ✅ Inclusão do serviço de cobranças (asaas-charges-service.ts) na proteção
 
 ### Melhorias:
 - Logs mais detalhados para facilitar diagnóstico de problemas

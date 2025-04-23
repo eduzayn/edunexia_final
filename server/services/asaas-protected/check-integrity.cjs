@@ -14,7 +14,8 @@ const filesToCheck = [
   'asaas-customers-service.ts',
   'asaas-direct-payment-service.ts',
   'asaas-course-payment-service.ts',
-  'certification-payment-service.ts'
+  'certification-payment-service.ts',
+  'asaas-charges-service.ts'
 ];
 
 // Caminho para os diretórios

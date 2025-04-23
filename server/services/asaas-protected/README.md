@@ -24,6 +24,11 @@ Esta pasta contém versões protegidas e estáveis dos serviços de integração
    - Integração com o módulo de certificação
    - Gestão de pagamentos para emissão de certificados
 
+5. **asaas-charges-service.ts** - Serviço para gerenciamento de cobranças no CRM
+   - Listagem, criação e cancelamento de cobranças
+   - Busca por cliente ou ID de cobrança
+   - Confirmação de pagamentos manuais
+
 ## Recomendações
 
 - Se precisar fazer modificações, **crie uma nova versão** dos arquivos e teste-a separadamente.
