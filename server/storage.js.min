@@ -1,0 +1,44 @@
+// Este arquivo temporário é uma versão mínima modificada de storage.ts que 
+// resolve o erro ao carregar o schema sem os entidades que foram removidos na nova versão
+
+import { users } from "@shared/schema";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { pool } from "./db";
+import { eq } from "drizzle-orm";
+
+const PostgresSessionStore = connectPg(session);
+
+// Implementação de armazenamento em banco de dados
+export class DatabaseStorage {
+  sessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+
+  // Métodos mínimos para autenticação
+  async getUser(id) {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username) {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+  
+  async createUser(insertUser) {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+}
+
+export const storage = new DatabaseStorage();
