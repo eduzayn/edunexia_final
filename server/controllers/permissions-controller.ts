@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
+import { sql, eq, inArray, and } from 'drizzle-orm';
 import { roles, permissions, rolePermissions, userRoles } from '../db/schema';
-import { eq, inArray, and } from 'drizzle-orm';
 
 /**
  * Lista todas as funções disponíveis no sistema
