@@ -67,7 +67,7 @@ export default function StudentCoursesPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { data: courses = [], isLoading } = useQuery<StudentCourse[]>({
-    queryKey: ["/api/student/courses"],
+    queryKey: ["/api-json/student/courses"],
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 

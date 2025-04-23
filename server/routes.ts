@@ -425,6 +425,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rota JSON para listar cursos do aluno
+  app.get('/api-json/student/courses', requireStudent, async (req, res) => {
+    console.log('Buscando cursos do aluno (API JSON)');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const userId = (req as any).user.id;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do usuário não encontrado'
+        });
+      }
+      
+      // Obter matrículas do aluno
+      const enrollments = await storage.getStudentEnrollments(userId);
+      
+      // Mapear para o formato esperado pelo frontend
+      const studentCourses = await Promise.all(enrollments.map(async (enrollment) => {
+        const course = await storage.getCourse(enrollment.courseId);
+        
+        if (!course) {
+          return null;
+        }
+        
+        return {
+          id: course.id,
+          code: course.code,
+          name: course.name,
+          description: course.description || '',
+          status: course.status,
+          workload: course.workload || 0,
+          progress: enrollment.progress || 0,
+          enrolledAt: enrollment.createdAt,
+          updatedAt: enrollment.updatedAt || enrollment.createdAt
+        };
+      }));
+      
+      // Filtrar valores nulos (cursos não encontrados)
+      const validCourses = studentCourses.filter(course => course !== null);
+      
+      console.log(`Retornando ${validCourses.length} cursos para o aluno ${userId}`);
+      return res.status(200).json(validCourses);
+    } catch (error) {
+      console.error('Erro ao buscar cursos do aluno (API JSON):', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao buscar cursos do aluno' 
+      });
+    }
+  });
+  
+  // Redirecionar rota tradicional para a rota JSON
+  app.get('/api/student/courses', (req, res) => {
+    console.log('Redirecionando /api/student/courses para /api-json/student/courses');
+    res.redirect(307, req.url.replace('/api/', '/api-json/'));
+  });
+
   // Nova rota API JSON para instituições - usada no formulário de matrícula
   app.get('/api-json/institutions', async (req, res) => {
     console.log('Buscando todas as instituições (API JSON)');
