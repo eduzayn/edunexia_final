@@ -84,18 +84,21 @@ export const CertificationPaymentService = {
         throw new Error(`Usuário com ID ${partnerId} não é um parceiro`);
       }
       
-      // Se o parceiro já tem um ID Asaas, retorna ele (se tiver)
-      if (partner.asaasId) {
-        console.log(`[CERTIFICATION] Parceiro ${partnerId} já possui ID Asaas: ${partner.asaasId}`);
-        return partner.asaasId;
-      }
-      
-      // Se não tem, vamos criar um cliente no Asaas
-      console.log(`[CERTIFICATION] Criando cliente Asaas para o parceiro ${partnerId}`);
+      // Como não temos campo asaasId na tabela user, vamos sempre buscar ou criar o cliente no Asaas
+      // utilizando o CPF do parceiro como identificador único
+      console.log(`[CERTIFICATION] Buscando/criando cliente Asaas para o parceiro ${partnerId}`);
       
       // Verificar se tem CPF
       if (!partner.cpf) {
         throw new Error(`Parceiro com ID ${partnerId} não possui CPF cadastrado`);
+      }
+      
+      // Verificar se já existe um cliente com este CPF no Asaas
+      const existingCustomer = await AsaasDirectPaymentService.findCustomerByCpfCnpj(partner.cpf);
+      
+      if (existingCustomer) {
+        console.log(`[CERTIFICATION] Cliente já existe no Asaas com ID: ${existingCustomer.id}`);
+        return existingCustomer.id;
       }
       
       // Criar cliente no Asaas
@@ -189,7 +192,7 @@ export const CertificationPaymentService = {
         pixCode: paymentResponse.data.pixCopiaECola,
         code
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[CERTIFICATION] Erro ao criar pagamento para certificação em lote:', error);
       
       // Verificar se é um erro de resposta da API Asaas
@@ -198,7 +201,11 @@ export const CertificationPaymentService = {
         
         return {
           success: false,
-          message: 'Erro na API do Asaas: ' + (error.response.data.errors?.description || error.response.data.message || 'Erro desconhecido'),
+          message: 'Erro na API do Asaas: ' + (
+            error.response.data.errors?.description || 
+            error.response.data.message || 
+            'Erro desconhecido'
+          ),
           error: error.response.data
         };
       }
@@ -206,7 +213,7 @@ export const CertificationPaymentService = {
       return {
         success: false,
         message: error instanceof Error ? error.message : 'Erro ao criar pagamento',
-        error: error
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       };
     }
   }

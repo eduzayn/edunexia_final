@@ -97,6 +97,7 @@ export const users = pgTable("users", {
   birthDate: text("birth_date"), // Data de nascimento
   portalType: text("portal_type").notNull(),
   poloId: integer("polo_id"), // Referência ao polo (para usuários do tipo "polo")
+  asaasId: text("asaas_id"), // ID do cliente no Asaas para integrações de pagamento
 });
 
 // Instituições
