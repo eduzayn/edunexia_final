@@ -1,125 +1,37 @@
-/**
- * Middleware de autenticação e autorização para a aplicação
- */
-
 import { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger';
 
-/**
- * Interface para estender Request com informações do usuário autenticado
- */
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    name: string;
-    email: string;
-    role: string;
-    portalType?: string;
-    institutionId?: number;
-    poloId?: number;
-    cpf?: string;
-    profileId?: number;
-    metadata?: any;
-  };
+// Middleware para verificar se o usuário está autenticado
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  // Verificar o token no header de Authorization
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+  
+  if (!req.user) {
+    return res.status(401).json({ 
+      success: false,
+      message: 'Você precisa estar autenticado para acessar este recurso.' 
+    });
+  }
+  
+  next();
 }
 
-/**
- * Middleware para verificar se o usuário está autenticado
- * @param req Requisição Express
- * @param res Resposta Express
- * @param next Função para passar para o próximo middleware
- */
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    logger.warn('[Auth Middleware] Acesso não autenticado rejeitado');
-    return res.status(401).json({ success: false, message: 'Autenticação necessária' });
-  }
-  
+// Middleware para verificar se o usuário tem permissão de admin
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
-    logger.error('[Auth Middleware] Sessão autenticada mas sem dados do usuário');
-    return res.status(401).json({ success: false, message: 'Dados de usuário não encontrados' });
+    return res.status(401).json({ 
+      success: false,
+      message: 'Você precisa estar autenticado para acessar este recurso.' 
+    });
   }
   
-  next();
-};
-
-/**
- * Middleware para verificar se o usuário tem um tipo específico de portal
- * @param portalType Tipo de portal permitido ("admin", "student", "polo", "partner", etc)
- */
-export const requirePortalType = (portalType: string) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      logger.warn('[Auth Middleware] Acesso não autenticado rejeitado');
-      return res.status(401).json({ success: false, message: 'Autenticação necessária' });
-    }
-    
-    if (!req.user) {
-      logger.error('[Auth Middleware] Sessão autenticada mas sem dados do usuário');
-      return res.status(401).json({ success: false, message: 'Dados de usuário não encontrados' });
-    }
-    
-    // @ts-ignore - O TypeScript não reconhece a propriedade portalType, mas ela existe no objeto de usuário
-    if (req.user.portalType !== portalType) {
-      logger.warn(`[Auth Middleware] Acesso negado para usuário do portal ${req.user.portalType} tentando acessar rota do portal ${portalType}`);
-      return res.status(403).json({ 
-        success: false, 
-        message: `Acesso não autorizado. Esta funcionalidade é exclusiva para o portal ${portalType}.` 
-      });
-    }
-    
-    next();
-  };
-};
-
-/**
- * Middleware para verificar se o usuário é um administrador
- */
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    logger.warn('[Auth Middleware] Acesso não autenticado rejeitado');
-    return res.status(401).json({ success: false, message: 'Autenticação necessária' });
-  }
-  
-  if (!req.user) {
-    logger.error('[Auth Middleware] Sessão autenticada mas sem dados do usuário');
-    return res.status(401).json({ success: false, message: 'Dados de usuário não encontrados' });
-  }
-  
-  // @ts-ignore - O TypeScript não reconhece a propriedade portalType, mas ela existe no objeto de usuário
-  if (req.user.portalType !== 'admin') {
-    logger.warn(`[Auth Middleware] Acesso negado para usuário do portal ${req.user.portalType} tentando acessar rota de administrador`);
+  const user = req.user as any;
+  if (user.portalType !== 'admin' && user.role !== 'admin') {
     return res.status(403).json({ 
-      success: false, 
-      message: 'Acesso não autorizado. Esta funcionalidade é exclusiva para administradores.' 
+      success: false,
+      message: 'Você não tem permissão para acessar este recurso.' 
     });
   }
   
   next();
-};
-
-/**
- * Middleware para verificar se o usuário é um estudante
- */
-export const requireStudent = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
-    logger.warn('[Auth Middleware] Acesso não autenticado rejeitado');
-    return res.status(401).json({ success: false, message: 'Autenticação necessária' });
-  }
-  
-  if (!req.user) {
-    logger.error('[Auth Middleware] Sessão autenticada mas sem dados do usuário');
-    return res.status(401).json({ success: false, message: 'Dados de usuário não encontrados' });
-  }
-  
-  // @ts-ignore - O TypeScript não reconhece a propriedade portalType, mas ela existe no objeto de usuário
-  if (req.user.portalType !== 'student') {
-    logger.warn(`[Auth Middleware] Acesso negado para usuário do portal ${req.user.portalType} tentando acessar rota de estudante`);
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Acesso não autorizado. Esta funcionalidade é exclusiva para estudantes.' 
-    });
-  }
-  
-  next();
-};
+}

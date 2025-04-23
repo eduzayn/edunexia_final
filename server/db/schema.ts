@@ -1,5 +1,67 @@
 
-import { pgTable, serial, text, timestamp, integer, boolean, doublePrecision } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, boolean, doublePrecision, primaryKey } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+// Tabelas de permissões
+export const roles = pgTable('roles', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+export const permissions = pgTable('permissions', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description').notNull(),
+  resource: text('resource').notNull(),
+  action: text('action').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+export const rolePermissions = pgTable('role_permissions', {
+  roleId: integer('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  permissionId: integer('permission_id').notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.roleId, t.permissionId] }),
+}));
+
+export const userRoles = pgTable('user_roles', {
+  userId: integer('user_id').notNull(),
+  roleId: integer('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull()
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.roleId] }),
+}));
+
+// Relações para as tabelas de permissões
+export const rolesRelations = relations(roles, ({ many }) => ({
+  permissions: many(rolePermissions)
+}));
+
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  roles: many(rolePermissions)
+}));
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, {
+    fields: [rolePermissions.roleId],
+    references: [roles.id]
+  }),
+  permission: one(permissions, {
+    fields: [rolePermissions.permissionId],
+    references: [permissions.id]
+  })
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  role: one(roles, {
+    fields: [userRoles.roleId],
+    references: [roles.id]
+  })
+}));
 
 // Simplified Enrollments schema
 export const simplifiedEnrollments = pgTable('simplified_enrollments', {

@@ -6,6 +6,7 @@ import { Server } from 'http';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
+import permissionsRouter from './routes/permissions-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
@@ -288,6 +289,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Usar as rotas de debug
   app.use('/api/debug', debugRouter);
+  
+  // Usar as rotas de permissões
+  app.use('/api-json/permissions', permissionsRouter);
   
   // Adicionar redirecionamentos de compatibilidade para rotas de autenticação antigas
   app.post('/api/login', (req, res) => {
