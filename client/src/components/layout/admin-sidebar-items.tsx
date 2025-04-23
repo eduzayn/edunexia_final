@@ -43,7 +43,7 @@ import {
   FacebookIcon,
   TelegramIcon,
   WidgetIcon,
-  UnlockIcon,
+  LockIcon,
 } from "@/components/ui/icons";
 import { CircleDollarSign, ShieldIcon, CreditCardIcon, GraduationCap } from "lucide-react";
 
@@ -490,7 +490,7 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         },
         { 
           name: "Portal do Aluno - Acesso", 
-          icon: <UnlockIcon />, 
+          icon: <LockIcon />, 
           href: "/admin/sistema/portal-access-control",
           active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
         },
