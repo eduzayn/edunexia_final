@@ -94,6 +94,13 @@ export default function NovaSolicitacaoCertificacaoPage() {
   const [csvAlunosLote, setCsvAlunosLote] = useState<AlunoLote[]>([]);
   const [showResumoLote, setShowResumoLote] = useState(false);
   const [valorCertificado, setValorCertificado] = useState(79.90); // Valor padrão por certificado
+  
+  // Estados para o formulário de lote
+  const [novoAlunoNome, setNovoAlunoNome] = useState('');
+  const [novoAlunoCpf, setNovoAlunoCpf] = useState('');
+  const [novoAlunoEmail, setNovoAlunoEmail] = useState('');
+  const [novoAlunoTelefone, setNovoAlunoTelefone] = useState('');
+  const [novoAlunoCurso, setNovoAlunoCurso] = useState('');
 
   // Form handling
   const form = useForm({
@@ -156,13 +163,14 @@ export default function NovaSolicitacaoCertificacaoPage() {
   
   // Função para adicionar um aluno na lista de lote
   const adicionarAlunoLote = () => {
+    // Usar os estados em vez de acessar elementos DOM diretamente
     const novoAluno: AlunoLote = {
       id: alunosLote.length + 1,
-      nome: document.getElementById('nome1') ? (document.getElementById('nome1') as HTMLInputElement).value : '',
-      cpf: document.getElementById('cpf1') ? (document.getElementById('cpf1') as HTMLInputElement).value : '',
-      email: document.getElementById('email1') ? (document.getElementById('email1') as HTMLInputElement).value : '',
-      telefone: document.getElementById('telefone1') ? (document.getElementById('telefone1') as HTMLInputElement).value : '',
-      curso: document.getElementById('curso1') ? (document.getElementById('curso1') as HTMLInputElement).value : '',
+      nome: novoAlunoNome,
+      cpf: novoAlunoCpf,
+      email: novoAlunoEmail,
+      telefone: novoAlunoTelefone,
+      curso: novoAlunoCurso,
     };
     
     // Verifica se os campos obrigatórios foram preenchidos
@@ -171,14 +179,17 @@ export default function NovaSolicitacaoCertificacaoPage() {
       return;
     }
     
+    console.log('Adicionando aluno ao lote:', novoAluno);
+    
+    // Adiciona o novo aluno à lista
     setAlunosLote([...alunosLote, novoAluno]);
     
-    // Limpa os campos do formulário
-    if (document.getElementById('nome1')) (document.getElementById('nome1') as HTMLInputElement).value = '';
-    if (document.getElementById('cpf1')) (document.getElementById('cpf1') as HTMLInputElement).value = '';
-    if (document.getElementById('email1')) (document.getElementById('email1') as HTMLInputElement).value = '';
-    if (document.getElementById('telefone1')) (document.getElementById('telefone1') as HTMLInputElement).value = '';
-    if (document.getElementById('curso1')) (document.getElementById('curso1') as HTMLInputElement).value = '';
+    // Limpa os estados para o próximo aluno
+    setNovoAlunoNome('');
+    setNovoAlunoCpf('');
+    setNovoAlunoEmail('');
+    setNovoAlunoTelefone('');
+    setNovoAlunoCurso('');
   };
   
   // Função para processar o upload de CSV
@@ -668,23 +679,43 @@ export default function NovaSolicitacaoCertificacaoPage() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div>
                                 <Label htmlFor="nome1">Nome Completo</Label>
-                                <Input id="nome1" placeholder="Nome completo" />
+                                <Input 
+                                  id="nome1" 
+                                  placeholder="Nome completo" 
+                                  value={novoAlunoNome}
+                                  onChange={(e) => setNovoAlunoNome(e.target.value)}
+                                />
                               </div>
                               <div>
                                 <Label htmlFor="cpf1">CPF</Label>
-                                <Input id="cpf1" placeholder="000.000.000-00" />
+                                <Input 
+                                  id="cpf1" 
+                                  placeholder="000.000.000-00" 
+                                  value={novoAlunoCpf}
+                                  onChange={(e) => setNovoAlunoCpf(e.target.value)}
+                                />
                               </div>
                               <div>
                                 <Label htmlFor="email1">Email</Label>
-                                <Input id="email1" placeholder="email@exemplo.com" />
+                                <Input 
+                                  id="email1" 
+                                  placeholder="email@exemplo.com" 
+                                  value={novoAlunoEmail}
+                                  onChange={(e) => setNovoAlunoEmail(e.target.value)}
+                                />
                               </div>
                               <div>
                                 <Label htmlFor="telefone1">Telefone</Label>
-                                <Input id="telefone1" placeholder="(00) 00000-0000" />
+                                <Input 
+                                  id="telefone1" 
+                                  placeholder="(00) 00000-0000" 
+                                  value={novoAlunoTelefone}
+                                  onChange={(e) => setNovoAlunoTelefone(e.target.value)}
+                                />
                               </div>
                               <div className="md:col-span-2">
                                 <Label htmlFor="curso1">Curso</Label>
-                                <Select>
+                                <Select onValueChange={(value) => setNovoAlunoCurso(value)}>
                                   <SelectTrigger id="curso1">
                                     <SelectValue placeholder="Selecione o curso" />
                                   </SelectTrigger>
