@@ -177,13 +177,40 @@ export default function DisciplineContentPage() {
   const { 
     data: discipline, 
     isLoading: isDisciplineLoading, 
-    isError: isDisciplineError 
+    isError: isDisciplineError,
+    error: disciplineError,
+    refetch: refetchDiscipline
   } = useQuery({
     queryKey: ["/api/admin/disciplines", disciplineId],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/admin/disciplines/${disciplineId}`);
-      return response.json();
+      try {
+        console.log(`Buscando disciplina com ID: ${disciplineId}`);
+        const response = await apiRequest("GET", `/api/admin/disciplines/${disciplineId}`);
+        const data = await response.json();
+        console.log(`Dados da disciplina recebidos:`, data);
+        
+        // Verifica se a resposta é um objeto vazio ou null
+        if (!data) {
+          throw new Error("Dados da disciplina não encontrados");
+        }
+        
+        // Verifica se é um array vazio ou objeto JSON sem propriedade id
+        if (Array.isArray(data) && data.length === 0) {
+          throw new Error("Disciplina retornou array vazio");
+        }
+        
+        if (!data.id) {
+          throw new Error(`Dados da disciplina inválidos: ${JSON.stringify(data)}`);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error(`Erro ao buscar disciplina ${disciplineId}:`, error);
+        throw error;
+      }
     },
+    retry: 2,
+    retryDelay: 1000,
   });
   
   // Consulta para obter vídeos da disciplina
@@ -670,8 +697,21 @@ export default function DisciplineContentPage() {
             <AlertTitle>Erro ao carregar disciplina</AlertTitle>
             <AlertDescription>
               Não foi possível carregar os dados da disciplina. Verifique se o ID está correto.
+              {disciplineError && (
+                <div className="mt-2 text-xs bg-red-50 p-2 rounded border border-red-200">
+                  Detalhes do erro: {disciplineError instanceof Error ? disciplineError.message : 'Erro desconhecido'}
+                </div>
+              )}
             </AlertDescription>
           </Alert>
+          <Button 
+            onClick={() => refetchDiscipline()}
+            className="mb-4 mr-2"
+            variant="outline"
+          >
+            <RefreshCwIcon className="mr-2 h-4 w-4" />
+            Tentar Novamente
+          </Button>
           <Button
             onClick={() => navigate("/admin/academico/disciplines")}
             className="mt-4"
