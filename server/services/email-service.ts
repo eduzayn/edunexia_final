@@ -324,7 +324,7 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h2>Seu Certificado - EDUNEXA ACADEMY</h2>
+            <h2>Seu Certificado - FACULDADE DYNAMUS</h2>
           </div>
           <div class="content">
             <p>Parabéns, <strong>${studentName}</strong>!</p>
@@ -350,11 +350,11 @@ class EmailService {
             <p>Você também pode verificar a autenticidade do seu certificado através do link:</p>
             <p><a href="${verificationUrl}">${verificationUrl}</a></p>
             
-            <p>Agradecemos por confiar na EDUNEXA para sua formação profissional!</p>
+            <p>Agradecemos por confiar na FACULDADE DYNAMUS para sua formação profissional!</p>
           </div>
           <div class="footer">
-            <p>EDUNEXA ACADEMY - Excelência em Educação Continuada</p>
-            <p>&copy; ${new Date().getFullYear()} EDUNEXA. Todos os direitos reservados.</p>
+            <p>FACULDADE DYNAMUS - Excelência em Educação Continuada</p>
+            <p>&copy; ${new Date().getFullYear()} FACULDADE DYNAMUS. Todos os direitos reservados.</p>
           </div>
         </div>
       </body>

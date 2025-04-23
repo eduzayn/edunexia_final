@@ -307,7 +307,7 @@ export async function generateTranscriptPdf(certificateId: number): Promise<Buff
     
     // Título principal
     doc.font('Helvetica-Bold').fontSize(16);
-    doc.text('EDUNEXA ACADEMY', { align: 'center' });
+    doc.text('FACULDADE DYNAMUS', { align: 'center' });
     
     // Informações de credenciamento
     doc.font('Helvetica').fontSize(10);
@@ -466,7 +466,7 @@ export async function generateTranscriptPdf(certificateId: number): Promise<Buff
     
     // Nome da instituição (lado esquerdo)
     doc.font('Helvetica').fontSize(10);
-    doc.text('EDUNEXA ACADEMY', 150, footerY + 50, { align: 'center' });
+    doc.text('FACULDADE DYNAMUS', 150, footerY + 50, { align: 'center' });
     
     // Assinatura do diretor (lado direito)
     if (certificateData.signerSignatureUrl) {
