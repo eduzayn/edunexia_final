@@ -87,13 +87,13 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 3000 now
-  const port = 3000;
+  // Usa a porta definida no ambiente ou 5000 como padrão
+  const port = process.env.PORT || 5000;
   server.listen({
-    port,
+    port: Number(port),
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`[express] serving on port ${port}`);
   });
 })();
