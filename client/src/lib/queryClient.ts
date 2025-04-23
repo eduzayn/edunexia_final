@@ -61,10 +61,12 @@ export const getQueryFn: <T>(options: {
     
     // Adicionar token de autenticação ao header se disponível no localStorage
     const authToken = localStorage.getItem('auth_token');
+    console.log('getQueryFn - Token de autenticação recuperado do localStorage:', !!authToken ? 'Sim' : 'Não');
     const headers: Record<string, string> = {};
     
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
+      console.log('getQueryFn - Authorization Header definido:', `Bearer ${authToken}`);
     }
     
     const res = await fetch(queryKey[0] as string, {
