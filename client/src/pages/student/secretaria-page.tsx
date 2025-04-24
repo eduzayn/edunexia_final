@@ -1,28 +1,6 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
-import { Sidebar } from "@/components/layout/sidebar";
-import { 
-  LayoutDashboard,
-  BookOpenText, 
-  GraduationCap, 
-  FileQuestion, 
-  BriefcaseBusiness, 
-  Handshake, 
-  Banknote, 
-  Calendar, 
-  MessagesSquare, 
-  User,
-  BookMarked
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import StudentLayout from "@/components/layout/student-layout";
 import {
   ChartIcon,
   SchoolIcon,
@@ -49,6 +27,14 @@ import {
   Loader2,
   Trash2
 } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,7 +130,6 @@ const newRequestSchema = z.object({
 export default function SecretariaPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<UserRequest | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -533,757 +518,483 @@ export default function SecretariaPage() {
     });
   };
 
-  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
-  const [location] = useLocation();
-  const sidebarItems = [
-    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" },
-  ];
-
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <StudentLayout
+      title="Secretaria Acadêmica"
+      subtitle="Faça solicitações e acompanhe o status dos seus pedidos"
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Secretaria", href: "/student/secretaria" }
+      ]}
+      action={
+        <Button onClick={() => setIsDialogOpen(true)}>
+          Nova Solicitação
+        </Button>
+      }
+    >
+      {/* Tabs */}
+      <Tabs defaultValue="requests" className="mb-6" onValueChange={(value) => setActiveTab(value)}>
+        <TabsList>
+          <TabsTrigger value="requests">Minhas Solicitações</TabsTrigger>
+          <TabsTrigger value="services">Serviços Disponíveis</TabsTrigger>
+          <TabsTrigger value="documents">Documentos Acadêmicos</TabsTrigger>
+          <TabsTrigger value="info">Informações e Prazos</TabsTrigger>
+        </TabsList>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Secretaria Acadêmica</h1>
-              <p className="text-gray-600">Faça solicitações e acompanhe o status dos seus pedidos</p>
-            </div>
-            <Button className="mt-4 md:mt-0" onClick={() => setIsDialogOpen(true)}>
-              Nova Solicitação
-            </Button>
+        {/* Tab - Minhas Solicitações */}
+        <TabsContent value="requests">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <Input
+              placeholder="Buscar solicitações..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="md:w-1/3"
+            />
+            <Select
+              value={filterStatus}
+              onValueChange={(value) => setFilterStatus(value)}
+            >
+              <SelectTrigger className="md:w-1/4">
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="processing">Em Processamento</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="rejected">Rejeitado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="requests" className="mb-6" onValueChange={(value) => setActiveTab(value)}>
-            <TabsList>
-              <TabsTrigger value="requests">Minhas Solicitações</TabsTrigger>
-              <TabsTrigger value="services">Serviços Disponíveis</TabsTrigger>
-              <TabsTrigger value="documents">Documentos Acadêmicos</TabsTrigger>
-              <TabsTrigger value="info">Informações e Prazos</TabsTrigger>
-            </TabsList>
-
-            {/* Tab - Minhas Solicitações */}
-            <TabsContent value="requests">
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <Input
-                  placeholder="Buscar solicitações..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="md:w-1/3"
-                  icon={<SearchIcon className="h-4 w-4" />}
-                />
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-full md:w-60">
-                    <SelectValue placeholder="Filtrar por status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="pending">Pendente</SelectItem>
-                    <SelectItem value="processing">Em Processamento</SelectItem>
-                    <SelectItem value="completed">Concluído</SelectItem>
-                    <SelectItem value="rejected">Rejeitado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {filteredRequests.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileTextIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhuma solicitação encontrada</h3>
-                  <p className="text-gray-600 mb-4">
-                    {searchTerm || filterStatus !== "all"
-                      ? "Tente ajustar seus filtros de busca"
-                      : "Você ainda não possui solicitações. Clique em 'Nova Solicitação' para começar."}
-                  </p>
-                  {(searchTerm || filterStatus !== "all") && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setFilterStatus("all");
-                      }}
-                    >
-                      Limpar filtros
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredRequests.map((request) => (
-                    <Card key={request.id} className="overflow-hidden">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="flex-1 p-4">
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                            <div>
-                              <h3 className="font-medium text-gray-900">{request.requestTypeName}</h3>
-                              <p className="text-sm text-gray-600">
-                                Solicitado em: {formatDate(request.createdAt)}
-                              </p>
-                            </div>
-                            <Badge 
-                              variant={getStatusBadgeVariant(request.status)} 
-                              className="mt-2 md:mt-0"
-                            >
-                              {formatStatus(request.status)}
-                            </Badge>
-                          </div>
-                          {request.comments && (
-                            <p className="text-sm text-gray-700 mt-2 italic">
-                              "{request.comments}"
-                            </p>
-                          )}
-                          {request.documents.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-xs text-gray-500 mb-1">Documentos anexados:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {request.documents.map((doc) => (
-                                  <Badge key={doc.id} variant="outline" className="flex items-center">
-                                    <FileTextIcon className="h-3 w-3 mr-1" />
-                                    {doc.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-row md:flex-col justify-end p-4 border-t md:border-t-0 md:border-l">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-sm"
-                            onClick={() => setSelectedRequest(request)}
-                          >
-                            Ver detalhes
-                          </Button>
-                          {request.status === "completed" && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="ml-2 md:ml-0 md:mt-2 text-sm flex items-center"
-                            >
-                              <DownloadIcon className="h-3 w-3 mr-1" />
-                              Baixar
+          {filteredRequests.length === 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Nenhuma solicitação encontrada</CardTitle>
+                <CardDescription>
+                  Você não possui solicitações com os filtros selecionados.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Para criar uma nova solicitação, clique no botão "Nova Solicitação" acima.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredRequests.map((request) => (
+                <Card key={request.id} className="overflow-hidden">
+                  <div className={`h-1 ${
+                    request.status === 'completed' 
+                      ? 'bg-green-500' 
+                      : request.status === 'processing' 
+                        ? 'bg-blue-500' 
+                        : request.status === 'rejected'
+                          ? 'bg-red-500'
+                          : 'bg-amber-500'
+                  }`} />
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-lg">{request.requestTypeName}</CardTitle>
+                      <Badge variant={getStatusBadgeVariant(request.status)}>
+                        {formatStatus(request.status)}
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      Solicitado em {formatDate(request.createdAt)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    {request.comments && (
+                      <div className="mb-3 text-sm text-gray-600">
+                        <span className="font-medium">Comentário:</span> {request.comments}
+                      </div>
+                    )}
+                    
+                    {request.documents.length > 0 && (
+                      <div className="mb-3">
+                        <p className="font-medium text-sm mb-1">Documentos enviados:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {request.documents.map((doc) => (
+                            <Button key={doc.id} variant="outline" size="sm" className="text-xs h-7 px-2 py-0">
+                              <FileTextIcon2 className="h-3 w-3 mr-1" />
+                              {doc.name}
                             </Button>
-                          )}
+                          ))}
                         </div>
                       </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Tab - Serviços Disponíveis */}
-            <TabsContent value="services">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {requestTypes.map((type) => (
-                  <Card key={type.id} className="overflow-hidden">
-                    <CardHeader>
-                      <CardTitle>{type.name}</CardTitle>
-                      <CardDescription>
-                        Categoria: {type.category.charAt(0).toUpperCase() + type.category.slice(1)}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-700 mb-4">
-                        {type.description}
-                      </p>
-                      <div className="flex flex-col space-y-2">
-                        <div className="flex items-center text-sm">
-                          <ClockIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>Prazo: {type.deadline} dias úteis</span>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <PaymentsIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span>Valor: {type.price ? `R$ ${type.price.toFixed(2)}` : "Gratuito"}</span>
-                        </div>
-                        {type.required_documents.length > 0 && (
-                          <div className="text-sm">
-                            <div className="flex items-start">
-                              <FileTextIcon className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                              <div>
-                                <span>Documentos necessários:</span>
-                                <ul className="list-disc ml-5 mt-1 text-xs text-gray-600">
-                                  {type.required_documents.map((doc, index) => (
-                                    <li key={index}>{doc}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                    )}
+                    
+                    {request.status === 'processing' && (
+                      <div className="text-sm text-blue-600 flex items-center">
+                        <Info className="h-4 w-4 mr-1" />
+                        Sua solicitação está sendo processada pela secretaria acadêmica
                       </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        className="w-full" 
-                        onClick={() => {
-                          newRequestForm.setValue("requestTypeId", type.id);
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        Solicitar
+                    )}
+                    
+                    {request.status === 'rejected' && (
+                      <div className="text-sm text-red-600 flex items-center">
+                        <AlertCircleIcon className="h-4 w-4 mr-1" />
+                        Sua solicitação foi rejeitada. Por favor, entre em contato com a secretaria.
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="bg-gray-50 pt-3">
+                    {request.status === 'completed' ? (
+                      <Button variant="outline" className="w-full">
+                        <DownloadIcon className="h-4 w-4 mr-2" />
+                        Baixar Documento
                       </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setSelectedRequest(request)}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-            {/* Tab - Documentos Acadêmicos */}
-            <TabsContent value="documents">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Documentos Acadêmicos</CardTitle>
+        {/* Tab - Serviços Disponíveis */}
+        <TabsContent value="services">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {requestTypes.map((requestType) => (
+              <Card key={requestType.id} className="overflow-hidden">
+                <div className={`h-1 ${
+                  requestType.category === 'documentos' ? 'bg-blue-500' : 'bg-green-500'
+                }`} />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{requestType.name}</CardTitle>
                   <CardDescription>
-                    Gerencie seus documentos acadêmicos para matrícula e processos institucionais
+                    {requestType.category === 'documentos' ? 'Documento' : 'Serviço Acadêmico'}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {/* Status dos Documentos */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex">
-                          <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-                          <h3 className="font-medium text-green-800">Aprovados</h3>
-                        </div>
-                        <p className="mt-1 text-sm text-green-700">
-                          {requiredDocuments.filter((doc) => doc.status === "approved").length} documentos
-                        </p>
-                      </div>
-                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex">
-                          <AlertCircleIcon className="h-5 w-5 text-yellow-600 mr-2" />
-                          <h3 className="font-medium text-yellow-800">Em Análise</h3>
-                        </div>
-                        <p className="mt-1 text-sm text-yellow-700">
-                          {requiredDocuments.filter((doc) => doc.status === "pending").length} documentos
-                        </p>
-                      </div>
-                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex">
-                          <XCircleIcon className="h-5 w-5 text-red-600 mr-2" />
-                          <h3 className="font-medium text-red-800">Reprovados</h3>
-                        </div>
-                        <p className="mt-1 text-sm text-red-700">
-                          {requiredDocuments.filter((doc) => doc.status === "rejected").length} documentos
-                        </p>
-                      </div>
+                <CardContent className="pb-3">
+                  <p className="text-sm text-gray-600 mb-3">
+                    {requestType.description}
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                    <div className="flex items-center">
+                      <ClockIcon className="h-4 w-4 mr-1 text-gray-500" />
+                      <span>Prazo: {requestType.deadline} {requestType.deadline === 1 ? 'dia' : 'dias'}</span>
                     </div>
-
-                    {/* Lista de Documentos */}
-                    <div className="border rounded-md">
-                      <div className="bg-gray-50 px-4 py-3 border-b">
-                        <h3 className="font-medium">Lista de Documentos</h3>
+                    
+                    {requestType.price !== null && (
+                      <div className="flex items-center">
+                        <PaymentsIcon className="h-4 w-4 mr-1 text-gray-500" />
+                        <span>Valor: R$ {requestType.price.toFixed(2)}</span>
                       </div>
-                      <div className="divide-y">
-                        {requiredDocuments.map((document) => (
-                          <div key={document.id} className="p-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                              <div className="flex items-start">
-                                {document.status === "approved" ? (
-                                  <CheckCircleIcon className="h-5 w-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-                                ) : document.status === "rejected" ? (
-                                  <XCircleIcon className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
-                                ) : (
-                                  <AlertCircleIcon className="h-5 w-5 text-yellow-500 mt-0.5 mr-3 flex-shrink-0" />
-                                )}
-                                <div>
-                                  <div className="flex items-baseline">
-                                    <h4 className="font-medium text-gray-900">{document.name}</h4>
-                                    {document.required && (
-                                      <Badge variant="outline" className="ml-2 text-xs">Obrigatório</Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {document.description}
-                                  </p>
-                                  {document.status === "pending" && document.uploadedAt && (
-                                    <p className="text-xs text-yellow-600 mt-1">
-                                      Enviado em {formatDate(document.uploadedAt)}. Aguardando análise.
-                                    </p>
-                                  )}
-                                  {document.status === "approved" && document.reviewedAt && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                      Aprovado em {formatDate(document.reviewedAt)}.
-                                    </p>
-                                  )}
-                                  {document.status === "rejected" && document.rejectionReason && (
-                                    <div className="mt-1 text-xs text-red-600 bg-red-50 p-2 rounded-sm border border-red-100">
-                                      <span className="font-medium">Motivo da rejeição:</span> {document.rejectionReason}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="mt-3 sm:mt-0 flex flex-wrap gap-2">
-                                {document.fileUrl && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="text-xs"
-                                    onClick={() => {
-                                      toast({
-                                        title: "Download iniciado",
-                                        description: "O documento está sendo baixado.",
-                                      });
-                                    }}
-                                  >
-                                    <DownloadIcon className="h-3 w-3 mr-1" />
-                                    Baixar
-                                  </Button>
-                                )}
-
-                                {document.status === "rejected" ? (
-                                  <Button 
-                                    size="sm" 
-                                    className="text-xs"
-                                    onClick={() => handleResendRejectedDocument(document.id)}
-                                  >
-                                    <UploadCloudIcon className="h-3 w-3 mr-1" />
-                                    Reenviar
-                                  </Button>
-                                ) : document.status === "pending" ? (
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    className="text-xs"
-                                    disabled
-                                  >
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                    Em análise
-                                  </Button>
-                                ) : !document.fileUrl ? (
-                                  <Button 
-                                    size="sm" 
-                                    className="text-xs"
-                                    onClick={() => {
-                                      if (fileInputRef.current) {
-                                        fileInputRef.current.click();
-                                        setSelectedDocumentType(document.id);
-                                      }
-                                    }}
-                                  >
-                                    <UploadCloudIcon className="h-3 w-3 mr-1" />
-                                    Enviar
-                                  </Button>
-                                ) : null}
-                              </div>
-                            </div>
-
-                            {/* Upload Progress */}
-                            {isUploading === document.id && (
-                              <div className="mt-3">
-                                <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-green-500 rounded-full" 
-                                    style={{ width: `${uploadProgress}%` }}
-                                  />
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1 text-center">
-                                  Enviando... {uploadProgress}%
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Informações */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                      <div className="flex">
-                        <Info className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-medium">Informações importantes</h4>
-                          <ul className="list-disc list-inside mt-1 space-y-1 ml-1 text-blue-700">
-                            <li>Documentos obrigatórios são necessários para validação da matrícula</li>
-                            <li>Envie documentos legíveis em formato PDF, JPG ou PNG</li>
-                            <li>A análise dos documentos pode levar até 3 dias úteis</li>
-                            <li>Em caso de rejeição, leia atentamente o motivo e reenvie o documento</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
+                  
+                  {requestType.required_documents.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium text-gray-700 mb-1">Documentos necessários:</p>
+                      <ul className="text-xs text-gray-600 list-disc list-inside">
+                        {requestType.required_documents.map((doc, index) => (
+                          <li key={index}>{doc}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
+                <CardFooter className="bg-gray-50 pt-3">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      newRequestForm.setValue("requestTypeId", requestType.id);
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    Solicitar
+                  </Button>
+                </CardFooter>
               </Card>
-              
-              {/* Input para upload de arquivo (hidden) */}
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* Tab - Documentos Acadêmicos */}
+        <TabsContent value="documents">
+          <div className="overflow-hidden rounded-lg border">
+            <div className="bg-gray-50 p-4 flex justify-between items-center border-b">
+              <div>
+                <h3 className="text-lg font-medium">Documentos Acadêmicos</h3>
+                <p className="text-sm text-gray-500">Gerencie seus documentos acadêmicos</p>
+              </div>
               <input
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileSelected}
               />
-            </TabsContent>
-
-            {/* Tab - Informações e Prazos */}
-            <TabsContent value="info">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações Gerais sobre Solicitações</CardTitle>
-                  <CardDescription>
-                    Confira as regras e prazos para as solicitações acadêmicas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h3 className="font-medium text-lg mb-2">Prazos de Atendimento</h3>
-                    <p className="text-gray-700 mb-2">
-                      Os prazos indicados para cada tipo de solicitação são estimados em dias úteis a partir da data de aprovação da solicitação.
-                      Solicitações realizadas em finais de semana ou feriados começarão a ser processadas no próximo dia útil.
-                    </p>
-                    <div className="bg-gray-50 p-4 rounded-md mt-2">
-                      <h4 className="font-medium mb-2">Tempos médios de atendimento:</h4>
-                      <ul className="space-y-1 text-sm">
-                        <li className="flex justify-between"><span>Comprovante de matrícula:</span> <span className="font-medium">1-2 dias úteis</span></li>
-                        <li className="flex justify-between"><span>Histórico escolar:</span> <span className="font-medium">3-5 dias úteis</span></li>
-                        <li className="flex justify-between"><span>Declarações simples:</span> <span className="font-medium">2-3 dias úteis</span></li>
-                        <li className="flex justify-between"><span>Certificados e diplomas:</span> <span className="font-medium">15-30 dias úteis</span></li>
-                        <li className="flex justify-between"><span>Revisão de provas:</span> <span className="font-medium">7-10 dias úteis</span></li>
-                        <li className="flex justify-between"><span>Transferências internas:</span> <span className="font-medium">15-20 dias úteis</span></li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium text-lg mb-2">Documentos Necessários</h3>
-                    <p className="text-gray-700 mb-2">
-                      Para cada tipo de solicitação, é necessário anexar documentos específicos. 
-                      Os documentos devem ser anexados em formato PDF, JPG ou PNG e devem estar legíveis.
-                      Documentos incompletos ou ilegíveis resultarão em atraso ou rejeição da solicitação.
-                    </p>
-                    <div className="flex items-center bg-amber-50 p-3 rounded-md text-amber-800 text-sm">
-                      <ClockIcon className="h-5 w-5 mr-2 flex-shrink-0" />
-                      <p>O prazo só começa a contar após o envio de todos os documentos necessários.</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium text-lg mb-2">Taxas e Pagamentos</h3>
-                    <p className="text-gray-700 mb-2">
-                      Algumas solicitações podem exigir o pagamento de taxas administrativas. O processamento só 
-                      será iniciado após a confirmação do pagamento. As taxas podem ser pagas através do Portal Financeiro.
-                    </p>
-                    <div className="bg-gray-50 p-4 rounded-md mt-2">
-                      <h4 className="font-medium mb-2">Situações de isenção de taxas:</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        <li>Primeira via de comprovante de matrícula</li>
-                        <li>Primeira via de histórico escolar (por semestre)</li>
-                        <li>Alunos participantes de programas sociais (mediante comprovação)</li>
-                        <li>Erros administrativos identificados pela secretaria</li>
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium text-lg mb-2">Status das Solicitações</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-start">
-                        <Badge variant="default" className="mt-1 flex-shrink-0">Pendente</Badge>
-                        <p className="text-sm text-gray-700 ml-3">
-                          Sua solicitação foi registrada mas ainda não foi analisada pela secretaria 
-                          ou está aguardando documentos/pagamento.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <Badge variant="secondary" className="mt-1 flex-shrink-0">Em Processamento</Badge>
-                        <p className="text-sm text-gray-700 ml-3">
-                          Sua solicitação está sendo analisada e processada pela equipe responsável.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <Badge variant="default" className="mt-1 flex-shrink-0">Concluído</Badge>
-                        <p className="text-sm text-gray-700 ml-3">
-                          Sua solicitação foi concluída e o documento/serviço solicitado está disponível.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <Badge variant="destructive" className="mt-1 flex-shrink-0">Rejeitado</Badge>
-                        <p className="text-sm text-gray-700 ml-3">
-                          Sua solicitação não pôde ser atendida. Verifique os comentários para mais informações.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium text-lg mb-2">Contato da Secretaria</h3>
-                    <p className="text-gray-700 mb-4">
-                      Para dúvidas específicas que não estejam contempladas nas informações acima, entre em contato:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center">
-                        <UserIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>Atendimento presencial: Segunda a sexta, 8h às 17h</span>
-                      </div>
-                      <div className="flex items-center">
-                        <UploadIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>E-mail: secretaria@edunexia.edu.br</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Detalhes da Solicitação */}
-      {selectedRequest && (
-        <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>Detalhes da Solicitação</DialogTitle>
-              <DialogDescription>
-                {selectedRequest.requestTypeName} - Protocolo #{selectedRequest.id}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Status:</span>
-                <Badge variant={getStatusBadgeVariant(selectedRequest.status)}>
-                  {formatStatus(selectedRequest.status)}
-                </Badge>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Data da solicitação:</span>
-                  <span className="text-sm">{formatDate(selectedRequest.createdAt)}</span>
-                </div>
-                
-                {selectedRequest.updatedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Última atualização:</span>
-                    <span className="text-sm">{formatDate(selectedRequest.updatedAt)}</span>
-                  </div>
-                )}
-                
-                {selectedRequest.completedAt && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Data de conclusão:</span>
-                    <span className="text-sm">{formatDate(selectedRequest.completedAt)}</span>
-                  </div>
-                )}
-              </div>
-              
-              {selectedRequest.comments && (
-                <div className="space-y-1">
-                  <span className="text-sm text-gray-500">Observações:</span>
-                  <p className="text-sm bg-gray-50 p-3 rounded-md">{selectedRequest.comments}</p>
-                </div>
-              )}
-              
-              {selectedRequest.documents.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-sm text-gray-500">Documentos anexados:</span>
-                  <div className="space-y-2">
-                    {selectedRequest.documents.map((doc) => (
-                      <div 
-                        key={doc.id} 
-                        className="flex justify-between items-center bg-gray-50 p-2 rounded-md"
-                      >
-                        <div className="flex items-center">
-                          <FileTextIcon className="h-4 w-4 mr-2 text-gray-400" />
-                          <span className="text-sm">{doc.name}</span>
-                        </div>
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
-                          <DownloadIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {(selectedRequest.status === "pending" || selectedRequest.status === "processing") && (
-                <div className="space-y-2">
-                  <span className="text-sm text-gray-500">Adicionar documentos:</span>
-                  <Form {...documentForm}>
-                    <form onSubmit={documentForm.handleSubmit(handleDocumentUpload)} className="space-y-3">
-                      <FormField
-                        control={documentForm.control}
-                        name="files"
-                        render={({ field: { onChange, value, ...field } }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                id="document-upload"
-                                type="file"
-                                multiple
-                                onChange={(e) => onChange(e.target.files)}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" className="w-full">Enviar Documentos</Button>
-                    </form>
-                  </Form>
-                </div>
-              )}
-              
-              {selectedRequest.status === "rejected" && (
-                <div className="bg-red-50 border border-red-100 p-4 rounded-md text-red-700 text-sm">
-                  <div className="flex items-start">
-                    <XCircleIcon className="h-5 w-5 mr-2 text-red-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium mb-1">Solicitação rejeitada</p>
-                      <p>
-                        Esta solicitação foi rejeitada. Para mais informações, entre em contato com a secretaria 
-                        ou abra uma nova solicitação.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {selectedRequest.status === "completed" && (
-                <div className="bg-green-50 border border-green-100 p-4 rounded-md text-green-700 text-sm">
-                  <div className="flex items-start">
-                    <CheckCircleIcon className="h-5 w-5 mr-2 text-green-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium mb-1">Solicitação concluída</p>
-                      <p>
-                        Sua solicitação foi processada com sucesso. Você pode baixar o documento 
-                        solicitado através do botão de download.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             
-            <DialogFooter className="gap-2">
-              {selectedRequest.status === "completed" && (
-                <Button className="w-full sm:w-auto">
-                  <DownloadIcon className="h-4 w-4 mr-2" />
-                  Baixar Documento
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                onClick={() => setSelectedRequest(null)}
-                className="w-full sm:w-auto"
-              >
-                Fechar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div className="divide-y">
+              {requiredDocuments.map((document) => (
+                <div key={document.id} className="p-4 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-start">
+                      <div>
+                        <h4 className="font-medium flex items-center">
+                          {document.name}
+                          {document.required && (
+                            <span className="ml-2 text-xs text-red-500 font-normal">
+                              Obrigatório
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {document.description}
+                        </p>
+                        
+                        <div className="flex items-center mt-2 text-sm">
+                          {document.status === 'approved' ? (
+                            <div className="flex items-center text-green-600">
+                              <CheckCircleIcon className="h-4 w-4 mr-1" />
+                              <span>Aprovado</span>
+                              {document.reviewedAt && (
+                                <span className="text-gray-500 ml-2">
+                                  em {formatDate(document.reviewedAt)}
+                                </span>
+                              )}
+                            </div>
+                          ) : document.status === 'rejected' ? (
+                            <div className="flex items-center text-red-600">
+                              <XCircleIcon className="h-4 w-4 mr-1" />
+                              <span>Rejeitado</span>
+                              {document.rejectionReason && (
+                                <span className="ml-2">- {document.rejectionReason}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-amber-600">
+                              <ClockIcon className="h-4 w-4 mr-1" />
+                              <span>Em análise</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 mt-2 md:mt-0">
+                    {document.fileUrl && (
+                      <Button variant="outline" size="sm">
+                        <DownloadIcon className="h-3.5 w-3.5 mr-1.5" />
+                        Ver Documento
+                      </Button>
+                    )}
+                    
+                    {document.status === "rejected" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResendRejectedDocument(document.id)}
+                        disabled={isUploading === document.id}
+                      >
+                        {isUploading === document.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            Enviando... {uploadProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloudIcon className="h-3.5 w-3.5 mr-1.5" />
+                            Reenviar
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {document.status === "pending" && document.fileUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                        Remover
+                      </Button>
+                    )}
+                    
+                    {(!document.fileUrl || (!document.status || document.status === "pending")) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading === document.id}
+                      >
+                        {isUploading === document.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            Enviando... {uploadProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloudIcon className="h-3.5 w-3.5 mr-1.5" />
+                            Enviar Documento
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
 
-      {/* Nova Solicitação */}
+        {/* Tab - Informações e Prazos */}
+        <TabsContent value="info">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações Importantes</CardTitle>
+                <CardDescription>
+                  Diretrizes e procedimentos da secretaria acadêmica
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-1">Horário de Atendimento</h4>
+                  <p className="text-sm">
+                    Segunda a sexta-feira, das 8h às 17h, exceto feriados.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Documentos Oficiais</h4>
+                  <p className="text-sm">
+                    Todos os documentos oficiais possuem autenticação digital que pode ser verificada no site da instituição.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Pagamentos</h4>
+                  <p className="text-sm">
+                    Serviços que possuem valor associado devem ser pagos através do sistema financeiro antes de serem processados.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Contato</h4>
+                  <p className="text-sm">
+                    Em caso de dúvidas, entre em contato pelo e-mail: secretaria@edunexia.com.br<br />
+                    Telefone: (11) 3333-4444
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Prazos e Processos</CardTitle>
+                <CardDescription>
+                  Entenda os prazos e processos relacionados às solicitações
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-1">Tempo de Processamento</h4>
+                  <p className="text-sm">
+                    Os prazos para cada tipo de solicitação são contados em dias úteis e começam a partir do momento em que todos os requisitos são atendidos.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Documentos Pendentes</h4>
+                  <p className="text-sm">
+                    Se houver documentos pendentes ou informações faltantes, o prazo será pausado até que as pendências sejam resolvidas.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Situações Especiais</h4>
+                  <p className="text-sm">
+                    Durante períodos de alta demanda (como final de semestre), os prazos podem ser estendidos. Você será notificado caso isso ocorra.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-1">Cancelamento de Solicitações</h4>
+                  <p className="text-sm">
+                    Solicitações podem ser canceladas enquanto estiverem no status "Pendente". Após iniciado o processamento, não é possível realizar o cancelamento.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog para nova solicitação */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Nova Solicitação</DialogTitle>
             <DialogDescription>
-              Preencha o formulário para criar uma nova solicitação
+              Preencha as informações abaixo para submeter uma nova solicitação à secretaria.
             </DialogDescription>
           </DialogHeader>
           
           <Form {...newRequestForm}>
-            <form onSubmit={newRequestForm.handleSubmit(handleNewRequest)} className="space-y-4 py-2">
+            <form onSubmit={newRequestForm.handleSubmit(handleNewRequest)} className="space-y-6">
               <FormField
                 control={newRequestForm.control}
                 name="requestTypeId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Solicitação</FormLabel>
-                    <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um tipo de solicitação" />
+                          <SelectValue placeholder="Selecione o tipo de solicitação" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {requestTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name} {type.price ? `(R$ ${type.price.toFixed(2)})` : "(Gratuito)"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                      </FormControl>
+                      <SelectContent>
+                        {requestTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name} {type.price ? `(R$ ${type.price.toFixed(2)})` : '(Gratuito)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Escolha o tipo de serviço ou documento que você deseja solicitar.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              {newRequestForm.watch("requestTypeId") && (
-                <div className="bg-gray-50 p-3 rounded-md text-sm space-y-2">
-                  {(() => {
-                    const selectedType = requestTypes.find(
-                      (type) => type.id === newRequestForm.watch("requestTypeId")
-                    );
-                    return selectedType ? (
-                      <>
-                        <p><span className="font-medium">Descrição:</span> {selectedType.description}</p>
-                        <p><span className="font-medium">Prazo estimado:</span> {selectedType.deadline} dias úteis</p>
-                        <p>
-                          <span className="font-medium">Valor:</span> {selectedType.price 
-                            ? `R$ ${selectedType.price.toFixed(2)}` 
-                            : "Gratuito"}
-                        </p>
-                        {selectedType.required_documents.length > 0 && (
-                          <div>
-                            <p className="font-medium">Documentos necessários:</p>
-                            <ul className="list-disc list-inside mt-1 space-y-1">
-                              {selectedType.required_documents.map((doc, i) => (
-                                <li key={i}>{doc}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </>
-                    ) : null;
-                  })()}
-                </div>
-              )}
               
               <FormField
                 control={newRequestForm.control}
                 name="comments"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Observações (opcional)</FormLabel>
+                    <FormLabel>Comentários (opcional)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Adicione informações relevantes para o processamento da sua solicitação"
+                        placeholder="Adicione informações ou detalhes relevantes para sua solicitação"
                         className="resize-none"
                         {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Limite de 500 caracteres.
+                      Adicione quaisquer detalhes que possam ser úteis para o processamento da sua solicitação.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1291,14 +1002,7 @@ export default function SecretariaPage() {
               />
               
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsDialogOpen(false);
-                    newRequestForm.reset();
-                  }}
-                >
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit">Enviar Solicitação</Button>
@@ -1307,6 +1011,121 @@ export default function SecretariaPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Dialog de detalhes da solicitação */}
+      {selectedRequest && (
+        <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Detalhes da Solicitação</DialogTitle>
+              <DialogDescription>
+                {selectedRequest.requestTypeName} - {formatStatus(selectedRequest.status)}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">Informações</h4>
+                <div className="mt-2 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Número da Solicitação:</span>
+                    <span className="text-sm font-medium">{selectedRequest.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Data da Solicitação:</span>
+                    <span className="text-sm font-medium">{formatDate(selectedRequest.createdAt)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Última Atualização:</span>
+                    <span className="text-sm font-medium">
+                      {selectedRequest.updatedAt ? formatDate(selectedRequest.updatedAt) : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Concluído em:</span>
+                    <span className="text-sm font-medium">
+                      {selectedRequest.completedAt ? formatDate(selectedRequest.completedAt) : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Status:</span>
+                    <Badge variant={getStatusBadgeVariant(selectedRequest.status)}>
+                      {formatStatus(selectedRequest.status)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedRequest.comments && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Comentários</h4>
+                  <p className="mt-2 text-sm p-3 bg-gray-50 rounded-md">
+                    {selectedRequest.comments}
+                  </p>
+                </div>
+              )}
+              
+              {selectedRequest.documents.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Documentos Enviados</h4>
+                  <div className="mt-2 space-y-2">
+                    {selectedRequest.documents.map((doc) => (
+                      <div key={doc.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-md">
+                        <div className="flex items-center">
+                          <FileTextIcon2 className="h-4 w-4 text-gray-500 mr-2" />
+                          <span className="text-sm">{doc.name}</span>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <DownloadIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {selectedRequest.status === 'pending' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                  <div className="flex items-start">
+                    <Info className="h-5 w-5 text-amber-500 mr-2 mt-0.5" />
+                    <div>
+                      <h5 className="font-medium text-amber-800">Solicitação em Análise</h5>
+                      <p className="text-sm text-amber-700">
+                        Sua solicitação está sendo analisada pela secretaria. Você receberá uma notificação quando houver atualização.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {selectedRequest.status === 'rejected' && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="flex items-start">
+                    <AlertCircleIcon className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
+                    <div>
+                      <h5 className="font-medium text-red-800">Solicitação Rejeitada</h5>
+                      <p className="text-sm text-red-700">
+                        Sua solicitação foi rejeitada. Por favor, entre em contato com a secretaria para mais informações.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              {selectedRequest.status === 'completed' ? (
+                <Button>
+                  <DownloadIcon className="h-4 w-4 mr-2" />
+                  Baixar Documento
+                </Button>
+              ) : (
+                <Button type="button" onClick={() => setSelectedRequest(null)}>Fechar</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </StudentLayout>
   );
 }
