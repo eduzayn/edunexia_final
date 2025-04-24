@@ -29,6 +29,8 @@ import {
   AlertTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
+  CircleAlert as CircleAlertIcon,
+  X as XIcon,
   LayoutDashboard as DashboardIcon,
   BookOpen,
   GraduationCap,
@@ -41,6 +43,7 @@ import {
   User,
   BookMarked
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { queryClient } from "@/lib/queryClient";
 import { Spinner } from "@/components/ui/spinner";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -515,19 +518,20 @@ export default function FinancialPage() {
           </div>
           
           {/* Informações de paginação e total */}
-          {charges && charges.length > 0 && (
+          {filteredCharges && filteredCharges.length > 0 && (
             <div className="mt-4 text-sm text-muted-foreground text-center">
-              Mostrando {paginatedCharges.length} de {charges.length} cobranças
+              Mostrando {paginatedFilteredCharges.length} de {filteredCharges.length} cobranças
+              {searchTerm || filterStatus !== "all" ? " (filtradas)" : ""}
             </div>
           )}
         </CardContent>
         
         {/* Componente de paginação */}
-        {charges && charges.length > itemsPerPage && (
+        {filteredCharges && filteredCharges.length > itemsPerPage && (
           <CardFooter>
             <Pagination
               currentPage={currentPage}
-              totalPages={totalPages}
+              totalPages={Math.ceil(filteredCharges.length / itemsPerPage)}
               onPageChange={handlePageChange}
               className="mx-auto"
             />
@@ -566,7 +570,7 @@ export default function FinancialPage() {
                 onClick={() => handleFilterChange('pending')}
               >
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                  <CircleAlertIcon className="h-5 w-5 text-amber-500" />
+                  <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
                   <div>
                     <CardTitle className="text-xl">Pendentes</CardTitle>
                     <CardDescription>Aguardando pagamento</CardDescription>
@@ -673,7 +677,7 @@ export default function FinancialPage() {
                 <Input
                   placeholder="Pesquisar cobranças..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                   className="max-w-[300px]"
                 />
                 {(searchTerm || filterStatus !== "all") && (
