@@ -119,10 +119,9 @@ export const listSimplifiedEnrollments = async (
     
     console.log(`Realizando requisição GET /api-json/v2/simplified-enrollments?${queryParams.toString()}`);
     
-    // A ordem correta é: método, URL, data, headers
     const response = await apiRequest(
-      'GET',
-      `/api-json/v2/simplified-enrollments?${queryParams.toString()}`
+      `/api-json/v2/simplified-enrollments?${queryParams.toString()}`,
+      { method: 'GET' }
     );
     
     // Verificar se a resposta é válida antes de tentar converter para JSON
@@ -209,13 +208,82 @@ export const getSimplifiedEnrollmentById = async (
 ): Promise<{ success: boolean; data: NewSimplifiedEnrollment }> => {
   try {
     const response = await apiRequest(
-      'GET',
-      `/api-json/v2/simplified-enrollments/${id}`
+      `/api-json/v2/simplified-enrollments/${id}`,
+      { method: 'GET' }
     );
-    return await response.json();
-  } catch (error) {
+    
+    // Verificar se a resposta é válida antes de tentar converter para JSON
+    if (!response.ok) {
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorJson = await response.clone().json();
+          console.error(`Erro na API ao buscar matrícula ${id} (JSON):`, errorJson);
+          throw new Error(
+            errorJson.message || `Erro ao buscar matrícula: ${response.status} ${response.statusText}`
+          );
+        } else {
+          // Se não for JSON, tentar ler como texto
+          const errorText = await response.clone().text();
+          console.error(`Erro na API ao buscar matrícula ${id} (Texto):`, errorText.substring(0, 500));
+          
+          // Se contém DOCTYPE, é uma página HTML de erro
+          if (errorText.includes('<!DOCTYPE')) {
+            throw new Error(`Erro na comunicação com o servidor: Recebido HTML em vez de JSON. Status: ${response.status}`);
+          } else {
+            throw new Error(`Erro ao buscar matrícula: ${response.status} ${response.statusText}`);
+          }
+        }
+      } catch (readError) {
+        // Se houver erro ao ler o corpo, usar o erro original
+        console.error(`Erro ao ler corpo da resposta de erro ao buscar matrícula ${id}:`, readError);
+        throw new Error(`Erro ao buscar matrícula: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    // Verificar o tipo de conteúdo antes de tentar converter para JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn(`Resposta não é JSON ao buscar matrícula ${id}:`, contentType);
+      
+      // Ler o texto para debug
+      const text = await response.clone().text();
+      console.error(`Conteúdo da resposta não-JSON ao buscar matrícula ${id}:`, text.substring(0, 500));
+      
+      // Se contém DOCTYPE, é uma página HTML de erro
+      if (text.includes('<!DOCTYPE')) {
+        throw new Error('Recebido HTML em vez de JSON. A API retornou uma página web em vez dos dados esperados.');
+      } else {
+        throw new Error(`Resposta inválida da API: Tipo de conteúdo '${contentType}' não é JSON`);
+      }
+    }
+    
+    try {
+      // Tentar converter para JSON com tratamento de erro melhorado
+      return await response.json();
+    } catch (jsonError) {
+      console.error(`Erro ao converter resposta para JSON ao buscar matrícula ${id}:`, jsonError);
+      
+      // Ler o texto para debug
+      const text = await response.text();
+      console.error(`Conteúdo que falhou a conversão JSON ao buscar matrícula ${id}:`, text.substring(0, 500));
+      
+      if (text.includes('<!DOCTYPE')) {
+        throw new Error('Erro de parsing JSON: Recebido HTML em vez de JSON');
+      } else {
+        throw new Error('Erro de parsing JSON: A resposta não é um JSON válido');
+      }
+    }
+  } catch (error: any) {
+    // Melhorar a mensagem de erro para o usuário
     console.error(`Erro ao buscar matrícula com ID ${id}:`, error);
-    throw error;
+    
+    // Se for um erro conhecido, repassar, caso contrário, criar um erro genérico
+    if (error.message) {
+      throw error;
+    } else {
+      throw new Error(`Ocorreu um erro ao buscar a matrícula ${id}. Tente novamente mais tarde.`);
+    }
   }
 };
 
