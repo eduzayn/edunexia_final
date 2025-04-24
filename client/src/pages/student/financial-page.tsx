@@ -337,6 +337,51 @@ export default function FinancialPage() {
     setSelectedBilling(billing);
   };
   
+  // Função para visualizar a cobrança no Asaas
+  const handleViewAsaasCharge = async (chargeId: string) => {
+    try {
+      // Recuperar o token de autenticação
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('Você precisa estar autenticado para visualizar a cobrança');
+      }
+      
+      // Faz uma requisição para obter o link de visualização
+      const response = await fetch(`/api/student/charges/${chargeId}/view-link`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao obter link de visualização');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.viewLink) {
+        // Abre o link de visualização em uma nova aba
+        window.open(data.viewLink, '_blank');
+        
+        toast({
+          title: "Link de pagamento aberto",
+          description: "O link para pagamento da cobrança foi aberto em uma nova aba",
+        });
+      } else {
+        throw new Error('Link de visualização não disponível');
+      }
+    } catch (error) {
+      console.error('Erro ao obter link de visualização:', error);
+      toast({
+        title: "Erro ao visualizar cobrança",
+        description: error instanceof Error ? error.message : "Não foi possível obter o link de visualização",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Função para alterar o filtro de status
   const handleFilterChange = (status: string) => {
     setFilterStatus(status);
@@ -465,6 +510,16 @@ export default function FinancialPage() {
                             title="Ver Detalhes"
                           >
                             <InfoIcon className="h-4 w-4" />
+                          </Button>
+                          
+                          {/* Botão para visualizar cobrança no Asaas */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewAsaasCharge(charge.id)}
+                            title="Visualizar Cobrança"
+                          >
+                            <CreditCardIcon className="h-4 w-4" />
                           </Button>
                           
                           {/* Botão para baixar boleto */}
