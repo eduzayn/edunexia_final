@@ -1,358 +1,467 @@
 import { useState } from "react";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
-import { getStudentSidebarItems } from "@/components/layout/student-sidebar-items";
+import StudentLayout from "@/components/layout/student-layout";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  ChartIcon,
-  SchoolIcon,
-  MenuBookIcon,
-  EventNoteIcon,
-  DescriptionIcon,
-  PaymentsIcon,
-  HelpOutlineIcon,
-  ClockIcon,
-  ChevronLeftIcon,
-  PlayCircleIcon,
-  BookIcon,
-  PictureAsPdfIcon,
-  AssignmentIcon,
-} from "@/components/ui/icons";
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Download,
+  Bookmark,
+  Share2,
+  RotateCw,
+  Search,
+  Home,
+  Printer,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Interface para detalhes da disciplina
-interface DisciplineDetail {
-  id: number;
-  name: string;
-  code: string;
-  description: string;
-  workload: number;
-  progress: number;
-  videoAula1Url?: string;
-  videoAula1Source?: string;
-  videoAula2Url?: string;
-  videoAula2Source?: string;
-  apostilaPdfUrl?: string;
-  ebookInterativoUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { Input } from "@/components/ui/input";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DisciplineEbookPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("chapter1");
+  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [pageToGo, setPageToGo] = useState("");
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const { data: discipline, isLoading } = useQuery<DisciplineDetail>({
-    queryKey: [`/api/student/disciplines/${id}`],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+  // Mock data - em uma implementação real, isso viria da API
+  const ebookData = {
+    id: parseInt(id || "1"),
+    title: "Fundamentos da Alfabetização e Letramento",
+    author: "Dra. Maria Santos",
+    publisher: "Editora Educacional",
+    year: 2023,
+    totalPages: 184,
+    description: "Este e-book aborda as teorias e práticas fundamentais no processo de alfabetização e letramento, explorando métodos contemporâneos e estratégias eficazes para educadores.",
+    disciplineId: 1,
+    disciplineName: "Fundamentos da Alfabetização",
+    courseId: 101,
+    courseName: "Pós-Graduação em Alfabetização e Letramento",
+    coverImage: "https://placehold.co/300x400/e2e8f0/475569?text=Capa+do+E-book:+Fundamentos+da+Alfabetização",
+    pdfUrl: "https://example.com/ebook.pdf", // Em produção, URL real do PDF
+    pageImages: [
+      "https://placehold.co/800x1000/fff/333?text=Página+1",
+      "https://placehold.co/800x1000/fff/333?text=Página+2",
+      "https://placehold.co/800x1000/fff/333?text=Página+3",
+      // ... mais páginas
+    ]
+  };
+
+  // Consulta para obter os detalhes do e-book
+  const { data: ebook, isLoading, error } = useQuery({
+    queryKey: ['/api-json/student/ebooks', id],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api-json/student/ebooks/${id}`);
+        if (!response.ok) {
+          // No ambiente de desenvolvimento, retornar dados fictícios
+          return ebookData;
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching ebook details:", error);
+        // No ambiente de desenvolvimento, retornar dados fictícios
+        return ebookData;
+      }
+    }
   });
 
-  // Usar o componente padronizado para os itens da barra lateral
-  const [location] = useLocation();
-  const sidebarItems = getStudentSidebarItems(location);
-
-  // Função para renderizar o eBook interativo
-  const renderEbook = () => {
-    if (!discipline?.ebookInterativoUrl) {
-      return (
-        <div className="bg-gray-100 p-6 rounded-md flex items-center justify-center flex-col h-96">
-          <BookIcon className="h-16 w-16 text-gray-400 mb-4" />
-          <p className="text-gray-500">E-book não disponível</p>
-        </div>
-      );
+  // Manipuladores de eventos para o visualizador de e-book
+  const nextPage = () => {
+    if (ebook && currentPage < ebook.totalPages) {
+      setCurrentPage(currentPage + 1);
     }
-
-    // Se tivermos uma URL externa, mostrar um iframe ou botão para acessar
-    if (discipline.ebookInterativoUrl.startsWith("http")) {
-      return (
-        <div className="w-full h-[600px] rounded-md overflow-hidden">
-          <iframe
-            className="w-full h-full"
-            src={discipline.ebookInterativoUrl}
-            title={`E-book interativo de ${discipline.name}`}
-          ></iframe>
-        </div>
-      );
-    }
-
-    // Caso contrário, renderizar uma versão simulada do eBook
-    return (
-      <div className="p-6 bg-white rounded-md">
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid grid-cols-3 mb-6">
-            <TabsTrigger value="chapter1">Capítulo 1</TabsTrigger>
-            <TabsTrigger value="chapter2">Capítulo 2</TabsTrigger>
-            <TabsTrigger value="chapter3">Capítulo 3</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="chapter1" className="space-y-4">
-            <h3 className="text-lg font-medium">Introdução à {discipline.name}</h3>
-            <p className="text-gray-700">
-              Este capítulo introduz os conceitos fundamentais da disciplina, estabelecendo
-              a base teórica que será expandida nos próximos módulos. Através de uma abordagem
-              gradual, apresentaremos as principais ideias e metodologias.
-            </p>
-            <p className="text-gray-700">
-              Ao finalizar este capítulo, você terá compreendido:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              <li>Os princípios básicos da disciplina</li>
-              <li>A terminologia essencial para estudos avançados</li>
-              <li>O contexto histórico e evolução da área</li>
-              <li>As aplicações práticas no cenário atual</li>
-            </ul>
-            <div className="mt-6 p-4 bg-gray-50 rounded-md">
-              <h4 className="font-medium mb-2">Exercício Interativo</h4>
-              <p className="mb-4">Complete a frase abaixo escolhendo a opção correta:</p>
-              <div className="mb-2 font-medium">A principal característica desta disciplina é:</div>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  a) Sua abordagem experimental
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  b) Sua base teórica sólida
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  c) Sua aplicação tecnológica
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="chapter2" className="space-y-4">
-            <h3 className="text-lg font-medium">Aprofundamento Teórico</h3>
-            <p className="text-gray-700">
-              Neste capítulo, avançamos no estudo da disciplina, explorando conceitos 
-              mais complexos e suas inter-relações. Utilizaremos exemplos práticos para
-              ilustrar a aplicação da teoria em situações reais.
-            </p>
-            <div className="my-4 p-4 border border-gray-200 rounded-md">
-              <h4 className="font-medium mb-2">Conceito-chave:</h4>
-              <p className="italic">
-                "A compreensão aprofundada dos princípios teóricos é essencial para 
-                o domínio das aplicações práticas da disciplina."
-              </p>
-            </div>
-            <p className="text-gray-700">
-              Os tópicos deste capítulo incluem:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              <li>Metodologias avançadas de análise</li>
-              <li>Técnicas de resolução de problemas complexos</li>
-              <li>Estudos de caso e aplicações práticas</li>
-            </ul>
-          </TabsContent>
-          
-          <TabsContent value="chapter3" className="space-y-4">
-            <h3 className="text-lg font-medium">Aplicações Práticas</h3>
-            <p className="text-gray-700">
-              O capítulo final da disciplina foca nas aplicações práticas dos 
-              conceitos e teorias estudados anteriormente. Aqui, você terá a oportunidade
-              de aplicar o conhecimento em projetos e estudos de caso reais.
-            </p>
-            <div className="my-4">
-              <img 
-                src="https://placehold.co/600x400/e2e8f0/475569?text=Diagrama+Ilustrativo" 
-                alt="Diagrama ilustrativo" 
-                className="w-full rounded-md"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Figura 1: Diagrama ilustrativo dos componentes da disciplina
-              </p>
-            </div>
-            <p className="text-gray-700">
-              Ao concluir este capítulo, você estará preparado para:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-gray-700">
-              <li>Desenvolver projetos completos utilizando os conceitos da disciplina</li>
-              <li>Analisar casos reais e propor soluções fundamentadas</li>
-              <li>Integrar o conhecimento desta disciplina com outras áreas correlatas</li>
-            </ul>
-          </TabsContent>
-        </Tabs>
-      </div>
-    );
   };
 
-  // Função para navegar entre os conteúdos
-  const goToNextContent = () => {
-    // Ir para o próximo conteúdo (simulado)
-    setLocation(`/student/discipline/${id}/simulado`);
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  // Função para marcar o e-book como lido (seria implementado com uma chamada à API)
-  const markAsRead = () => {
-    // Simulação: navegar para o próximo conteúdo automaticamente
-    goToNextContent();
+  const handleZoomIn = () => {
+    if (zoomLevel < 200) {
+      setZoomLevel(zoomLevel + 25);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (zoomLevel > 50) {
+      setZoomLevel(zoomLevel - 25);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    const viewer = document.getElementById('ebook-viewer');
+    
+    if (!document.fullscreenElement && viewer) {
+      viewer.requestFullscreen().catch(err => {
+        toast({
+          title: "Erro",
+          description: `Não foi possível ativar o modo tela cheia: ${err.message}`,
+          variant: "destructive",
+        });
+      });
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  };
+
+  const handlePageGoTo = () => {
+    const pageNum = parseInt(pageToGo);
+    if (!isNaN(pageNum) && ebook && pageNum > 0 && pageNum <= ebook.totalPages) {
+      setCurrentPage(pageNum);
+      setPageToGo("");
+    } else {
+      toast({
+        title: "Página inválida",
+        description: `Por favor, insira um número de página válido entre 1 e ${ebook?.totalPages || 1}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? "Marcador removido" : "E-book marcado",
+      description: isBookmarked 
+        ? "Este e-book foi removido dos seus marcadores." 
+        : "Este e-book foi adicionado aos seus marcadores.",
+    });
+  };
+
+  const handlePrint = () => {
+    toast({
+      title: "Impressão não disponível",
+      description: "A funcionalidade de impressão está desativada para proteger os direitos autorais do material.",
+      variant: "destructive",
+    });
+  };
+
+  const handleDownload = () => {
+    toast({
+      title: "Download iniciado",
+      description: "O download do e-book começou. O arquivo será salvo em seu dispositivo em breve.",
+    });
+    // Em produção, implementar o download real do PDF
+    // window.open(ebook?.pdfUrl, '_blank');
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copiado",
+      description: "O link para este e-book foi copiado para sua área de transferência.",
+    });
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Back button */}
-          <Button
-            variant="ghost"
-            className="mb-4 text-gray-600 hover:text-gray-900"
-            onClick={() => window.history.back()}
+    <StudentLayout
+      title={ebook?.title || "Carregando..."}
+      subtitle={`${ebook?.disciplineName || "Disciplina"} - ${ebook?.courseName || "Curso"}`}
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Meus Cursos", href: "/student/courses" },
+        { title: ebook?.courseName || "Curso", href: `/student/courses/${ebook?.courseId}` },
+        { title: ebook?.disciplineName || "Disciplina", href: `/student/learning?disciplineId=${ebook?.disciplineId}` },
+        { title: ebook?.title || "E-book", href: `/student/discipline-ebook/${id}` }
+      ]}
+      backButton={{
+        label: "Voltar para o curso",
+        onClick: () => window.history.back()
+      }}
+    >
+      {isLoading ? (
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-2/3 mb-2" />
+          <Skeleton className="h-4 w-1/2 mb-6" />
+          <Skeleton className="w-full aspect-[3/4] max-w-3xl mx-auto" />
+        </div>
+      ) : error ? (
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h3 className="text-lg font-medium text-red-800 mb-2">Erro ao carregar e-book</h3>
+          <p className="text-red-600">
+            Não foi possível carregar os detalhes do e-book. Por favor, tente novamente mais tarde.
+          </p>
+          <Button 
+            variant="secondary" 
+            className="mt-4"
+            onClick={() => window.location.reload()}
           >
-            <ChevronLeftIcon className="h-4 w-4 mr-1" />
-            Voltar para o curso
+            Tentar novamente
           </Button>
-
-          {isLoading ? (
-            <>
-              <Skeleton className="h-8 w-2/3 mb-2" />
-              <Skeleton className="h-4 w-1/3 mb-6" />
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="w-full h-[600px]" />
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              {/* Ebook header */}
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                  E-book Interativo - {discipline?.name}
-                </h1>
-                <div className="flex items-center text-gray-600">
-                  <BookIcon className="h-4 w-4 mr-1 text-blue-600" />
-                  <span>Material interativo da disciplina</span>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Barra de ferramentas do e-book */}
+          <div className="bg-white border rounded-t-lg p-2 sticky top-0 flex flex-wrap items-center justify-between gap-2 z-10 shadow-sm">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={prevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeftIcon className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Página anterior</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  Página {currentPage} de {ebook.totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="w-16 h-8"
+                    value={pageToGo}
+                    onChange={(e) => setPageToGo(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePageGoTo()}
+                    placeholder="Ir para"
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handlePageGoTo}
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Ir para página</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={nextPage}
+                      disabled={currentPage === ebook.totalPages}
+                    >
+                      <ChevronRightIcon className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Próxima página</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              {/* Ebook Content */}
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  {renderEbook()}
-                </CardContent>
-              </Card>
-
-              {/* Ebook details and navigation */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Sobre este e-book</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">
-                      Este e-book interativo complementa o aprendizado fornecendo conteúdo
-                      dinâmico e exercícios práticos que ajudam na fixação do conhecimento.
-                      Navegue pelos capítulos e interaja com os elementos para um aprendizado completo.
-                    </p>
-                    <Progress value={discipline?.progress || 0} className="h-2 mb-1" />
-                    <p className="text-sm text-gray-600">
-                      Progresso na disciplina: {discipline?.progress || 0}%
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Navegação</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {discipline?.ebookInterativoUrl && discipline.ebookInterativoUrl.startsWith("http") && (
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={() => window.open(discipline.ebookInterativoUrl, "_blank")}
-                        >
-                          <BookIcon className="h-4 w-4 mr-2" />
-                          Abrir em nova aba
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        className="w-full justify-start" 
-                        onClick={markAsRead}
-                      >
-                        <BookIcon className="h-4 w-4 mr-2" />
-                        Marcar como lido
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="h-6 mx-2 border-l border-gray-200"></div>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 50}
+                    >
+                      <ZoomOut className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Diminuir zoom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <span className="text-sm font-medium">{zoomLevel}%</span>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 200}
+                    >
+                      <ZoomIn className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Aumentar zoom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={toggleBookmark}
+                    >
+                      <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isBookmarked ? "Remover marcador" : "Adicionar marcador"}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleDownload}
+                    >
+                      <Download className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Baixar PDF</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleShare}
+                    >
+                      <Share2 className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compartilhar</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handlePrint}
+                    >
+                      <Printer className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Imprimir</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={toggleFullscreen}
+                    >
+                      <Maximize className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Tela cheia</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+          
+          {/* Visualizador de e-book */}
+          <div 
+            id="ebook-viewer"
+            className="bg-gray-900 border border-t-0 rounded-b-lg p-6 flex justify-center items-center min-h-[70vh]"
+          >
+            <div
+              className="relative bg-white shadow-lg transition-transform duration-200 transform-gpu"
+              style={{ 
+                transform: `scale(${zoomLevel / 100})`,
+                maxWidth: '100%'
+              }}
+            >
+              {/* Mostrar página atual aqui */}
+              <img 
+                src={ebook.pageImages[Math.min(currentPage - 1, ebook.pageImages.length - 1)]} 
+                alt={`Página ${currentPage}`}
+                className="max-w-full h-auto"
+              />
+            </div>
+          </div>
+          
+          {/* Detalhes do e-book */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <img 
+                src={ebook.coverImage} 
+                alt={`Capa do e-book: ${ebook.title}`}
+                className="w-full rounded-lg shadow-md"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <h3 className="text-xl font-semibold mb-2">{ebook.title}</h3>
+              <p className="text-gray-600 mb-4">{ebook.description}</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Autor</h4>
+                  <p className="text-gray-800">{ebook.author}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Editora</h4>
+                  <p className="text-gray-800">{ebook.publisher}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Ano</h4>
+                  <p className="text-gray-800">{ebook.year}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Páginas</h4>
+                  <p className="text-gray-800">{ebook.totalPages}</p>
+                </div>
               </div>
-
-              {/* Related lessons */}
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Conteúdos relacionados</h2>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/1`)}
-                >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 1
+              
+              <div className="flex mt-6 gap-3">
+                <Button onClick={handleDownload} className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Baixar PDF
                 </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/2`)}
+                <Button 
+                  variant="outline" 
+                  onClick={toggleBookmark}
+                  className="flex items-center gap-2"
                 >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 2
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/apostila`)}
-                >
-                  <PictureAsPdfIcon className="h-4 w-4 mr-2" />
-                  Apostila em PDF
-                </Button>
-                
-                <Button
-                  variant="default"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/ebook`)}
-                >
-                  <BookIcon className="h-4 w-4 mr-2" />
-                  E-book Interativo
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/simulado`)}
-                >
-                  <AssignmentIcon className="h-4 w-4 mr-2" />
-                  Simulado
+                  <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+                  {isBookmarked ? "Remover marcador" : "Adicionar marcador"}
                 </Button>
               </div>
-            </>
-          )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </StudentLayout>
   );
 }

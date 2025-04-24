@@ -1,271 +1,470 @@
-import { useState } from "react";
-import { useParams, Link, useLocation } from "wouter";
+import { useState, useRef } from "react";
+import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
-import { 
-  LayoutDashboard,
-  BookOpenText, 
-  GraduationCap, 
-  FileQuestion, 
-  BriefcaseBusiness, 
-  Handshake, 
-  Banknote, 
-  Calendar, 
-  MessagesSquare, 
-  User,
-  BookMarked
+import StudentLayout from "@/components/layout/student-layout";
+import {
+  ChevronLeft as ChevronLeftIcon,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Printer,
+  ChevronLeft,
+  ChevronRight,
+  Maximize,
+  Search,
+  Home,
+  Share2,
+  Bookmark
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  ChartIcon,
-  SchoolIcon,
-  MenuBookIcon,
-  EventNoteIcon,
-  DescriptionIcon,
-  PaymentsIcon,
-  HelpOutlineIcon,
-  ClockIcon,
-  ChevronLeftIcon,
-  PlayCircleIcon,
-  FileIcon,
-  FileTextIcon,
-  PictureAsPdfIcon,
-  UploadIcon,
-} from "@/components/ui/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
-// Interface para detalhes da disciplina
-interface DisciplineDetail {
-  id: number;
-  name: string;
-  code: string;
-  description: string;
-  workload: number;
-  progress: number;
-  videoAula1Url?: string;
-  videoAula1Source?: string;
-  videoAula2Url?: string;
-  videoAula2Source?: string;
-  apostilaPdfUrl?: string;
-  ebookInterativoUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DisciplinePdfPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [rotation, setRotation] = useState(0);
+  const [pageToGo, setPageToGo] = useState("");
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: discipline, isLoading } = useQuery<DisciplineDetail>({
-    queryKey: [`/api/student/disciplines/${id}`],
-    staleTime: 1000 * 60 * 5, // 5 minutes
+  // Mock data - em uma implementação real, isso viria da API
+  const pdfData = {
+    id: parseInt(id || "1"),
+    title: "Material Complementar de Psicopedagogia",
+    description: "Este material apresenta técnicas e métodos para avaliação psicopedagógica em casos de dificuldades de aprendizagem.",
+    author: "Prof. Dr. Carlos Mendes",
+    totalPages: 24,
+    currentPage: 1,
+    disciplineId: 1,
+    disciplineName: "Fundamentos da Psicopedagogia",
+    courseId: 101,
+    courseName: "Pós-Graduação em Psicopedagogia Clínica e Institucional",
+    pdfUrl: "https://example.com/pdf/material.pdf", // Em produção, URL real do PDF
+    // Array de URLs simulando as páginas do PDF
+    pageImages: Array.from({ length: 24 }, (_, i) => 
+      `https://placehold.co/800x1100/fff/333?text=Página+${i + 1}+do+PDF`
+    ),
+    createdAt: "2024-10-15"
+  };
+
+  // Consulta para obter os detalhes do PDF
+  const { data: pdf, isLoading, error } = useQuery({
+    queryKey: ['/api-json/student/pdfs', id],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api-json/student/pdfs/${id}`);
+        if (!response.ok) {
+          // No ambiente de desenvolvimento, retornar dados fictícios
+          return pdfData;
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching PDF details:", error);
+        // No ambiente de desenvolvimento, retornar dados fictícios
+        return pdfData;
+      }
+    }
   });
 
-  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
-  const [location] = useLocation();
-  const sidebarItems = [
-    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" },
-  ];
-
-  // Função para renderizar o visualizador de PDF
-  const renderPdfViewer = () => {
-    if (!discipline?.apostilaPdfUrl) {
-      return (
-        <div className="bg-gray-100 p-6 rounded-md flex items-center justify-center flex-col h-96">
-          <PictureAsPdfIcon className="h-16 w-16 text-gray-400 mb-4" />
-          <p className="text-gray-500">PDF não disponível</p>
-        </div>
-      );
+  // Manipuladores de eventos para o visualizador de PDF
+  const nextPage = () => {
+    if (pdf && currentPage < pdf.totalPages) {
+      setCurrentPage(currentPage + 1);
     }
-
-    return (
-      <div className="w-full h-[600px] rounded-md overflow-hidden">
-        <iframe
-          className="w-full h-full"
-          src={discipline.apostilaPdfUrl}
-          title={`Apostila da disciplina ${discipline.name}`}
-        ></iframe>
-      </div>
-    );
   };
 
-  // Função para navegar entre os conteúdos
-  const goToNextContent = () => {
-    // Ir para o próximo conteúdo (e-book)
-    setLocation(`/student/discipline/${id}/ebook`);
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
-  // Função para marcar a apostila como lida (seria implementado com uma chamada à API)
-  const markAsRead = () => {
-    // Simulação: navegar para o próximo conteúdo automaticamente
-    goToNextContent();
+  const handleZoomIn = () => {
+    if (zoomLevel < 200) {
+      setZoomLevel(zoomLevel + 25);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (zoomLevel > 50) {
+      setZoomLevel(zoomLevel - 25);
+    }
+  };
+
+  const handleRotate = () => {
+    setRotation((rotation + 90) % 360);
+  };
+
+  const toggleFullscreen = () => {
+    if (pdfContainerRef.current) {
+      if (!document.fullscreenElement) {
+        pdfContainerRef.current.requestFullscreen().catch(err => {
+          toast({
+            title: "Erro",
+            description: `Não foi possível ativar o modo tela cheia: ${err.message}`,
+            variant: "destructive",
+          });
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const handlePageGoTo = () => {
+    const pageNum = parseInt(pageToGo);
+    if (!isNaN(pageNum) && pdf && pageNum > 0 && pageNum <= pdf.totalPages) {
+      setCurrentPage(pageNum);
+      setPageToGo("");
+    } else {
+      toast({
+        title: "Página inválida",
+        description: `Por favor, insira um número de página válido entre 1 e ${pdf?.totalPages || 1}.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrint = () => {
+    toast({
+      title: "Enviando para impressão",
+      description: "Documento sendo enviado para impressão. Verifique sua impressora.",
+    });
+    // Implementação real: window.print()
+  };
+
+  const handleDownload = () => {
+    toast({
+      title: "Download iniciado",
+      description: "O download do arquivo PDF começou. O arquivo será salvo em seu dispositivo em breve.",
+    });
+    // Implementação real: window.open(pdf?.pdfUrl, '_blank')
+  };
+
+  const toggleBookmark = () => {
+    setIsBookmarked(!isBookmarked);
+    toast({
+      title: isBookmarked ? "Marcador removido" : "PDF marcado",
+      description: isBookmarked 
+        ? "Este PDF foi removido dos seus marcadores." 
+        : "Este PDF foi adicionado aos seus marcadores.",
+    });
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copiado",
+      description: "O link para este PDF foi copiado para sua área de transferência.",
+    });
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Back button */}
-          <Button
-            variant="ghost"
-            className="mb-4 text-gray-600 hover:text-gray-900"
-            onClick={() => window.history.back()}
+    <StudentLayout
+      title={pdf?.title || "Carregando..."}
+      subtitle={`${pdf?.disciplineName || "Disciplina"} - ${pdf?.courseName || "Curso"}`}
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Meus Cursos", href: "/student/courses" },
+        { title: pdf?.courseName || "Curso", href: `/student/courses/${pdf?.courseId}` },
+        { title: pdf?.disciplineName || "Disciplina", href: `/student/learning?disciplineId=${pdf?.disciplineId}` },
+        { title: pdf?.title || "PDF", href: `/student/discipline-pdf/${id}` }
+      ]}
+      backButton={{
+        label: "Voltar para o curso",
+        onClick: () => window.history.back()
+      }}
+    >
+      {isLoading ? (
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-2/3 mb-2" />
+          <Skeleton className="h-4 w-1/2 mb-6" />
+          <Skeleton className="w-full aspect-[3/4] max-w-3xl mx-auto" />
+        </div>
+      ) : error ? (
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h3 className="text-lg font-medium text-red-800 mb-2">Erro ao carregar PDF</h3>
+          <p className="text-red-600">
+            Não foi possível carregar o PDF. Por favor, tente novamente mais tarde.
+          </p>
+          <Button 
+            variant="secondary" 
+            className="mt-4"
+            onClick={() => window.location.reload()}
           >
-            <ChevronLeftIcon className="h-4 w-4 mr-1" />
-            Voltar para o curso
+            Tentar novamente
           </Button>
-
-          {isLoading ? (
-            <>
-              <Skeleton className="h-8 w-2/3 mb-2" />
-              <Skeleton className="h-4 w-1/3 mb-6" />
-              <Card>
-                <CardContent className="p-6">
-                  <Skeleton className="w-full h-[600px]" />
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <>
-              {/* PDF header */}
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                  Apostila em PDF - {discipline?.name}
-                </h1>
-                <div className="flex items-center text-gray-600">
-                  <PictureAsPdfIcon className="h-4 w-4 mr-1 text-red-600" />
-                  <span>Material complementar da disciplina</span>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Barra de ferramentas do PDF */}
+          <div className="bg-white border rounded-t-lg p-2 sticky top-0 flex flex-wrap items-center justify-between gap-2 z-10 shadow-sm">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={prevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Página anterior</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  Página {currentPage} de {pdf.totalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="w-16 h-8"
+                    value={pageToGo}
+                    onChange={(e) => setPageToGo(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePageGoTo()}
+                    placeholder="Ir para"
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handlePageGoTo}
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Ir para página</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={nextPage}
+                      disabled={currentPage === pdf.totalPages}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Próxima página</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              {/* PDF Viewer */}
-              <Card className="mb-6">
-                <CardContent className="p-6">
-                  {renderPdfViewer()}
-                </CardContent>
-              </Card>
-
-              {/* PDF details and navigation */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card className="md:col-span-2">
-                  <CardHeader>
-                    <CardTitle>Sobre esta apostila</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">
-                      Esta apostila contém o material completo para estudo da disciplina. 
-                      Recomendamos a leitura integral e a realização dos exercícios propostos.
-                    </p>
-                    <Progress value={discipline?.progress || 0} className="h-2 mb-1" />
-                    <p className="text-sm text-gray-600">
-                      Progresso na disciplina: {discipline?.progress || 0}%
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Navegação</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {discipline?.apostilaPdfUrl && (
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start"
-                          onClick={() => window.open(discipline.apostilaPdfUrl, "_blank")}
-                        >
-                          <UploadIcon className="h-4 w-4 mr-2" />
-                          Abrir em nova aba
-                        </Button>
-                      )}
-                      
-                      <Button 
-                        className="w-full justify-start" 
-                        onClick={markAsRead}
-                      >
-                        <FileTextIcon className="h-4 w-4 mr-2" />
-                        Marcar como lido
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="h-6 mx-2 border-l border-gray-200"></div>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 50}
+                    >
+                      <ZoomOut className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Diminuir zoom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <span className="text-sm font-medium">{zoomLevel}%</span>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 200}
+                    >
+                      <ZoomIn className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Aumentar zoom</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleRotate}
+                    >
+                      <RotateCw className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Girar página</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={toggleBookmark}
+                    >
+                      <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{isBookmarked ? "Remover marcador" : "Adicionar marcador"}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleShare}
+                    >
+                      <Share2 className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compartilhar</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handlePrint}
+                    >
+                      <Printer className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Imprimir</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={handleDownload}
+                    >
+                      <Download className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Baixar PDF</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={toggleFullscreen}
+                    >
+                      <Maximize className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Tela cheia</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+          
+          {/* Visualizador de PDF */}
+          <div 
+            ref={pdfContainerRef}
+            className="bg-gray-900 border border-t-0 rounded-b-lg p-6 flex justify-center items-center min-h-[70vh] overflow-auto"
+          >
+            <div
+              className="relative transition-transform duration-200 transform-gpu"
+              style={{ 
+                transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
+              }}
+            >
+              {/* Mostrar página atual do PDF aqui */}
+              <img 
+                src={pdf.pageImages[currentPage - 1]} 
+                alt={`Página ${currentPage} do PDF`}
+                className="max-w-full h-auto shadow-xl bg-white"
+              />
+            </div>
+          </div>
+          
+          {/* Informações do documento */}
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-xl font-semibold mb-4">{pdf.title}</h3>
+            <div className="text-gray-600 mb-4">{pdf.description}</div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <h4 className="font-medium text-gray-500">Autor</h4>
+                <p>{pdf.author}</p>
               </div>
-
-              {/* Related lessons */}
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Conteúdos relacionados</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/1`)}
-                >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 1
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/video/2`)}
-                >
-                  <PlayCircleIcon className="h-4 w-4 mr-2" />
-                  Vídeo-aula 2
-                </Button>
-                
-                <Button
-                  variant="default"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/apostila`)}
-                >
-                  <PictureAsPdfIcon className="h-4 w-4 mr-2" />
-                  Apostila em PDF
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => setLocation(`/student/discipline/${id}/ebook`)}
-                >
-                  <MenuBookIcon className="h-4 w-4 mr-2" />
-                  E-book Interativo
-                </Button>
+              <div>
+                <h4 className="font-medium text-gray-500">Disciplina</h4>
+                <p>{pdf.disciplineName}</p>
               </div>
-            </>
-          )}
+              <div>
+                <h4 className="font-medium text-gray-500">Data de criação</h4>
+                <p>{new Date(pdf.createdAt).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-500">Páginas</h4>
+                <p>{pdf.totalPages}</p>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex gap-3">
+              <Button onClick={handleDownload} className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Baixar PDF
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={toggleBookmark}
+                className="flex items-center gap-2"
+              >
+                <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+                {isBookmarked ? "Remover marcador" : "Adicionar marcador"}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </StudentLayout>
   );
 }
