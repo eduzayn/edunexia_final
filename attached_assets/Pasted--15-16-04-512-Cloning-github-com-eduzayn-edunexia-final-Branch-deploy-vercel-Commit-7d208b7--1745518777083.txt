@@ -1,0 +1,39 @@
+[15:16:04.512] Cloning github.com/eduzayn/edunexia_final (Branch: deploy-vercel, Commit: 7d208b7)
+[15:16:11.212] Cloning completed: 6.700s
+[15:16:11.345] Found .vercelignore
+[15:16:11.395] Removed 409 ignored files defined in .vercelignore
+[15:16:11.450] Restored build cache from previous deployment (3xgHYv4LkJwH6y2DShAm96UKthuw)
+[15:16:11.538] Running build in Washington, D.C., USA (East) – iad1
+[15:16:11.697] Running "vercel build"
+[15:16:12.096] Vercel CLI 41.6.2
+[15:16:12.715] Installing dependencies...
+[15:16:15.598] npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+[15:16:16.120] npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+[15:16:16.338] npm warn deprecated lodash.pick@4.4.0: This package is deprecated. Use destructuring assignment syntax instead.
+[15:16:16.524] npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+[15:16:17.055] npm warn deprecated gauge@3.0.2: This package is no longer supported.
+[15:16:17.390] npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+[15:16:18.346] npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+[15:16:18.348] npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+[15:16:18.646] npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+[15:16:21.810] npm warn deprecated puppeteer@10.4.0: < 22.8.2 is no longer supported
+[15:16:34.288] 
+[15:16:34.288] added 776 packages in 21s
+[15:16:34.288] 
+[15:16:34.288] 89 packages are looking for funding
+[15:16:34.288]   run `npm fund` for details
+[15:16:34.743] 
+[15:16:34.743] > rest-express@1.0.0 vercel-build
+[15:16:34.743] > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && esbuild server/api/index.js server/api/login.js --platform=node --packages=external --bundle --format=esm --outdir=dist/api
+[15:16:34.743] 
+[15:16:34.979] [36mvite v5.4.14 [32mbuilding for production...[36m[39m
+[15:16:35.013] [32m✓[39m 0 modules transformed.
+[15:16:35.015] [31mx[39m Build failed in 10ms
+[15:16:35.016] [31merror during build:
+[15:16:35.016] [31mCould not resolve entry module "index.html".[31m
+[15:16:35.016]     at getRollupError (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+[15:16:35.016]     at error (file:///vercel/path0/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+[15:16:35.016]     at ModuleLoader.loadEntryModule (file:///vercel/path0/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+[15:16:35.016]     at async Promise.all (index 0)[39m
+[15:16:35.030] Error: Command "npm run vercel-build" exited with 1
+[15:16:35.537] 
