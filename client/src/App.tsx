@@ -88,6 +88,7 @@ import StudentInternshipsPage from "@/pages/student/internships-page";
 import StudentContractsPage from "@/pages/student/contracts-page";
 import StudentCalendarPage from "@/pages/student/calendar-page";
 import StudentMessagesPage from "@/pages/student/messages-page";
+import StudentProfilePage from "@/pages/student/profile-page";
 
 // Import ebooks pages
 import EbooksIndexPage from "@/pages/admin/ebooks/index";
@@ -243,6 +244,9 @@ function Router() {
       </Route>
       <Route path="/student/messages">
         {() => user?.portalType === "student" ? <StudentMessagesPage /> : <Redirect to="/auth" />}
+      </Route>
+      <Route path="/student/profile">
+        {() => user?.portalType === "student" ? <StudentProfilePage /> : <Redirect to="/auth" />}
       </Route>
       {/* Fallback para URLs do student não definidas explicitamente */}
       <Route path="/student/:rest*">
