@@ -54,9 +54,5 @@
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  }
 } 
