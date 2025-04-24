@@ -806,6 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhooks para integrações externas (não requerem autenticação)
   app.use('/api/webhooks/asaas', asaasWebhookRoutes); // Webhooks do Asaas
   app.use('/api/student', studentChargesRoutes); // Rotas para aluno acessar suas cobranças
+  app.use('/api-json/student', studentChargesRoutes); // Novas rotas JSON para aluno acessar suas cobranças
   app.use(contractRoutes); // Rotas para contratos educacionais
   app.use('/api/enrollment-integration', enrollmentIntegrationRoutes); // Rotas para integração de matrículas
   

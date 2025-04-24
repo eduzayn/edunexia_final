@@ -87,123 +87,53 @@ export default function FinancialPage() {
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery<Charge[]>({
     queryKey: ["/api-json/student/charges"],
     queryFn: async () => {
       try {
         console.log("Tentando carregar cobranças do aluno...");
-        // Tenta usar a API real
-        try {
-          // Recuperar o token de autenticação
-          const token = localStorage.getItem('token');
-          
-          if (!token) {
-            console.warn("Token de autenticação não encontrado");
-            throw new Error('Autenticação necessária');
-          }
-          
-          // Fazer requisição à API com token de autenticação
-          const response = await fetch('/api/student/charges', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          // Se a resposta não for OK (2xx), lançamos um erro
-          if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-              console.warn(`Erro de autenticação: ${response.status}`);
-              throw new Error('Autenticação necessária');
-            } else {
-              throw new Error(`Erro ao carregar cobranças: ${response.statusText}`);
-            }
-          }
-          
-          const data = await response.json();
-          console.log("Cobranças carregadas com sucesso:", data.length);
-          return data;
-        } catch (apiError) {
-          console.warn("Erro na API real:", apiError);
-          
-          // Se a API real falhar devido a problemas de autenticação (401/403)
-          // Retornamos dados de exemplo para que a interface possa ser visualizada
-          console.log("Retornando dados de exemplo para visualização da interface");
-          
-          toast({
-            title: "Modo de visualização",
-            description: "Alguns recursos podem estar limitados. Faça login para ver suas cobranças reais.",
-            variant: "default",
-          });
-          
-          // Dados de exemplo para visualização da interface
-          return [
-            {
-              id: "pay_123456789",
-              dateCreated: new Date().toISOString(),
-              customer: "cus_000001",
-              customerName: "Aluno Exemplo",
-              value: 199.90,
-              netValue: 199.90,
-              status: "PENDING",
-              dueDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
-              description: "Mensalidade - Curso de Exemplo",
-              installment: null,
-              installmentCount: null,
-              billingType: "BOLETO",
-              invoiceUrl: "https://example.com/invoice",
-              bankSlipUrl: "https://example.com/boleto",
-              invoiceNumber: "INV-001",
-              externalReference: "MAT-2025-001",
-              deleted: false,
-              pixQrCode: "00020126580014BR.GOV.BCB.PIX0136a629534e-7693-419c-ab4b-9de3214e7ac6520400005303986540599.905802BR5923ASAAS PAGAMENTOS LTDA6008JOINVILLE62070503***6304FF46"
-            },
-            {
-              id: "pay_987654321",
-              dateCreated: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
-              customer: "cus_000001",
-              customerName: "Aluno Exemplo",
-              value: 199.90,
-              netValue: 199.90,
-              status: "RECEIVED",
-              dueDate: new Date(new Date().setDate(new Date().getDate() - 5)).toISOString(),
-              description: "Mensalidade - Curso de Exemplo",
-              installment: null,
-              installmentCount: null,
-              billingType: "BOLETO",
-              invoiceUrl: "https://example.com/invoice",
-              bankSlipUrl: "https://example.com/boleto",
-              invoiceNumber: "INV-002",
-              externalReference: "MAT-2025-002",
-              deleted: false,
-              pixQrCode: "00020126580014BR.GOV.BCB.PIX0136a629534e-7693-419c-ab4b-9de3214e7ac6520400005303986540599.905802BR5923ASAAS PAGAMENTOS LTDA6008JOINVILLE62070503***6304FF46"
-            },
-            {
-              id: "pay_123123123",
-              dateCreated: new Date(new Date().setDate(new Date().getDate() - 60)).toISOString(),
-              customer: "cus_000001",
-              customerName: "Aluno Exemplo",
-              value: 199.90,
-              netValue: 199.90,
-              status: "OVERDUE",
-              dueDate: new Date(new Date().setDate(new Date().getDate() - 15)).toISOString(),
-              description: "Mensalidade - Curso de Exemplo",
-              installment: null,
-              installmentCount: null,
-              billingType: "BOLETO",
-              invoiceUrl: "https://example.com/invoice",
-              bankSlipUrl: "https://example.com/boleto",
-              invoiceNumber: "INV-003",
-              externalReference: "MAT-2025-003",
-              deleted: false,
-              pixQrCode: "00020126580014BR.GOV.BCB.PIX0136a629534e-7693-419c-ab4b-9de3214e7ac6520400005303986540599.905802BR5923ASAAS PAGAMENTOS LTDA6008JOINVILLE62070503***6304FF46"
-            }
-          ];
+        
+        if (!user) {
+          console.warn("Usuário não autenticado");
+          throw new Error('Autenticação necessária');
         }
+        
+        // Usar a API baseada em token
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.warn("Token de autenticação não encontrado");
+          throw new Error('Autenticação necessária');
+        }
+        
+        // Fazer requisição à API com token de autenticação - usando a nova rota api-json
+        const response = await fetch('/api-json/student/charges', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Se a resposta não for OK (2xx), lançamos um erro
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            console.warn(`Erro de autenticação: ${response.status}`);
+            throw new Error('Autenticação necessária');
+          } else {
+            throw new Error(`Erro ao carregar cobranças: ${response.statusText}`);
+          }
+        }
+        
+        const data = await response.json();
+        console.log("Cobranças carregadas com sucesso:", data.length);
+        return data;
       } catch (err) {
         console.error("Erro ao carregar cobranças:", err);
         throw err;
       }
     },
+    enabled: !!user, // Só executa a query se o usuário estiver autenticado
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
   
@@ -328,6 +258,10 @@ export default function FinancialPage() {
   // Função para visualizar a cobrança no Asaas
   const handleViewAsaasCharge = async (chargeId: string) => {
     try {
+      if (!user) {
+        throw new Error('Você precisa estar autenticado para visualizar a cobrança');
+      }
+      
       // Recuperar o token de autenticação
       const token = localStorage.getItem('token');
       
@@ -335,10 +269,11 @@ export default function FinancialPage() {
         throw new Error('Você precisa estar autenticado para visualizar a cobrança');
       }
       
-      // Faz uma requisição para obter o link de visualização
-      const response = await fetch(`/api/student/charges/${chargeId}/view-link`, {
+      // Faz uma requisição para obter o link de visualização usando a API-JSON
+      const response = await fetch(`/api-json/student/charges/${chargeId}/view-link`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
