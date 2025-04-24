@@ -488,6 +488,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Redirecionando /api/student/courses para /api-json/student/courses');
     res.redirect(307, req.url.replace('/api/', '/api-json/'));
   });
+  
+  // Redirecionar rota tradicional de contratos para a rota JSON
+  app.get('/api/student/contracts', (req, res) => {
+    console.log('Redirecionando /api/student/contracts para /api-json/student/contracts');
+    res.redirect(307, req.url.replace('/api/', '/api-json/'));
+  });
 
   // Nova rota API JSON para instituições - usada no formulário de matrícula
   app.get('/api-json/institutions', async (req, res) => {
@@ -809,6 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/student', studentChargesRoutes); // Rotas para aluno acessar suas cobranças
   app.use('/api-json/student', studentChargesRoutes); // Novas rotas JSON para aluno acessar suas cobranças
   app.use(contractRoutes); // Rotas para contratos educacionais
+  app.use(contractApiJsonRoutes); // Novas rotas JSON para contratos educacionais
   app.use('/api/enrollment-integration', enrollmentIntegrationRoutes); // Rotas para integração de matrículas
   
   // Rota para buscar avaliações do aluno
