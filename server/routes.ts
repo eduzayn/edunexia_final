@@ -116,10 +116,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Login bem-sucedido
         const { password: _, ...safeUser } = dbUser;
 
-        // Adicionar role baseado no portalType se não estiver presente
+        // Adicionar role baseado no portalType
         const userWithRole = {
           ...safeUser,
-          role: safeUser.role || safeUser.portalType
+          role: safeUser.portalType
         };
 
         // Gerar token JWT
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     (req as any).user = user;
     (req as any).auth = { 
       userId: user.id,
-      userRole: user.role
+      userRole: user.portalType
     };
     next();
   };
@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    if (user.portalType !== 'admin' && user.role !== 'admin') {
+    if (user.portalType !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: 'Você não tem permissão para acessar este recurso.' 
@@ -292,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     (req as any).user = user;
     (req as any).auth = { 
       userId: user.id,
-      userRole: user.role
+      userRole: user.portalType
     };
     next();
   };
@@ -331,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     (req as any).user = user;
     (req as any).auth = { 
       userId: user.id,
-      userRole: user.role
+      userRole: user.portalType
     };
     next();
   };
