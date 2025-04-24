@@ -1,11 +1,3 @@
-// ===========================================================================
-// COMPONENT OBSOLETO - NÃO USAR EM NOVOS COMPONENTES
-// ===========================================================================
-// Este arquivo está obsoleto e será removido em breve.
-// Em vez de importar 'getStudentSidebarItems', defina os itens da sidebar diretamente
-// em cada componente, seguindo o padrão usado nas páginas atualizadas.
-// ===========================================================================
-
 import React from 'react';
 import { 
   BookOpenText, 
@@ -18,7 +10,8 @@ import {
   BriefcaseBusiness,
   Handshake,
   Banknote,
-  MessagesSquare
+  MessagesSquare,
+  BookMarked
 } from 'lucide-react';
 
 export type SidebarItem = {
