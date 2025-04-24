@@ -73,7 +73,6 @@ interface Charge {
 export default function FinancialPage() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<Charge | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Número de itens por página
@@ -586,224 +585,206 @@ export default function FinancialPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#0891B2"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Financeiro</h1>
-            <p className="text-gray-600">Acompanhe e gerencie seus pagamentos</p>
+    <StudentLayout title="Financeiro" subtitle="Gerencie suas mensalidades e cobranças">
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-medium text-gray-900">Visão Geral</h2>
+        </div>
+    
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card 
+            className={`cursor-pointer transition-all ${filterStatus === 'pending' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => handleFilterChange('pending')}
+          >
+            <CardHeader className="flex flex-row items-center gap-2 pb-2">
+              <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
+              <div>
+                <CardTitle className="text-xl">Pendentes</CardTitle>
+                <CardDescription>Aguardando pagamento</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="py-4">
+                <p className="text-sm text-muted-foreground">Total de cobranças pendentes</p>
+                <p className="text-2xl font-bold">
+                  {charges?.filter((charge: Charge) => 
+                    charge.status === "PENDING" || 
+                    charge.status === "AWAITING_RISK_ANALYSIS" || 
+                    charge.status === "DUNNING_REQUESTED"
+                  ).length || 0}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all ${filterStatus === 'paid' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => handleFilterChange('paid')}
+          >
+            <CardHeader className="flex flex-row items-center gap-2 pb-2">
+              <CheckCircleIcon className="h-5 w-5 text-green-500" />
+              <div>
+                <CardTitle className="text-xl">Pagos</CardTitle>
+                <CardDescription>Pagamentos confirmados</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="py-4">
+                <p className="text-sm text-muted-foreground">Total de pagamentos confirmados</p>
+                <p className="text-2xl font-bold">
+                  {charges?.filter((charge: Charge) => 
+                    charge.status === "RECEIVED" || 
+                    charge.status === "CONFIRMED" || 
+                    charge.status === "RECEIVED_IN_CASH" ||
+                    charge.status === "DUNNING_RECEIVED"
+                  ).length || 0}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all ${filterStatus === 'overdue' ? 'ring-2 ring-primary' : ''}`}
+            onClick={() => handleFilterChange('overdue')}
+          >
+            <CardHeader className="flex flex-row items-center gap-2 pb-2">
+              <XCircleIcon className="h-5 w-5 text-red-500" />
+              <div>
+                <CardTitle className="text-xl">Vencidos</CardTitle>
+                <CardDescription>Pagamentos em atraso</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="py-4">
+                <p className="text-sm text-muted-foreground">Total de pagamentos vencidos</p>
+                <p className="text-2xl font-bold">
+                  {charges?.filter((charge: Charge) => 
+                    charge.status === "OVERDUE"
+                  ).length || 0}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Filtros e pesquisa */}
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex gap-2">
+            <Button 
+              variant={filterStatus === "all" ? "default" : "outline"} 
+              onClick={() => handleFilterChange("all")}
+              size="sm"
+            >
+              Todos
+            </Button>
+            <Button 
+              variant={filterStatus === "pending" ? "default" : "outline"} 
+              onClick={() => handleFilterChange("pending")}
+              size="sm"
+            >
+              Pendentes
+            </Button>
+            <Button 
+              variant={filterStatus === "paid" ? "default" : "outline"} 
+              onClick={() => handleFilterChange("paid")}
+              size="sm"
+            >
+              Pagos
+            </Button>
+            <Button 
+              variant={filterStatus === "overdue" ? "default" : "outline"} 
+              onClick={() => handleFilterChange("overdue")}
+              size="sm"
+            >
+              Vencidos
+            </Button>
           </div>
           
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium text-gray-900">Visão Geral</h2>
-            </div>
-        
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card 
-                className={`cursor-pointer transition-all ${filterStatus === 'pending' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleFilterChange('pending')}
-              >
-                <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                  <AlertTriangleIcon className="h-5 w-5 text-amber-500" />
-                  <div>
-                    <CardTitle className="text-xl">Pendentes</CardTitle>
-                    <CardDescription>Aguardando pagamento</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground">Total de cobranças pendentes</p>
-                    <p className="text-2xl font-bold">
-                      {charges?.filter((charge: Charge) => 
-                        charge.status === "PENDING" || 
-                        charge.status === "AWAITING_RISK_ANALYSIS" || 
-                        charge.status === "DUNNING_REQUESTED"
-                      ).length || 0}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card 
-                className={`cursor-pointer transition-all ${filterStatus === 'paid' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleFilterChange('paid')}
-              >
-                <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                  <div>
-                    <CardTitle className="text-xl">Pagos</CardTitle>
-                    <CardDescription>Pagamentos confirmados</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground">Total de pagamentos confirmados</p>
-                    <p className="text-2xl font-bold">
-                      {charges?.filter((charge: Charge) => 
-                        charge.status === "RECEIVED" || 
-                        charge.status === "CONFIRMED" || 
-                        charge.status === "RECEIVED_IN_CASH" ||
-                        charge.status === "DUNNING_RECEIVED"
-                      ).length || 0}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card 
-                className={`cursor-pointer transition-all ${filterStatus === 'overdue' ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleFilterChange('overdue')}
-              >
-                <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                  <XCircleIcon className="h-5 w-5 text-red-500" />
-                  <div>
-                    <CardTitle className="text-xl">Vencidos</CardTitle>
-                    <CardDescription>Pagamentos em atraso</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-4">
-                    <p className="text-sm text-muted-foreground">Total de pagamentos vencidos</p>
-                    <p className="text-2xl font-bold">
-                      {charges?.filter((charge: Charge) => 
-                        charge.status === "OVERDUE"
-                      ).length || 0}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Filtros e pesquisa */}
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex gap-2">
-                <Button 
-                  variant={filterStatus === "all" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("all")}
-                  size="sm"
-                >
-                  Todos
-                </Button>
-                <Button 
-                  variant={filterStatus === "pending" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("pending")}
-                  size="sm"
-                >
-                  Pendentes
-                </Button>
-                <Button 
-                  variant={filterStatus === "paid" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("paid")}
-                  size="sm"
-                >
-                  Pagos
-                </Button>
-                <Button 
-                  variant={filterStatus === "overdue" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("overdue")}
-                  size="sm"
-                >
-                  Vencidos
-                </Button>
-              </div>
-              
-              <div className="flex gap-2 w-full md:w-auto">
-                <Input
-                  placeholder="Pesquisar cobranças..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="max-w-[300px]"
-                />
-                {(searchTerm || filterStatus !== "all") && (
-                  <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                    <XIcon className="h-4 w-4 mr-1" /> Limpar
-                  </Button>
-                )}
-              </div>
-            </div>
-            
-            {content}
-            
-            {/* Modal de detalhes */}
-            {selectedBilling && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Detalhes da Cobrança</CardTitle>
-                  <CardDescription>
-                    Informações detalhadas sobre a cobrança selecionada
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">ID da Cobrança</dt>
-                      <dd className="mt-1 text-sm">{selectedBilling.id}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Descrição</dt>
-                      <dd className="mt-1 text-sm">{selectedBilling.description || "Mensalidade"}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Data de Vencimento</dt>
-                      <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dueDate))}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Valor</dt>
-                      <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.value)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Data de Criação</dt>
-                      <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dateCreated))}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Status</dt>
-                      <dd className="mt-1 text-sm">
-                        <Badge variant={getBillingStatusBadge(selectedBilling.status).variant as any}>
-                          {getBillingStatusBadge(selectedBilling.status).label}
-                        </Badge>
-                      </dd>
-                    </div>
-                    {selectedBilling.paymentDate && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Data de Pagamento</dt>
-                        <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.paymentDate))}</dd>
-                      </div>
-                    )}
-                    {selectedBilling.fine && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Multa</dt>
-                        <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.fine)}</dd>
-                      </div>
-                    )}
-                    {selectedBilling.interest && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Juros</dt>
-                        <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.interest)}</dd>
-                      </div>
-                    )}
-                  </dl>
-                  
-                  <div className="mt-6 flex justify-end">
-                    <Button variant="outline" onClick={() => setSelectedBilling(null)}>
-                      Fechar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Input
+              placeholder="Pesquisar cobranças..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="max-w-[300px]"
+            />
+            {(searchTerm || filterStatus !== "all") && (
+              <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                <XIcon className="h-4 w-4 mr-1" /> Limpar
+              </Button>
             )}
           </div>
         </div>
+        
+        {content}
+        
+        {/* Modal de detalhes */}
+        {selectedBilling && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Detalhes da Cobrança</CardTitle>
+              <CardDescription>
+                Informações detalhadas sobre a cobrança selecionada
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">ID da Cobrança</dt>
+                  <dd className="mt-1 text-sm">{selectedBilling.id}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Descrição</dt>
+                  <dd className="mt-1 text-sm">{selectedBilling.description || "Mensalidade"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Data de Vencimento</dt>
+                  <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dueDate))}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Valor</dt>
+                  <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.value)}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Data de Criação</dt>
+                  <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.dateCreated))}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Status</dt>
+                  <dd className="mt-1 text-sm">
+                    <Badge variant={getBillingStatusBadge(selectedBilling.status).variant as any}>
+                      {getBillingStatusBadge(selectedBilling.status).label}
+                    </Badge>
+                  </dd>
+                </div>
+                {selectedBilling.paymentDate && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Data de Pagamento</dt>
+                    <dd className="mt-1 text-sm">{formatDate(new Date(selectedBilling.paymentDate))}</dd>
+                  </div>
+                )}
+                {selectedBilling.fine && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Multa</dt>
+                    <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.fine)}</dd>
+                  </div>
+                )}
+                {selectedBilling.interest && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Juros</dt>
+                    <dd className="mt-1 text-sm">{formatCurrency(selectedBilling.interest)}</dd>
+                  </div>
+                )}
+              </dl>
+              
+              <div className="mt-6 flex justify-end">
+                <Button variant="outline" onClick={() => setSelectedBilling(null)}>
+                  Fechar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </div>
+    </StudentLayout>
   );
 }
