@@ -119,7 +119,20 @@ export default function FinancialPage() {
         console.log("Tentando carregar cobranças do aluno...");
         // Tenta usar a API real
         try {
-          const response = await fetch('/api/student/charges');
+          // Recuperar o token de autenticação
+          const token = localStorage.getItem('token');
+          
+          if (!token) {
+            console.warn("Token de autenticação não encontrado");
+            throw new Error('Autenticação necessária');
+          }
+          
+          // Fazer requisição à API com token de autenticação
+          const response = await fetch('/api/student/charges', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
           
           // Se a resposta não for OK (2xx), lançamos um erro
           if (!response.ok) {
