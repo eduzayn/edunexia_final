@@ -14,6 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+// Defina um tipo personalizado para o Badge
+type BadgeVariant = "default" | "destructive" | "outline" | "secondary" | "custom";
+
 // Interface para representar o contrato
 interface Contract {
   id: number;
@@ -111,7 +114,7 @@ const ContractDetails = ({ contract }: { contract: Contract }) => {
           <h4 className="text-sm font-semibold">Status</h4>
           <div>
             {contract.status === 'signed' ? (
-              <Badge variant="success" className="bg-green-600">Assinado</Badge>
+              <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
             ) : contract.status === 'pending' ? (
               <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
             ) : (
@@ -368,7 +371,7 @@ export default function ContractsPage() {
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
                       {contract.status === 'signed' ? (
-                        <Badge variant="success" className="bg-green-600">Assinado</Badge>
+                        <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
                       ) : contract.status === 'pending' ? (
                         <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
                       ) : (
@@ -560,7 +563,7 @@ export default function ContractsPage() {
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
-                      <Badge variant="success" className="bg-green-600">Assinado</Badge>
+                      <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
                     </div>
                     <CardDescription>
                       Contrato: {contract.contractNumber}

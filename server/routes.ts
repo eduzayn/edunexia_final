@@ -894,9 +894,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Registre outras rotas conforme necessário
-  
-  // Rotas de contratos para estudantes e administradores
-  app.use(contractRoutes);
 
   return server;
 }
