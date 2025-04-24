@@ -1,3 +1,4 @@
-Este arquivo foi criado para testar o deploy automático da branch deploy-vercel no Vercel.
-Data: 2023-10-11
-Teste: Deploy automático 
+Deploy test - fix Vercel config
+
+Este arquivo foi criado para disparar um novo deploy no Vercel após as alterações de configuração.
+Data: 2025-04-24
