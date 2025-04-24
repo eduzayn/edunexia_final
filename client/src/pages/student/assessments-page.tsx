@@ -1,0 +1,58 @@
+import React from 'react';
+import { useLocation } from 'wouter';
+import { 
+  LayoutDashboard, 
+  BookOpenText,
+  BookMarked,
+  GraduationCap,
+  FileQuestion,
+  BriefcaseBusiness,
+  Handshake,
+  Banknote,
+  Calendar,
+  MessagesSquare,
+  User
+} from 'lucide-react';
+import StudentLayout from '@/components/layout/student-layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default function AssessmentsPage() {
+  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
+  const [location] = useLocation();
+  const sidebarItems = [
+    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
+    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
+    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
+    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
+    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
+    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
+    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
+    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
+    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
+    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
+    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" }
+  ];
+
+  return (
+    <StudentLayout sidebarItems={sidebarItems}>
+      <div className="flex flex-col gap-6 p-6">
+        <h1 className="text-2xl font-bold">Avaliações</h1>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Avaliações</CardTitle>
+            <CardDescription>
+              Visualize e gerencie suas avaliações.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Nenhuma avaliação disponível no momento.</p>
+            <p className="text-sm text-muted-foreground mt-4">
+              Esta página está em desenvolvimento. Em breve você poderá acessar suas avaliações aqui.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </StudentLayout>
+  );
+}
