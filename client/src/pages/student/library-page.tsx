@@ -1,18 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Sidebar } from "@/components/layout/sidebar";
+import StudentLayout from "@/components/layout/student-layout";
 import {
-  LayoutDashboard as DashboardIcon,
   BookOpen,
-  GraduationCap,
-  FileQuestion,
-  BriefcaseBusiness,
-  Handshake,
-  Banknote,
-  Calendar,
-  MessagesSquare,
-  User,
   BookMarked
 } from "lucide-react";
 import {
