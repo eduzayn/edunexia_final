@@ -3,12 +3,6 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "framework": null,
-  "functions": {
-    "dist/api/*.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1.js" },
     { "source": "/api", "destination": "/api/index.js" },
