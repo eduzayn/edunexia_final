@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    if (user.portalType !== 'student' && user.role !== 'student') {
+    if (user.portalType !== 'student') {
       return res.status(403).json({ 
         success: false,
         message: 'Este recurso é exclusivo para estudantes.' 
@@ -801,6 +801,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Webhooks para integrações externas (não requerem autenticação)
   app.use('/api/webhooks/asaas', asaasWebhookRoutes); // Webhooks do Asaas
+  
+  // Rota para buscar avaliações do aluno
+  app.get('/api-json/student/assessments', requireStudent, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({
+          success: false, 
+          message: 'Usuário não autenticado'
+        });
+      }
+      
+      // Buscar matrículas do aluno
+      const studentEnrollments = await storage.getStudentEnrollments(user.id);
+      
+      if (!studentEnrollments || studentEnrollments.length === 0) {
+        return res.json({
+          success: true,
+          assessments: []
+        });
+      }
+      
+      // Buscar cursos das matrículas
+      const courseIds = studentEnrollments.map(enrollment => enrollment.courseId);
+      const coursesPromises = courseIds.map(id => storage.getCourse(id));
+      const courses = await Promise.all(coursesPromises);
+      
+      // Obter disciplinas dos cursos
+      let allDisciplineIds: number[] = [];
+      const courseDisciplinesPromises = courses.map(course => 
+        course ? storage.getCourseDisciplines(course.id) : []
+      );
+      
+      const courseDisciplinesArrays = await Promise.all(courseDisciplinesPromises);
+      courseDisciplinesArrays.forEach(disciplineRelations => {
+        if (disciplineRelations.length > 0) {
+          const disciplineIds = disciplineRelations.map(relation => relation.disciplineId);
+          allDisciplineIds = [...allDisciplineIds, ...disciplineIds];
+        }
+      });
+      
+      // Remover IDs duplicados
+      allDisciplineIds = [...new Set(allDisciplineIds)];
+      
+      // Buscar avaliações para estas disciplinas
+      const assessmentsPromises = allDisciplineIds.map(disciplineId => 
+        storage.getAssessmentsByDiscipline(disciplineId)
+      );
+      
+      const assessmentsArrays = await Promise.all(assessmentsPromises);
+      let allAssessments: any[] = [];
+      
+      assessmentsArrays.forEach(assessments => {
+        if (assessments.length > 0) {
+          allAssessments = [...allAssessments, ...assessments];
+        }
+      });
+      
+      // Buscar disciplinas para exibir os nomes
+      const disciplinePromises = allDisciplineIds.map(id => storage.getDiscipline(id));
+      const disciplines = await Promise.all(disciplinePromises);
+      const disciplineMap = disciplines.reduce((map, discipline) => {
+        if (discipline) {
+          map[discipline.id] = discipline;
+        }
+        return map;
+      }, {} as Record<number, any>);
+      
+      // Preparar resposta com informações das avaliações
+      const assessmentsWithDetails = allAssessments.map(assessment => ({
+        ...assessment,
+        disciplineName: disciplineMap[assessment.disciplineId]?.name || 'Disciplina desconhecida'
+      }));
+      
+      return res.json({
+        success: true,
+        assessments: assessmentsWithDetails
+      });
+    } catch (error) {
+      console.error('Erro ao buscar avaliações:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao buscar avaliações'
+      });
+    }
+  });
   
   // Registre outras rotas conforme necessário
 
