@@ -34,7 +34,7 @@ export default function CoursesPage() {
 
   // Carregar cursos
   const { data: courses, isLoading } = useQuery<Course[]>({
-    queryKey: ["/api-json/admin/courses"],
+    queryKey: ["/api/admin/courses"],
     staleTime: 60000,
   });
 
@@ -73,11 +73,11 @@ export default function CoursesPage() {
   // Mutação para remover curso
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api-json/admin/courses/${id}`, { method: "DELETE" });
+      await apiRequest(`/api/admin/courses/${id}`, { method: "DELETE" });
       return {};
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api-json/admin/courses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/courses"] });
       toast({
         title: "Curso removido",
         description: "O curso foi removido com sucesso",

@@ -108,9 +108,9 @@ export default function DisciplinesPage() {
     isError,
     refetch
   } = useQuery({
-    queryKey: ["/api-json/admin/disciplines", searchTerm],
+    queryKey: ["/api/admin/disciplines", searchTerm],
     queryFn: async () => {
-      const url = `/api-json/admin/disciplines${searchTerm ? `?search=${searchTerm}` : ""}`;
+      const url = `/api/admin/disciplines${searchTerm ? `?search=${searchTerm}` : ""}`;
       console.log("Buscando disciplinas...");
       try {
         const response = await apiRequest(url);
