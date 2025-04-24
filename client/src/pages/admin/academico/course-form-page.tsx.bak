@@ -280,13 +280,10 @@ export default function CourseFormPage() {
         for (let i = 0; i < disciplineIds.length; i++) {
           const disciplineId = disciplineIds[i];
           try {
-            await apiRequest("/api/admin/course-disciplines", { 
-              method: "POST", 
-              data: {
-                courseId,
-                disciplineId,
-                order: i + 1
-              }
+            await apiRequest("/api/admin/course-disciplines", { method: "POST", data: {
+              courseId,
+              disciplineId,
+              order: i + 1
             });
             console.log(`Disciplina ${disciplineId} adicionada com sucesso na posição ${i + 1}`);
           } catch (addError) {
