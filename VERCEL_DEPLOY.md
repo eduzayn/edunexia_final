@@ -2,6 +2,25 @@
 
 Este guia fornece instruções para implantar a aplicação EdunexIA na Vercel.
 
+## Prevenindo Exposição de Código-Fonte
+
+Um problema comum no deploy Vercel é a exposição do código-fonte TypeScript/JavaScript não compilado. Para evitar isso:
+
+1. **Configure corretamente o vercel.json**:
+   - Utilize a seção `builds` para especificar quais arquivos serão compilados
+   - Garanta que `outputDirectory` esteja configurado corretamente como `dist` 
+   - Use a configuração atualizada abaixo
+
+2. **Utilize .vercelignore**:
+   - Crie um arquivo `.vercelignore` para evitar que arquivos de código-fonte sejam enviados
+   - Inclua pastas como `/shared/`, `/server/` (exceto arquivos específicos de API)
+   - Ignore arquivos de desenvolvimento e configuração
+
+3. **Script de build personalizado**:
+   - O script `vercel-build.sh` garantirá compilação adequada dos componentes
+   - Certifique-se que o script seja executável (`chmod +x vercel-build.sh`)
+   - Configure o Build Command na Vercel para usar `./vercel-build.sh`
+
 ## Correção de Problemas de Implantação
 
 Ao fazer o deploy na Vercel, podem ocorrer erros relacionados a problemas na compilação dos módulos shared/certificate-schema.ts e shared/certification-request-schema.ts, devido a diferenças no ambiente serverless da Vercel.

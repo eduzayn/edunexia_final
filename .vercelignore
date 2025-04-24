@@ -9,11 +9,30 @@ node_modules/
 
 # Ignorar arquivos de código-fonte que devem ser compilados
 # e não servidos diretamente
-/shared/
-/server/
-!/server/api/
+/shared/**/*.ts
+/server/**/*.ts
+!/server/api/index.js
+!/server/api/login.js
 !/server/auth/token.js
 !/server/module-alias.js
+
+# Ignorar arquivos de compilação TypeScript
+*.ts
+*.tsx
+!vercel-build.sh
+!vercel.json
+!.vercelignore
+
+# Ignorar arquivos de mapeamento de origem
+*.js.map
+*.css.map
+
+# Ignorar arquivos de configuração de desenvolvimento
+tsconfig.json
+tailwind.config.ts
+postcss.config.js
+vite.config.ts
+drizzle.config.ts
 
 # Arquivos temporários e logs
 .log
