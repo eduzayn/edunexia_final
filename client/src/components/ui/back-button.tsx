@@ -7,6 +7,7 @@ interface BackButtonProps {
   to: string;
   label?: string;
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  className?: string;
 }
 
 /**
@@ -14,17 +15,19 @@ interface BackButtonProps {
  * @param to - Rota para onde voltar
  * @param label - Texto exibido no botão (opcional, padrão: "Voltar")
  * @param variant - Variante visual do botão (opcional, padrão: "outline")
+ * @param className - Classes CSS adicionais (opcional, padrão: "mb-4")
  */
 const BackButton: React.FC<BackButtonProps> = ({ 
   to, 
   label = "Voltar", 
-  variant = "outline" 
+  variant = "outline",
+  className = "mb-4"
 }) => {
   return (
     <Button 
       variant={variant} 
       size="sm" 
-      className="mb-4" 
+      className={className} 
       asChild
     >
       <Link href={to}>

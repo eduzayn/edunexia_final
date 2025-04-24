@@ -2,6 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import AdminLayout from "@/components/layout/admin-layout";
+import BackButton from "@/components/ui/back-button";
 import {
   Card,
   CardContent,
@@ -43,7 +44,13 @@ export default function ProductsPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-6">
-        <div className="flex items-center justify-between mb-6">
+        <BackButton 
+          to="/admin/finance" 
+          label="Voltar para Financeiro" 
+          variant="outline"
+        />
+        
+        <div className="flex items-center justify-between mb-6 mt-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Produtos e Serviços</h1>
             <p className="text-gray-500">
