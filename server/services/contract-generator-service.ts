@@ -4,10 +4,13 @@ import {
   courses, 
   educationalContracts, 
   simplifiedEnrollments, 
+  enrollments,
   type Course,
-  type SimplifiedEnrollment
+  type SimplifiedEnrollment,
+  type Enrollment
 } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from '../storage';
 
 /**
  * Interface para os dados de criação de um contrato educacional
@@ -113,5 +116,158 @@ function getCourseType(course: Course): string {
     return 'CURSO_LIVRE';
   } else {
     return 'GRADUACAO'; // Tipo padrão
+  }
+}
+
+/**
+ * Interface para os dados de criação de contrato de estudante
+ */
+interface StudentContractParams {
+  studentId: number;
+  courseId: number;
+  courseName: string;
+  institutionId: number;
+  institutionName: string;
+  studentName: string;
+  studentEmail: string;
+  studentCpf: string;
+  totalValue: number;
+  discount?: number;
+  installments?: number;
+  paymentMethod?: string;
+  metadata?: any;
+}
+
+/**
+ * Gera um contrato educacional para um estudante
+ * @param params Parâmetros do contrato
+ * @returns Contrato gerado ou null se houver erro
+ */
+export async function generateStudentContract(params: StudentContractParams): Promise<any> {
+  try {
+    console.log(`[CONTRATO] Gerando contrato para estudante ${params.studentId} no curso ${params.courseId}`);
+    
+    // Buscar curso completo
+    const course = await storage.getCourse(params.courseId);
+    if (!course) {
+      throw new Error(`Curso não encontrado: ${params.courseId}`);
+    }
+    
+    // Gerar UUID para contrato
+    const contractId = uuidv4();
+    
+    // Gerar número de contrato
+    const contractNumber = `${course.code || 'C'}-${params.studentId}-${Date.now().toString().substring(7, 13)}`;
+    
+    // Definir tipo de contrato baseado no curso
+    const contractType = getCourseType(course);
+    
+    // Calcular datas de início e término (estimativas)
+    const startDate = new Date();
+    // Adicionar período baseado no tipo do curso (18 meses é padrão para pós)
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 18);
+    
+    // Configurar valores financeiros
+    const totalValue = params.totalValue;
+    const installments = params.installments || 18;
+    const installmentValue = totalValue / installments;
+    const paymentMethod = params.paymentMethod || 'boleto';
+    const discount = params.discount || 0;
+    
+    // Dados para o contrato
+    const contractData = {
+      id: contractId,
+      studentId: params.studentId,
+      courseId: params.courseId,
+      contractNumber,
+      contractType,
+      status: 'pending',
+      totalValue,
+      installments,
+      installmentValue,
+      paymentMethod,
+      discount,
+      startDate,
+      endDate,
+      campus: params.metadata?.poloName || 'Campus Virtual',
+      createdAt: new Date(),
+      // Adicionar metadados como JSON
+      metadata: JSON.stringify({
+        institutionId: params.institutionId,
+        institutionName: params.institutionName,
+        enrollmentId: params.metadata?.enrollmentId,
+        customData: params.metadata
+      })
+    };
+    
+    // Inserir contrato no banco de dados
+    await db.insert(educationalContracts).values(contractData);
+    
+    console.log(`[CONTRATO] Contrato educacional gerado com sucesso. ID: ${contractId}, Número: ${contractNumber}`);
+    
+    // Recuperar o contrato inserido para retorno
+    const [newContract] = await db
+      .select()
+      .from(educationalContracts)
+      .where(eq(educationalContracts.id, contractId))
+      .limit(1);
+    
+    return newContract;
+  } catch (error) {
+    console.error('[CONTRATO] Erro ao gerar contrato educacional:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gera um contrato a partir de uma matrícula
+ * @param enrollmentId ID da matrícula
+ * @param studentId ID do estudante
+ * @param courseId ID do curso
+ * @returns Contrato gerado ou null se houver erro
+ */
+export async function generateContractFromEnrollment(
+  enrollmentId: number, 
+  studentId: number,
+  courseId: number
+): Promise<any> {
+  try {
+    console.log(`[CONTRATO] Gerando contrato para matrícula ${enrollmentId}`);
+    
+    // Buscar dados necessários
+    const enrollment = await storage.getEnrollment(enrollmentId);
+    const course = await storage.getCourse(courseId);
+    const student = await storage.getUser(studentId);
+    
+    if (!enrollment || !course || !student) {
+      throw new Error('Dados incompletos para geração de contrato');
+    }
+    
+    // Obter instituição
+    const institution = await storage.getInstitution(enrollment.institutionId || 1);
+    if (!institution) {
+      throw new Error('Instituição não encontrada');
+    }
+    
+    // Gerar contrato para o estudante
+    return await generateStudentContract({
+      studentId,
+      courseId,
+      courseName: course.name,
+      institutionId: institution.id,
+      institutionName: institution.name,
+      studentName: student.fullName,
+      studentEmail: student.email,
+      studentCpf: student.cpf || '',
+      totalValue: course.price || 0,
+      metadata: {
+        enrollmentId,
+        enrollmentData: enrollment
+      }
+    });
+  } catch (error) {
+    console.error('[CONTRATO] Erro ao gerar contrato a partir de matrícula:', error);
+    return null;
   }
 }
