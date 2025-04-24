@@ -297,7 +297,19 @@ export default function DisciplineContentPage() {
   const addVideoMutation = useMutation({
     mutationFn: async (data: VideoFormValues) => {
       const response = await apiRequest("POST", `/api-json/admin/discipline-videos/${disciplineId}`, data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -321,7 +333,19 @@ export default function DisciplineContentPage() {
   const editVideoMutation = useMutation({
     mutationFn: async ({ videoId, data }: { videoId: number, data: VideoFormValues }) => {
       const response = await apiRequest("PUT", `/api-json/admin/discipline-videos/${videoId}`, data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -344,7 +368,19 @@ export default function DisciplineContentPage() {
   const addMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormValues) => {
       const response = await apiRequest("POST", `/api-json/admin/discipline-material/${disciplineId}`, data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -368,7 +404,19 @@ export default function DisciplineContentPage() {
   const addEbookLinkMutation = useMutation({
     mutationFn: async (data: EbookLinkFormValues) => {
       const response = await apiRequest("POST", `/api-json/admin/discipline-ebook/${disciplineId}`, data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -392,7 +440,19 @@ export default function DisciplineContentPage() {
   const addQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { disciplineId: number }) => {
       const response = await apiRequest("POST", "/api-json/admin/questions", data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -418,7 +478,19 @@ export default function DisciplineContentPage() {
   const addAssessmentMutation = useMutation({
     mutationFn: async (data: AssessmentFormValues & { disciplineId: number }) => {
       const response = await apiRequest("POST", "/api-json/admin/assessments", data);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -442,7 +514,19 @@ export default function DisciplineContentPage() {
   const checkCompletenesssMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("GET", `/api-json/admin/disciplines/${disciplineId}/check-completeness`);
-      return response.json();
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: (data) => {
       if (data.complete) {
