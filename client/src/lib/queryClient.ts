@@ -23,46 +23,69 @@ import { normalizeUrl } from "./api-vercel-fix";
  */
 export async function apiRequest(
   urlOrMethod: string,
-  urlOrOptions?: string | { method?: string; data?: unknown; headers?: Record<string, string> } = {},
+  urlOrOptions?: string | { method?: string; data?: unknown; headers?: Record<string, string> },
   data?: unknown
 ): Promise<Response> {
   // Determina se estamos usando o formato antigo (apiRequest(url)) ou o novo (apiRequest(method, url, data))
   let url: string;
   let requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {};
   
-  if (urlOrMethod === "GET" || urlOrMethod === "POST" || urlOrMethod === "PUT" || urlOrMethod === "DELETE" || urlOrMethod === "PATCH") {
-    // Novo formato: apiRequest(method, url, data)
+  // Detectar formato da chamada
+  const isHttpMethod = ["GET", "POST", "PUT", "DELETE", "PATCH"].includes(urlOrMethod);
+  
+  if (isHttpMethod) {
+    // Formato: apiRequest(method, url, data)
     if (typeof urlOrOptions === 'string') {
       url = urlOrOptions;
+      requestOptions.method = urlOrMethod;
       if (data !== undefined) {
         requestOptions.data = data;
       }
-      requestOptions.method = urlOrMethod;
     } else {
       console.error("Formato de chamada inválido para apiRequest(method, url, data)");
       throw new Error("URL não informada para apiRequest");
     }
   } else {
-    // Formato antigo: apiRequest(url, options)
+    // Formato: apiRequest(url, options)
     url = urlOrMethod;
     if (typeof urlOrOptions === 'object') {
       requestOptions = urlOrOptions;
     }
   }
   
-  // Em produção, forçamos URLs relativas para evitar o problema de domínio completo
-  const isProd = import.meta.env.PROD;
+  // Verificação de segurança para URL vazia
+  if (!url || url.trim() === '') {
+    console.error("URL vazia ou inválida passada para apiRequest");
+    throw new Error("URL inválida: " + url);
+  }
+  
+  // Em desenvolvimento, use um domínio garantido
+  const isDev = import.meta.env.DEV;
+  let apiBaseUrl = '';
+  
+  if (isDev) {
+    // Em desenvolvimento, hardcode para localhost:5000
+    apiBaseUrl = 'http://localhost:5000';
+    
+    // Se a URL já começa com http ou https, não adicione o domínio base
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      apiBaseUrl = '';
+    }
+  }
+  
+  // Normalizar a URL para garantir que não tenha barras duplas
+  let normalizedUrl = url;
+  if (normalizedUrl.startsWith('/')) {
+    normalizedUrl = normalizedUrl.substring(1);
+  }
+  
+  // Construir a URL final
+  const apiUrl = isDev 
+    ? `${apiBaseUrl}/${normalizedUrl}`
+    : normalizeUrl(url); // Em produção, use a função normalizeUrl existente
   
   // Log para debug
   console.log(`apiRequest - URL original: ${url}, método: ${requestOptions.method || "GET"}`);
-  
-  // Normalizar a URL antes de passar para formatApiPath para evitar barras duplas
-  const normalizedUrl = normalizeUrl(url);
-  
-  // Usar formatApiPath para garantir URL relativa em produção
-  const apiUrl = formatApiPath(normalizedUrl);
-  
-  // Log para debug
   console.log(`apiRequest - URL final formatada: ${apiUrl}`);
   
   const token = localStorage.getItem("auth_token");
@@ -83,6 +106,10 @@ export async function apiRequest(
   const fetchOptions: RequestInit = {
     method: requestMethod,
     headers,
+    // Adicionar cache: 'no-cache' para evitar problemas de cache
+    cache: 'no-cache',
+    // Adicionar credentials: 'same-origin' para lidar com cookies corretamente
+    credentials: 'same-origin'
   };
 
   if (requestOptions.data) {
@@ -90,7 +117,7 @@ export async function apiRequest(
   }
 
   try {
-    console.log(`Realizando requisição ${requestMethod} para ${apiUrl}`, fetchOptions);
+    console.log(`Iniciando fetch para ${apiUrl}`);
     const response = await fetch(apiUrl, fetchOptions);
     console.log(`Resposta da requisição ${requestMethod} para ${apiUrl}: ${response.status}`);
 
@@ -126,23 +153,45 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    // Em produção, forçamos URLs relativas para evitar o problema de domínio completo
-    const isProd = import.meta.env.PROD;
+    // Pegar a URL da queryKey
+    const urlFromKey = queryKey[0] as string;
     
-    // Log para debug em produção
-    if (isProd) {
-      console.log(`getQueryFn - URL original: ${queryKey[0]}`);
+    // Verificação de segurança para URL vazia
+    if (!urlFromKey || typeof urlFromKey !== 'string') {
+      console.error("QueryKey inválida passada para getQueryFn:", queryKey);
+      throw new Error("QueryKey inválida para getQueryFn");
     }
     
-    // Normalizar a URL primeiro
-    const normalizedUrl = normalizeUrl(queryKey[0] as string);
+    // Em desenvolvimento, use um domínio garantido
+    const isDev = import.meta.env.DEV;
+    const isProd = import.meta.env.PROD;
+    let apiBaseUrl = '';
+    let url = urlFromKey;
     
-    // Formatar URL com formatApiPath para garantir URLs relativas em produção
-    const apiUrl = formatApiPath(normalizedUrl);
+    if (isDev) {
+      // Em desenvolvimento, hardcode para localhost:5000
+      apiBaseUrl = 'http://localhost:5000';
+      
+      // Se a URL já começa com http ou https, não adicione o domínio base
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        apiBaseUrl = '';
+      }
+    }
     
-    // Log para debug em produção
-    if (isProd) {
-      console.log(`getQueryFn - URL final formatada: ${apiUrl}`);
+    // Normalizar a URL para garantir que não tenha barras duplas
+    let normalizedUrl = url;
+    if (normalizedUrl.startsWith('/')) {
+      normalizedUrl = normalizedUrl.substring(1);
+    }
+    
+    // Construir a URL final
+    let apiUrl;
+    if (isDev) {
+      apiUrl = `${apiBaseUrl}/${normalizedUrl}`;
+    } else {
+      // Em produção, use as funções existentes
+      const normalized = normalizeUrl(url);
+      apiUrl = formatApiPath(normalized);
     }
     
     // Log para debug
@@ -163,7 +212,8 @@ export const getQueryFn: <T>(options: {
       const res = await fetch(apiUrl, {
         method: "GET",
         headers,
-        credentials: "omit", // Não usar cookies
+        cache: 'no-cache',
+        credentials: 'same-origin'
       });
       
       // Log para debug
