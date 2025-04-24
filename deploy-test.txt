@@ -1,0 +1,3 @@
+Este arquivo foi criado para testar o deploy automático da branch deploy-vercel no Vercel.
+Data: 2023-10-11
+Teste: Deploy automático 
