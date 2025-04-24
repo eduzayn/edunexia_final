@@ -57,6 +57,16 @@ export default function ContractsPage() {
   return (
     <AdminLayout>
       <div className="container mx-auto py-6">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mb-4" 
+          onClick={() => navigate('/admin')}
+        >
+          <SearchIcon className="h-4 w-4 mr-2" />
+          Voltar para Dashboard
+        </Button>
+        
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Contratos</h1>
