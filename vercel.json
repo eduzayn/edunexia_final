@@ -4,15 +4,15 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
-    { "source": "/api/login", "destination": "/server/api/login.js" },
-    { "source": "/api-json/login", "destination": "/server/api/login.js" },
-    { "source": "/api/jwt", "destination": "/server/api/index.js" },
-    { "source": "/api/jwt/:path*", "destination": "/server/api/index.js" },
-    { "source": "/api/(.*)", "destination": "/server/api/index.js" },
-    { "source": "/api-json/(.*)", "destination": "/server/api/index.js" },
-    { "source": "/assets/(.*)", "destination": "/dist/public/assets/$1" },
-    { "source": "/:path*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)", "destination": "/dist/public/:path*.$1" },
-    { "source": "/(.*)", "destination": "/dist/index.html" }
+    { "source": "/api/login", "destination": "/api/login.js" },
+    { "source": "/api-json/login", "destination": "/api/login.js" },
+    { "source": "/api/jwt", "destination": "/api/index.js" },
+    { "source": "/api/jwt/:path*", "destination": "/api/index.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/api-json/(.*)", "destination": "/api/index.js" },
+    { "source": "/assets/(.*)", "destination": "/public/assets/$1" },
+    { "source": "/:path*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)", "destination": "/public/:path*.$1" },
+    { "source": "/(.*)", "destination": "/public/index.html" }
   ],
   "headers": [
     {
