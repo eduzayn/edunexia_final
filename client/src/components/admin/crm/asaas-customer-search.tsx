@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { scheduleAnimationOperation } from '@/lib/dom-error-patch';
 
 // Interface para clientes Asaas
 interface AsaasCustomer {
