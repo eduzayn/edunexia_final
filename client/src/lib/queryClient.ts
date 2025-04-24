@@ -11,14 +11,12 @@ async function throwIfResNotOk(res: Response) {
 /**
  * Função para fazer requisições à API com tipagem
  * @param url URL da requisição
- * @param options Opções da requisição (method, data, etc.)
+ * @param requestOptions Opções da requisição (method, data, etc.)
  * @returns Resposta convertida para o tipo T
  */
 export async function apiRequest(
-  method: string = "GET",
   url: string,
-  data?: unknown,
-  customHeaders?: Record<string, string>
+  requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<Response> {
   // Usar formatApiPath para garantir URL relativa em produção
   const apiUrl = formatApiPath(url);
@@ -26,7 +24,7 @@ export async function apiRequest(
   const token = localStorage.getItem("auth_token");
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    ...customHeaders,
+    ...(requestOptions.headers || {}),
   };
 
   if (token) {
@@ -37,23 +35,24 @@ export async function apiRequest(
     console.log("Token de autenticação recuperado do localStorage:", "Não");
   }
 
-  const options: RequestInit = {
-    method,
+  const requestMethod = requestOptions.method || "GET";
+  const fetchOptions: RequestInit = {
+    method: requestMethod,
     headers,
   };
 
-  if (data) {
-    options.body = JSON.stringify(data);
+  if (requestOptions.data) {
+    fetchOptions.body = JSON.stringify(requestOptions.data);
   }
 
   try {
-    console.log(`Realizando requisição ${method} para ${apiUrl}`, options);
-    const response = await fetch(apiUrl, options);
-    console.log(`Resposta da requisição ${method} para ${apiUrl}: ${response.status}`);
+    console.log(`Realizando requisição ${requestMethod} para ${apiUrl}`, fetchOptions);
+    const response = await fetch(apiUrl, fetchOptions);
+    console.log(`Resposta da requisição ${requestMethod} para ${apiUrl}: ${response.status}`);
 
     // Adiciona verificação para debug em caso de erro
     if (!response.ok) {
-      console.warn(`Requisição ${method} para ${apiUrl} falhou com status ${response.status}`);
+      console.warn(`Requisição ${requestMethod} para ${apiUrl} falhou com status ${response.status}`);
 
       try {
         // Tentar ler o corpo da resposta para debug
@@ -72,7 +71,7 @@ export async function apiRequest(
 
     return response;
   } catch (error) {
-    console.error(`Erro na requisição ${method} para ${apiUrl}:`, error);
+    console.error(`Erro na requisição ${requestMethod} para ${apiUrl}:`, error);
     throw error;
   }
 }
