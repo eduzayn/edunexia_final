@@ -132,9 +132,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: [API_ROUTES.USER] });
       
       try {
-        const response = await apiRequest(API_ROUTES.LOGIN, {
+        // Simplificamos a chamada para evitar erros de tipo
+        let response;
+        
+        // API em ambiente de produção
+        const loginUrl = API_ROUTES.LOGIN;
+        console.log("Fazendo requisição de login para:", loginUrl);
+        
+        // Usando o método fetch diretamente para evitar problemas de tipo
+        response = await fetch(loginUrl, {
           method: "POST",
-          data: data
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
         });
         
         // Verificar o tipo de conteúdo antes de tentar parsear como JSON
@@ -215,7 +226,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const response = await apiRequest("POST", API_ROUTES.REGISTER, credentials);
+      // Usando fetch diretamente
+      const response = await fetch(API_ROUTES.REGISTER, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(credentials)
+      });
       return await response.json();
     },
     onSuccess: (user: SelectUser) => {
@@ -242,7 +260,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Executando logout - mutationFn");
-      const response = await apiRequest("POST", API_ROUTES.LOGOUT);
+      // Usando fetch diretamente
+      const response = await fetch(API_ROUTES.LOGOUT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
       
       // Limpar todos os dados em cache para evitar problemas de persistência
       queryClient.clear();
