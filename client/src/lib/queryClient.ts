@@ -14,12 +14,17 @@ async function throwIfResNotOk(res: Response) {
  * @param requestOptions Opções da requisição (method, data, etc.)
  * @returns Resposta convertida para o tipo T
  */
+// Importando funções auxiliares para normalização de URL
+import { normalizeUrl } from "./api-vercel-fix";
+
 export async function apiRequest(
   url: string,
   requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<Response> {
+  // Normalizar a URL antes de passar para formatApiPath para evitar barras duplas
+  const normalizedUrl = normalizeUrl(url);
   // Usar formatApiPath para garantir URL relativa em produção
-  const apiUrl = formatApiPath(url);
+  const apiUrl = formatApiPath(normalizedUrl);
   
   const token = localStorage.getItem("auth_token");
   const headers: HeadersInit = {
@@ -82,8 +87,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Normalizar a URL primeiro
+    const normalizedUrl = normalizeUrl(queryKey[0] as string);
     // Formatar URL com formatApiPath para garantir URLs relativas em produção
-    const apiUrl = formatApiPath(queryKey[0] as string);
+    const apiUrl = formatApiPath(normalizedUrl);
     
     // Log para debug
     console.log(`QueryClient fazendo requisição para: ${apiUrl}`);

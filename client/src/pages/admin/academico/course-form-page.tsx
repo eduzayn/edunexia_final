@@ -296,7 +296,7 @@ export default function CourseFormPage() {
         }
         
         // Verificar se as disciplinas foram realmente adicionadas
-        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const result = await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "GET" });
         const addedDisciplines = await result.json();
         console.log("Disciplinas adicionadas verificadas:", addedDisciplines?.length || 0);
         
@@ -304,7 +304,7 @@ export default function CourseFormPage() {
           console.log("Nenhuma disciplina adicionada, tentando reparo...");
           // Se falhar, tente recuperar usando a API de reparo
           try {
-            await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+            await apiRequest(`/api/enrollments/${courseId}/fix-disciplines`, { method: "POST" });
             console.log("Reparo de disciplinas concluído");
           } catch (fixError) {
             console.error("Erro ao reparar disciplinas:", fixError);
@@ -317,7 +317,7 @@ export default function CourseFormPage() {
         
         // Tente recuperar disciplinas em caso de erro
         try {
-          await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+          await apiRequest(`/api/enrollments/${courseId}/fix-disciplines`, { method: "POST" });
         } catch (repairError) {
           console.error("Erro também durante tentativa de reparo:", repairError);
         }
@@ -364,10 +364,13 @@ export default function CourseFormPage() {
         for (let i = 0; i < disciplineIds.length; i++) {
           const disciplineId = disciplineIds[i];
           try {
-            await apiRequest("POST", "/api/admin/course-disciplines", {
-              courseId,
-              disciplineId,
-              order: i + 1
+            await apiRequest("/api/admin/course-disciplines", {
+              method: "POST",
+              data: {
+                courseId,
+                disciplineId,
+                order: i + 1
+              }
             });
             console.log(`Disciplina ${disciplineId} adicionada na posição ${i + 1}`);
           } catch (addError) {
