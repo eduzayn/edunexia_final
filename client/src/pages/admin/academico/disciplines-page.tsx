@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { ApiErrorDisplay } from "@/components/ui/api-error-display";
 import { Discipline } from "@shared/schema";
+import { ExtendedUser } from "@/types/user";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -88,8 +89,7 @@ const disciplineEditFormSchema = z.object({
 type DisciplineFormValues = z.infer<typeof disciplineFormSchema>;
 
 export default function DisciplinesPage() {
-  // @ts-ignore - Temporariamente ignorando erro até corrigir user.role
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: ExtendedUser | null };
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [location, navigate] = useLocation();
