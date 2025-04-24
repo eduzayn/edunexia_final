@@ -268,7 +268,7 @@ export default function CourseFormPage() {
         
         // Remover disciplinas existentes de forma segura
         try {
-          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "DELETE" });
           console.log("Disciplinas existentes removidas com sucesso");
         } catch (deleteError) {
           console.error("Erro ao remover disciplinas existentes:", deleteError);
@@ -349,7 +349,7 @@ export default function CourseFormPage() {
         
         // Primeiro, remove todas as disciplinas do curso com tratamento de erro
         try {
-          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "DELETE" });
           console.log("Disciplinas existentes removidas com sucesso");
         } catch (deleteError) {
           console.error("Erro ao remover disciplinas existentes:", deleteError);
