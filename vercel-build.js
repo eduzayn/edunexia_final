@@ -50,14 +50,61 @@ try {
     fs.mkdirSync('./dist/public', { recursive: true });
   }
   
-  // Verificar e copiar o fallback.html para servir como página inicial
-  const fallbackPath = path.join(process.cwd(), 'fallback.html');
-  const fallbackDestPath = path.join(process.cwd(), 'dist', 'public', 'index.html');
-  
-  if (fs.existsSync(fallbackPath)) {
-    log(`Copiando fallback.html para dist/public/index.html`);
-    fs.copyFileSync(fallbackPath, fallbackDestPath);
+  // Verificar estrutura do cliente
+  log('Verificando estrutura do diretório client...');
+  if (fs.existsSync('./client/src/main.tsx')) {
+    log('Arquivo main.tsx encontrado em client/src');
+    
+    // Verificar existência de vite.config.js/ts
+    let viteConfigPath = '';
+    if (fs.existsSync('./vite.config.js')) {
+      viteConfigPath = './vite.config.js';
+    } else if (fs.existsSync('./vite.config.ts')) {
+      viteConfigPath = './vite.config.ts';
+    } else if (fs.existsSync('./client/vite.config.js')) {
+      viteConfigPath = './client/vite.config.js';
+    } else if (fs.existsSync('./client/vite.config.ts')) {
+      viteConfigPath = './client/vite.config.ts';
+    }
+    
+    if (!viteConfigPath) {
+      log('Criando vite.config.js temporário...');
+      const viteConfig = `
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  root: './client',
+  build: {
+    outDir: '../dist/public',
+    emptyOutDir: true
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './client/src')
+    }
+  }
+});
+`;
+      fs.writeFileSync('./vite.config.js', viteConfig);
+      viteConfigPath = './vite.config.js';
+      log('vite.config.js temporário criado');
+    }
+    
+    // Executar build do frontend
+    log('Iniciando build do frontend com Vite...');
+    const frontendBuildSuccess = runCommand('npx vite build');
+    
+    if (!frontendBuildSuccess) {
+      throw new Error('Falha no build do frontend');
+    }
+    
+    log('Build do frontend concluído com sucesso');
   } else {
+    log('AVISO: main.tsx não encontrado em client/src. Usando página de fallback temporária.');
+    
     // Criar um fallback básico
     log(`Criando página de fallback básica`);
     const basicFallback = `
@@ -126,46 +173,87 @@ try {
 </body>
 </html>
 `;
+    
+    const fallbackDestPath = path.join(process.cwd(), 'dist', 'public', 'index.html');
     fs.writeFileSync(fallbackDestPath, basicFallback);
-    log(`Página de fallback criada com sucesso`);
+    log(`Página de fallback criada em ${fallbackDestPath}`);
+    
+    // Copiar para a raiz dist também
+    fs.copyFileSync(fallbackDestPath, path.join(process.cwd(), 'dist', 'index.html'));
   }
   
-  // Copiar para a raiz dist também
-  fs.copyFileSync(fallbackDestPath, path.join(process.cwd(), 'dist', 'index.html'));
+  // Compilar o backend e API
+  log('Compilando arquivos do backend...');
   
-  // Implementar APIs básicas para evitar 404 nos endpoints críticos
-  log(`Criando APIs básicas requeridas pelo Vercel...`);
-  
-  // API index.js básica
-  const apiIndexContent = `
-export default function handler(req, res) {
-  return res.status(200).json({
-    status: "online",
-    message: "API em manutenção programada. Por favor, tente novamente em alguns minutos.",
-    maintenance: true,
-    timestamp: new Date().toISOString()
-  });
-}
-`;
-  
-  // API login.js básica
-  const apiLoginContent = `
+  // Verificar existência de server/index.ts
+  if (fs.existsSync('./server/index.ts')) {
+    log('Compilando server/index.ts para dist/index.js');
+    const serverBuildSuccess = runCommand('npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist');
+    
+    if (!serverBuildSuccess) {
+      log('AVISO: Falha ao compilar server/index.ts, criando arquivo de fallback...');
+      
+      const serverFallback = `
 export default function handler(req, res) {
   return res.status(503).json({
     status: "maintenance",
-    message: "Sistema de autenticação em manutenção programada. Por favor, tente novamente em alguns minutos.",
-    maintenance: true,
+    message: "API em manutenção programada.",
     timestamp: new Date().toISOString()
   });
 }
 `;
+      fs.writeFileSync(path.join(process.cwd(), 'dist', 'index.js'), serverFallback);
+    }
+  } else {
+    log('AVISO: server/index.ts não encontrado.');
+  }
   
-  // Escrever os arquivos de API
-  fs.writeFileSync(path.join(process.cwd(), 'dist', 'api', 'index.js'), apiIndexContent);
-  fs.writeFileSync(path.join(process.cwd(), 'dist', 'api', 'login.js'), apiLoginContent);
+  // Verificar e compilar APIs específicas
+  log('Compilando APIs essenciais...');
   
-  log(`APIs básicas criadas com sucesso`);
-  log(`Build concluído com sucesso. Uma página de manutenção e APIs básicas foram configuradas.`);
+  if (fs.existsSync('./server/api/login.js')) {
+    log('Compilando server/api/login.js para dist/api/login.js');
+    runCommand('npx esbuild server/api/login.js --platform=node --packages=external --bundle --format=esm --outfile=dist/api/login.js');
+  } else if (fs.existsSync('./server/api/login.ts')) {
+    log('Compilando server/api/login.ts para dist/api/login.js');
+    runCommand('npx esbuild server/api/login.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/api/login.js');
+  } else {
+    log('AVISO: API de login não encontrada, criando arquivo de fallback...');
+    
+    const loginFallback = `
+export default function handler(req, res) {
+  return res.status(503).json({
+    status: "maintenance",
+    message: "Serviço de autenticação em manutenção.",
+    timestamp: new Date().toISOString()
+  });
+}
+`;
+    fs.writeFileSync(path.join(process.cwd(), 'dist', 'api', 'login.js'), loginFallback);
+  }
+  
+  if (fs.existsSync('./server/api/index.js')) {
+    log('Compilando server/api/index.js para dist/api/index.js');
+    runCommand('npx esbuild server/api/index.js --platform=node --packages=external --bundle --format=esm --outfile=dist/api/index.js');
+  } else if (fs.existsSync('./server/api/index.ts')) {
+    log('Compilando server/api/index.ts para dist/api/index.js');
+    runCommand('npx esbuild server/api/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/api/index.js');
+  } else {
+    log('AVISO: API principal não encontrada, criando arquivo de fallback...');
+    
+    const apiFallback = `
+export default function handler(req, res) {
+  return res.status(503).json({
+    status: "maintenance",
+    message: "API em manutenção programada.",
+    timestamp: new Date().toISOString()
+  });
+}
+`;
+    fs.writeFileSync(path.join(process.cwd(), 'dist', 'api', 'index.js'), apiFallback);
+  }
+  
+  log('Build concluído com sucesso!');
   
 } catch (error) {
   console.error('\x1b[31m%s\x1b[0m', `[ERRO FATAL] Erro durante o build: ${error.message}`);
