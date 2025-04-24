@@ -55,6 +55,20 @@ try {
   log(`Arquivo index.html encontrado em: ${indexPath}`);
   log(`Conteúdo de index.html: ${fs.readFileSync(indexPath, 'utf8').substring(0, 100)}...`);
   
+  // Verificar existência do arquivo de configuração do Vite
+  const viteConfigPath = path.join(process.cwd(), 'vite.config.ts');
+  if (!fs.existsSync(viteConfigPath)) {
+    console.error('\x1b[31m%s\x1b[0m', `[ERRO] Arquivo vite.config.ts não encontrado em ${viteConfigPath}`);
+    
+    // Listar arquivos na raiz para debug
+    log('Listando arquivos na raiz para debug:');
+    const rootFiles = fs.readdirSync(process.cwd());
+    log(`Arquivos na raiz: ${rootFiles.join(', ')}`);
+    
+    throw new Error('Arquivo de configuração do Vite não encontrado');
+  }
+  log(`Arquivo vite.config.ts encontrado em: ${viteConfigPath}`);
+  
   // Executar o build do frontend com Vite
   log('Executando build do frontend com Vite...');
   if (!runCommand('npx vite build --config vite.config.ts')) {
