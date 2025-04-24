@@ -53,7 +53,20 @@ try {
     process.exit(1);
   }
   log(`Arquivo index.html encontrado em: ${indexPath}`);
-  log(`Conteúdo de index.html: ${fs.readFileSync(indexPath, 'utf8').substring(0, 100)}...`);
+  
+  // Ler o conteúdo do index.html
+  let indexContent = fs.readFileSync(indexPath, 'utf8');
+  log(`Conteúdo original de index.html: ${indexContent.substring(0, 100)}...`);
+  
+  // Corrigir o caminho do main.tsx no index.html
+  if (indexContent.includes('src="/src/main.tsx"')) {
+    log('Corrigindo caminho do main.tsx no index.html...');
+    indexContent = indexContent.replace('src="/src/main.tsx"', 'src="./src/main.tsx"');
+    fs.writeFileSync(indexPath, indexContent);
+    log('Caminho do main.tsx corrigido com sucesso.');
+  }
+  
+  log(`Conteúdo atualizado de index.html: ${fs.readFileSync(indexPath, 'utf8').substring(0, 100)}...`);
   
   // Verificar existência do arquivo de configuração do Vite em múltiplos locais
   let viteConfigPath = path.join(process.cwd(), 'vite.config.ts');
@@ -82,6 +95,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   plugins: [react()],
   root: path.resolve(__dirname, 'client'),
+  base: './', // Usar caminhos relativos
   build: {
     outDir: path.resolve(__dirname, 'dist/public'),
     emptyOutDir: true,
