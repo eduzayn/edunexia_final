@@ -1,20 +1,19 @@
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Sidebar } from "@/components/layout/sidebar";
-import { 
-  LayoutDashboard,
-  BookOpenText, 
-  GraduationCap, 
-  FileQuestion, 
-  BriefcaseBusiness, 
-  Handshake, 
-  Banknote, 
-  Calendar, 
-  MessagesSquare, 
-  User,
-  BookMarked
+import StudentLayout from "@/components/layout/student-layout";
+import {
+  Download,
+  Camera,
+  Upload,
+  CreditCard,
+  AlertCircle,
+  CheckCircle,
+  AlertTriangle,
+  ArrowRight,
+  Info,
+  RefreshCw,
+  Loader2
 } from "lucide-react";
 import {
   Card,
@@ -35,19 +34,6 @@ import {
   LayersIcon,
   FileTextIcon,
 } from "@/components/ui/icons";
-import {
-  Download,
-  Camera,
-  Upload,
-  CreditCard,
-  AlertCircle,
-  CheckCircle,
-  AlertTriangle,
-  ArrowRight,
-  Info,
-  RefreshCw,
-  Loader2
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,7 +84,6 @@ interface CredentialHistory {
 export default function CredencialPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -108,7 +93,6 @@ export default function CredencialPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [, setLocation] = useLocation();
 
   // Simular dados do estudante
   const mockStudentCredentialStatus: StudentCredentialStatus = {
@@ -139,22 +123,6 @@ export default function CredencialPage() {
       expiresAt: "2022-12-31T23:59:59",
       downloadUrl: "#",
     }
-  ];
-
-  // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
-  const [location] = useLocation();
-  const sidebarItems = [
-    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" },
   ];
 
   // Formatador de data
@@ -318,445 +286,367 @@ export default function CredencialPage() {
   const hasActiveCredential = mockCredentialHistory.some(cred => cred.status === 'active');
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <StudentLayout
+      title="Credencial Estudantil"
+      subtitle="Gerencie sua credencial estudantil digital"
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Credencial", href: "/student/credencial" }
+      ]}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Coluna esquerda - Status e Geração */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Status da Credencial */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Status da Credencial</CardTitle>
+              <CardDescription>
+                Verifique seu status atual e os requisitos para emissão
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {hasActiveCredential ? (
+                <Alert className="bg-green-50 border-green-200">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle className="text-green-800">Credencial Ativa</AlertTitle>
+                  <AlertDescription className="text-green-700">
+                    Você já possui uma credencial ativa válida até {formatDate(mockCredentialHistory[0].expiresAt)}.
+                  </AlertDescription>
+                </Alert>
+              ) : canGenerate ? (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-800">Pronto para Emissão</AlertTitle>
+                  <AlertDescription className="text-blue-700">
+                    Você atende a todos os requisitos e pode gerar sua credencial estudantil.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-800">Pendências Encontradas</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    Existem requisitos pendentes para a emissão da sua credencial.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Credencial Estudantil</h1>
-            <p className="text-gray-600">Gerencie sua credencial estudantil digital</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Coluna esquerda - Status e Geração */}
-            <div className="md:col-span-2 space-y-6">
-              {/* Status da Credencial */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Status da Credencial</CardTitle>
-                  <CardDescription>
-                    Verifique seu status atual e os requisitos para emissão
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {hasActiveCredential ? (
-                    <Alert className="bg-green-50 border-green-200">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <AlertTitle className="text-green-800">Credencial Ativa</AlertTitle>
-                      <AlertDescription className="text-green-700">
-                        Você já possui uma credencial ativa válida até {formatDate(mockCredentialHistory[0].expiresAt)}.
-                      </AlertDescription>
-                    </Alert>
-                  ) : canGenerate ? (
-                    <Alert className="bg-blue-50 border-blue-200">
-                      <Info className="h-4 w-4 text-blue-600" />
-                      <AlertTitle className="text-blue-800">Pronto para Emissão</AlertTitle>
-                      <AlertDescription className="text-blue-700">
-                        Você atende a todos os requisitos e pode gerar sua credencial estudantil.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <Alert className="bg-amber-50 border-amber-200">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      <AlertTitle className="text-amber-800">Pendências Encontradas</AlertTitle>
-                      <AlertDescription className="text-amber-700">
-                        Existem requisitos pendentes para a emissão da sua credencial.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    {/* Requisito: Foto */}
-                    <div className="p-4 rounded-lg border bg-white">
-                      <div className="flex items-start">
-                        {mockStudentCredentialStatus.hasValidPhoto ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-900">Foto do Aluno</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {mockStudentCredentialStatus.hasValidPhoto
-                              ? "Foto aprovada e válida para uso na credencial."
-                              : "Você precisa enviar uma foto de rosto em fundo branco."}
-                          </p>
-                          {!mockStudentCredentialStatus.hasValidPhoto && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => fileInputRef.current?.click()}
-                              >
-                                <Upload className="h-3.5 w-3.5 mr-1" />
-                                Enviar Foto
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={handleCameraCapture}
-                              >
-                                <Camera className="h-3.5 w-3.5 mr-1" />
-                                Tirar Foto
-                              </Button>
-                              <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handlePhotoUpload}
-                                accept="image/*"
-                                className="hidden"
-                              />
-                            </div>
-                          )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {/* Requisito: Foto */}
+                <div className="p-4 rounded-lg border bg-white">
+                  <div className="flex items-start">
+                    {mockStudentCredentialStatus.hasValidPhoto ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                    )}
+                    <div>
+                      <h3 className="font-medium text-gray-900">Foto do Aluno</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {mockStudentCredentialStatus.hasValidPhoto
+                          ? "Foto aprovada e válida para uso na credencial."
+                          : "Você precisa enviar uma foto de rosto em fundo branco."}
+                      </p>
+                      {!mockStudentCredentialStatus.hasValidPhoto && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="h-3.5 w-3.5 mr-1" />
+                            Enviar Foto
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={handleCameraCapture}
+                          >
+                            <Camera className="h-3.5 w-3.5 mr-1" />
+                            Tirar Foto
+                          </Button>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handlePhotoUpload}
+                            accept="image/*"
+                            className="hidden"
+                          />
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Requisito: Documentação */}
-                    <div className="p-4 rounded-lg border bg-white">
-                      <div className="flex items-start">
-                        {mockStudentCredentialStatus.hasApprovedDocuments ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-900">Documentação Acadêmica</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {mockStudentCredentialStatus.hasApprovedDocuments
-                              ? "Documentação aprovada pela secretaria."
-                              : `Você possui ${mockStudentCredentialStatus.pendingDocuments.length} documento(s) pendente(s).`}
-                          </p>
-                          {!mockStudentCredentialStatus.hasApprovedDocuments && (
-                            <div className="mt-3">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => setLocation("/student/secretaria")}
-                              >
-                                Enviar Documentos
-                                <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Requisito: Pagamento */}
-                    <div className="p-4 rounded-lg border bg-white">
-                      <div className="flex items-start">
-                        {mockStudentCredentialStatus.hasPaidFirstInstallment ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-900">Pagamento da 1ª Parcela</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {mockStudentCredentialStatus.hasPaidFirstInstallment
-                              ? "Primeira parcela do curso quitada."
-                              : "É necessário o pagamento da primeira parcela do curso."}
-                          </p>
-                          {!mockStudentCredentialStatus.hasPaidFirstInstallment && (
-                            <div className="mt-3">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => setLocation("/student/financial")}
-                              >
-                                Verificar Pagamentos
-                                <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status da Credencial */}
-                    <div className="p-4 rounded-lg border bg-white">
-                      <div className="flex items-start">
-                        {hasActiveCredential ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                        ) : (
-                          <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                        )}
-                        <div>
-                          <h3 className="font-medium text-gray-900">Status da Credencial</h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {hasActiveCredential
-                              ? `Credencial válida até ${formatDate(mockCredentialHistory[0].expiresAt)}`
-                              : "Credencial não gerada ou expirada."}
-                          </p>
-                          {hasActiveCredential && (
-                            <div className="mt-3">
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => toast({
-                                  title: "Download iniciado",
-                                  description: "Seu arquivo está sendo baixado.",
-                                })}
-                              >
-                                <Download className="h-3.5 w-3.5 mr-1" />
-                                Baixar Credencial
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6 flex flex-col items-stretch sm:flex-row sm:items-center gap-3">
-                  {canGenerate ? (
-                    <Button 
-                      className="w-full sm:w-auto" 
-                      onClick={handleGenerateCredential}
-                      disabled={isGenerating || hasActiveCredential}
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Gerando Credencial...
-                        </>
-                      ) : hasActiveCredential ? (
-                        "Você já possui uma credencial ativa"
-                      ) : (
-                        <>
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Gerar Credencial Estudantil
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="w-full sm:w-auto" 
-                      disabled
-                      variant="outline"
-                    >
-                      Resolva as pendências para gerar a credencial
-                    </Button>
-                  )}
-                  
-                  {hasActiveCredential && (
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                      onClick={() => toast({
-                        title: "Download iniciado",
-                        description: "Seu arquivo está sendo baixado.",
-                      })}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Baixar Credencial
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
+                </div>
 
-              {/* Histórico de Credenciais */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Histórico de Credenciais</CardTitle>
-                  <CardDescription>
-                    Credenciais emitidas anteriormente
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {mockCredentialHistory.length === 0 ? (
-                    <div className="text-center py-8">
-                      <CreditCard className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhuma credencial encontrada</h3>
-                      <p className="text-gray-600">
-                        Você ainda não gerou nenhuma credencial estudantil.
+                {/* Requisito: Documentação */}
+                <div className="p-4 rounded-lg border bg-white">
+                  <div className="flex items-start">
+                    {mockStudentCredentialStatus.hasApprovedDocuments ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                    )}
+                    <div>
+                      <h3 className="font-medium text-gray-900">Documentação Acadêmica</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {mockStudentCredentialStatus.hasApprovedDocuments
+                          ? "Documentação aprovada pela secretaria acadêmica."
+                          : "Documentos pendentes de aprovação pela secretaria."}
                       </p>
+                      {mockStudentCredentialStatus.pendingDocuments.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-gray-700">Documentos pendentes:</p>
+                          <ul className="mt-1 text-xs text-gray-600 list-disc list-inside">
+                            {mockStudentCredentialStatus.pendingDocuments.map((doc, index) => (
+                              <li key={index}>{doc}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {mockCredentialHistory.map((credential) => (
-                        <div key={credential.id} className="p-4 rounded-lg border bg-white">
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                            <div>
-                              <div className="flex items-center mb-2">
-                                <Badge 
-                                  variant={credential.status === 'active' ? 'default' : 'outline'}
-                                  className="mr-2"
-                                >
-                                  {credential.status === 'active' ? 'Ativa' : credential.status === 'expired' ? 'Expirada' : 'Cancelada'}
-                                </Badge>
-                                <span className="text-sm text-gray-500">
-                                  ID: #{credential.id}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-700">
-                                <span className="font-medium">Emitida em:</span> {formatDateTime(credential.generatedAt)}
-                              </p>
-                              <p className="text-sm text-gray-700">
-                                <span className="font-medium">Válida até:</span> {formatDate(credential.expiresAt)}
-                              </p>
-                            </div>
-                            {credential.downloadUrl && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="mt-3 md:mt-0"
-                                onClick={() => toast({
-                                  title: "Download iniciado",
-                                  description: "Seu arquivo está sendo baixado.",
-                                })}
-                              >
-                                <Download className="mr-2 h-3.5 w-3.5" />
-                                Baixar
-                              </Button>
+                  </div>
+                </div>
+
+                {/* Requisito: Pagamento */}
+                <div className="p-4 rounded-lg border bg-white">
+                  <div className="flex items-start">
+                    {mockStudentCredentialStatus.hasPaidFirstInstallment ? (
+                      <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                    )}
+                    <div>
+                      <h3 className="font-medium text-gray-900">Situação Financeira</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {mockStudentCredentialStatus.hasPaidFirstInstallment
+                          ? "Situação financeira regularizada."
+                          : "Pendências financeiras detectadas."}
+                      </p>
+                      {!mockStudentCredentialStatus.hasPaidFirstInstallment && (
+                        <div className="mt-3">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => window.location.href = "/student/financial"}
+                          >
+                            <CreditCard className="h-3.5 w-3.5 mr-1" />
+                            Ver Pendências
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleGenerateCredential}
+                disabled={!canGenerate || hasActiveCredential || isGenerating}
+                className="w-full sm:w-auto"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando...
+                  </>
+                ) : hasActiveCredential ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Já possui credencial
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Gerar Credencial
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Histórico de Credenciais */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Credenciais</CardTitle>
+              <CardDescription>
+                Visualize suas credenciais anteriores e atuais
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {mockCredentialHistory.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-gray-500">Você ainda não possui histórico de credenciais.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {mockCredentialHistory.map((credential) => (
+                    <div 
+                      key={credential.id}
+                      className={`p-4 rounded-lg border ${
+                        credential.status === 'active' 
+                          ? 'border-green-200 bg-green-50' 
+                          : credential.status === 'expired'
+                            ? 'border-gray-200 bg-gray-50'
+                            : 'border-red-200 bg-red-50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center">
+                            {credential.status === 'active' ? (
+                              <Badge variant="success">Ativa</Badge>
+                            ) : credential.status === 'expired' ? (
+                              <Badge variant="secondary">Expirada</Badge>
+                            ) : (
+                              <Badge variant="destructive">Cancelada</Badge>
                             )}
+                            <span className="ml-2 text-sm text-gray-600">
+                              ID: {credential.id}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm">
+                            <p className="text-gray-700">
+                              <span className="font-medium">Emitida em:</span> {formatDateTime(credential.generatedAt)}
+                            </p>
+                            <p className="text-gray-700">
+                              <span className="font-medium">Válida até:</span> {formatDate(credential.expiresAt)}
+                            </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Coluna direita - Foto e Informações */}
-            <div className="space-y-6">
-              {/* Foto do Aluno */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sua Foto</CardTitle>
-                  <CardDescription>
-                    A foto que será usada na credencial
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center">
-                  <div className="w-full max-w-[240px] aspect-[3/4] overflow-hidden rounded-lg border mb-4 relative">
-                    {isUploading && (
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white">
-                        <RefreshCw className="h-8 w-8 animate-spin mb-2" />
-                        <p className="text-sm">Enviando foto... {uploadProgress}%</p>
+                        {credential.downloadUrl && (
+                          <Button variant="outline" size="sm">
+                            <Download className="h-3.5 w-3.5 mr-1.5" />
+                            Download
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna direita - Previsualização e Informações */}
+        <div className="space-y-6">
+          {/* Previsualização da Credencial */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Visualização da Foto</CardTitle>
+              <CardDescription>
+                Prévia da foto para sua credencial
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center">
+              <div className="relative w-full max-w-[250px] mb-4">
+                <div 
+                  className="aspect-[3/4] rounded-md overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center"
+                >
+                  {photoPreview ? (
                     <img 
-                      src={photoPreview || "https://placehold.co/400x500/e2e8f0/475569?text=Foto+do+Aluno"} 
-                      alt="Foto do Aluno"
+                      src={photoPreview} 
+                      alt="Prévia da foto do aluno" 
                       className="w-full h-full object-cover"
                     />
+                  ) : (
+                    <div className="text-center p-4 text-gray-400">
+                      <Camera className="mx-auto h-10 w-10 mb-2" />
+                      <p className="text-sm">Nenhuma foto disponível</p>
+                    </div>
+                  )}
+                </div>
+                {isUploading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-md">
+                    <div className="text-white text-center">
+                      <Loader2 className="mx-auto h-8 w-8 animate-spin mb-2" />
+                      <p className="text-sm font-medium">{uploadProgress}%</p>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="mr-2 h-3.5 w-3.5" />
-                      Enviar Foto
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCameraCapture}
-                    >
-                      <Camera className="mr-2 h-3.5 w-3.5" />
-                      Tirar Foto
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
+              {photoPreview && !mockStudentCredentialStatus.hasValidPhoto && (
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                    Alterar Foto
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-              {/* Informações */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Regras e Informações</CardTitle>
-                  <CardDescription>
-                    Sobre a credencial estudantil
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm space-y-4">
-                  <p className="text-gray-700">
-                    A credencial estudantil é o documento oficial que comprova seu vínculo com a instituição. 
-                    Com ela, você tem acesso a benefícios e descontos exclusivos.
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900">Requisitos para Emissão:</h4>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      <li>Foto atualizada (fundo branco, sem óculos escuros e sem adereços)</li>
-                      <li>Documentação acadêmica completa e aprovada pela secretaria</li>
-                      <li>Pagamento da primeira parcela do curso quitado</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900">Benefícios:</h4>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      <li>Acesso às dependências da instituição</li>
-                      <li>Descontos em teatros, cinemas, shows e eventos culturais</li>
-                      <li>Meia-entrada em eventos esportivos</li>
-                      <li>Descontos especiais em estabelecimentos parceiros</li>
-                    </ul>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-gray-900">Validade e Renovação:</h4>
-                    <ul className="list-disc list-inside text-gray-700 space-y-1">
-                      <li>A credencial é válida por 2 anos ou até a conclusão do curso</li>
-                      <li>Renovação disponível em caso de perda, dano ou expiração</li>
-                      <li>Para renovar, é necessário estar com matrícula ativa e situação financeira regularizada</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          {/* Informações Sobre a Credencial */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 text-sm">
+                <p className="text-gray-700">
+                  A credencial estudantil é o documento oficial que comprova seu vínculo com a instituição de ensino.
+                </p>
+                <p className="text-gray-700">
+                  Com ela, você tem acesso a diversos benefícios, como descontos em eventos culturais, cinemas, teatros e transporte público.
+                </p>
+                <p className="text-gray-700">
+                  Para emitir sua credencial, é necessário:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Foto recente em fundo branco</li>
+                  <li>Documentação acadêmica completa</li>
+                  <li>Situação financeira regularizada</li>
+                </ul>
+                <p className="text-gray-700">
+                  A credencial tem validade de um ano acadêmico, podendo ser renovada anualmente enquanto você mantiver vínculo com a instituição.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Modal de Câmera */}
-      <Dialog open={showCamera} onOpenChange={setShowCamera}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Capturar Foto</DialogTitle>
-            <DialogDescription>
-              Posicione seu rosto no centro da tela e clique em "Capturar"
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="relative aspect-video overflow-hidden bg-gray-100 rounded-md">
-            <video 
-              ref={videoRef} 
-              autoPlay 
-              className="absolute left-0 top-0 w-full h-full object-cover"
-            />
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-          
-          <DialogFooter className="gap-2">
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={cancelCamera}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={takePhoto}>
-              <Camera className="mr-2 h-4 w-4" />
-              Capturar Foto
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      {/* Modal da câmera */}
+      {showCamera && (
+        <Dialog open={showCamera} onOpenChange={setShowCamera}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Capturar Foto</DialogTitle>
+              <DialogDescription>
+                Posicione seu rosto no centro da imagem e clique em "Capturar"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="relative overflow-hidden rounded-md">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-auto"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+            <DialogFooter className="flex justify-between sm:justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={cancelCamera}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={takePhoto}>
+                <Camera className="h-4 w-4 mr-2" />
+                Capturar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </StudentLayout>
   );
 }
