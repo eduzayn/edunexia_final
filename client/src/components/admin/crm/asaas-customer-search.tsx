@@ -83,23 +83,26 @@ export function AsaasCustomerSearch({
     
     console.log('⚠️ Cliente selecionado de lista existente:', customerName);
     
-    // Usar setTimeout para garantir que o React complete seu ciclo de renderização 
-    // antes de alterar mais estados - isso ajuda a evitar problemas de DOM em produção
+    // Abordagem mais segura: vamos desacoplar completamente as operações de DOM
+    
+    // 1. Primeiro, fechamos o dialog
+    setOpen(false);
+    
+    // 2. Usar um timeout mais longo para garantir que o fechamento do diálogo foi concluído
     setTimeout(() => {
-      // IMPORTANTE: A ordem aqui é crítica para evitar perdas de estado
-      // 1. Fechar o diálogo primeiro para evitar conflitos de DOM
-      setOpen(false);
-      
-      // 2. Atualizar estados após o fechamento do diálogo
+      // 3. Atualizar o valor do input após o fechamento
       setInputValue(customerName);
+      // 4. Atualizar o valor no formulário
       onChange(customerName);
       
-      // 3. Notificar o componente pai com as informações do cliente
-      onCustomerSelect({
-        ...customer,
-        name: customerName // Garantir que o nome está corretamente formatado
-      });
-    }, 0);
+      // 5. Usar outro timeout para notificar o componente pai
+      setTimeout(() => {
+        onCustomerSelect({
+          ...customer,
+          name: customerName // Garantir que o nome está corretamente formatado
+        });
+      }, 50); // Atraso adicional para garantir que as atualizações de estado anteriores foram processadas
+    }, 100); // Atraso maior para garantir que o diálogo foi fechado completamente
   }, [onChange, onCustomerSelect]);
   
   // Função para criar um novo cliente quando nenhum é encontrado
@@ -124,18 +127,24 @@ export function AsaasCustomerSearch({
         description: `Preencha os dados do novo cliente: ${name}`,
       });
       
-      // Usar setTimeout para evitar problemas de manipulação DOM em produção
+      // Abordagem mais segura para evitar problemas de manipulação DOM
+      
+      // 1. Primeiro, fechamos o dialog
+      setOpen(false);
+      
+      // 2. Usar um timeout mais longo para garantir que o fechamento do diálogo foi concluído
       setTimeout(() => {
-        // 1. Primeiro fechar o diálogo para evitar conflitos de DOM
-        setOpen(false);
+        // 3. Atualizar o valor do input após o fechamento
+        setInputValue(name);
+        // 4. Atualizar o valor no formulário
+        onChange(name);
         
-        // 2. Em seguida, atualizar os estados e notificar o componente pai
-        setInputValue(name); // Garantir que o inputValue está atualizado
-        onChange(name);      // Atualizar o valor do campo do formulário
-        
-        // 3. Por último, passar o cliente para o componente pai
-        onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
-      }, 0);
+        // 5. Usar outro timeout para notificar o componente pai
+        setTimeout(() => {
+          console.log('🔄 Enviando novo cliente para o componente pai:', name);
+          onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
+        }, 50); // Atraso adicional para garantir que as atualizações de estado anteriores foram processadas
+      }, 100); // Atraso maior para garantir que o diálogo foi fechado completamente
     }
   }, [debouncedSearch, inputValue, onChange, onCustomerSelect, toast]);
   
