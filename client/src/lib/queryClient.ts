@@ -17,17 +17,44 @@ async function throwIfResNotOk(res: Response) {
 // Importando funções auxiliares para normalização de URL
 import { normalizeUrl } from "./api-vercel-fix";
 
+/**
+ * Função para fazer requisições à API com tipagem e suporte para diferentes formatos de chamada
+ * Suporta tanto apiRequest(url) quanto apiRequest(method, url, data)
+ */
 export async function apiRequest(
-  url: string,
-  requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {}
+  urlOrMethod: string,
+  urlOrOptions?: string | { method?: string; data?: unknown; headers?: Record<string, string> } = {},
+  data?: unknown
 ): Promise<Response> {
+  // Determina se estamos usando o formato antigo (apiRequest(url)) ou o novo (apiRequest(method, url, data))
+  let url: string;
+  let requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {};
+  
+  if (urlOrMethod === "GET" || urlOrMethod === "POST" || urlOrMethod === "PUT" || urlOrMethod === "DELETE" || urlOrMethod === "PATCH") {
+    // Novo formato: apiRequest(method, url, data)
+    if (typeof urlOrOptions === 'string') {
+      url = urlOrOptions;
+      if (data !== undefined) {
+        requestOptions.data = data;
+      }
+      requestOptions.method = urlOrMethod;
+    } else {
+      console.error("Formato de chamada inválido para apiRequest(method, url, data)");
+      throw new Error("URL não informada para apiRequest");
+    }
+  } else {
+    // Formato antigo: apiRequest(url, options)
+    url = urlOrMethod;
+    if (typeof urlOrOptions === 'object') {
+      requestOptions = urlOrOptions;
+    }
+  }
+  
   // Em produção, forçamos URLs relativas para evitar o problema de domínio completo
   const isProd = import.meta.env.PROD;
   
-  // Log para debug em produção
-  if (isProd) {
-    console.log(`apiRequest - URL original: ${url}`);
-  }
+  // Log para debug
+  console.log(`apiRequest - URL original: ${url}, método: ${requestOptions.method || "GET"}`);
   
   // Normalizar a URL antes de passar para formatApiPath para evitar barras duplas
   const normalizedUrl = normalizeUrl(url);
@@ -35,10 +62,8 @@ export async function apiRequest(
   // Usar formatApiPath para garantir URL relativa em produção
   const apiUrl = formatApiPath(normalizedUrl);
   
-  // Log para debug em produção
-  if (isProd) {
-    console.log(`apiRequest - URL final formatada: ${apiUrl}`);
-  }
+  // Log para debug
+  console.log(`apiRequest - URL final formatada: ${apiUrl}`);
   
   const token = localStorage.getItem("auth_token");
   const headers: HeadersInit = {
