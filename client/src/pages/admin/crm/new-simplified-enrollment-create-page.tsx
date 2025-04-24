@@ -666,38 +666,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                     id="institutionSearch"
                                     placeholder="Buscar instituição pelo nome..."
                                     className="h-8"
+                                    value={institutionSearchTerm}
                                     onChange={(e) => {
-                                      try {
-                                        const searchValue = e.target.value.toLowerCase();
-                                        // Usar requestAnimationFrame para garantir que o DOM esteja estável
-                                        requestAnimationFrame(() => {
-                                          try {
-                                            const institutionItems = document.querySelectorAll('[data-institution-item]');
-                                            
-                                            institutionItems.forEach((item: Element) => {
-                                              try {
-                                                if (item && item instanceof Element) {
-                                                  const institutionName = item.getAttribute('data-institution-name')?.toLowerCase() || '';
-                                                  const institutionCode = item.getAttribute('data-institution-code')?.toLowerCase() || '';
-                                                  
-                                                  // Usar classes para controlar visibilidade em vez de style diretamente
-                                                  if (institutionName.includes(searchValue) || institutionCode.includes(searchValue)) {
-                                                    item.classList.remove('hidden');
-                                                  } else {
-                                                    item.classList.add('hidden');
-                                                  }
-                                                }
-                                              } catch (itemErr) {
-                                                console.error('Erro ao processar item da instituição:', itemErr);
-                                              }
-                                            });
-                                          } catch (innerErr) {
-                                            console.error('Erro ao processar elementos:', innerErr);
-                                          }
-                                        });
-                                      } catch (err) {
-                                        console.error('Erro ao processar busca de instituições:', err);
-                                      }
+                                      // Utiliza estado React para controlar a busca
+                                      setInstitutionSearchTerm(e.target.value.toLowerCase());
                                     }}
                                   />
                                 </div>
@@ -707,14 +679,19 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                       Nenhuma instituição disponível
                                     </div>
                                   ) : (
-                                    institutions.map((institution: any) => (
-                                      <SelectItem 
-                                        key={institution.id} 
-                                        value={institution.id.toString()}
-                                        data-institution-item
-                                        data-institution-name={institution.name}
-                                        data-institution-code={institution.code}
-                                      >
+                                    institutions
+                                      .filter((institution: any) => {
+                                        if (!institutionSearchTerm) return true;
+                                        const institutionName = institution.name?.toLowerCase() || '';
+                                        const institutionCode = institution.code?.toLowerCase() || '';
+                                        return institutionName.includes(institutionSearchTerm) || 
+                                               institutionCode.includes(institutionSearchTerm);
+                                      })
+                                      .map((institution: any) => (
+                                        <SelectItem 
+                                          key={institution.id} 
+                                          value={institution.id.toString()}
+                                        >
                                         <div className="flex flex-col">
                                           <span>{institution.name}</span>
                                           <span className="text-xs text-muted-foreground">
