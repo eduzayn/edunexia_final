@@ -183,15 +183,16 @@ export interface IStorage {
   getPaymentStatus(externalId: string, gateway: string): Promise<string>;
   
   // Contratos educacionais
-  getEducationalContract(id: string): Promise<EducationalContract | undefined>;
-  getEducationalContracts(filters?: { 
+  getContract(id: number): Promise<EducationalContract | null>;
+  getContracts(filters?: { 
     studentId?: number, 
-    courseId?: number, 
+    courseId?: number,
+    enrollmentId?: number,
     status?: string,
     contractType?: string
   }): Promise<EducationalContract[]>;
-  createEducationalContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract>;
-  updateEducationalContract(id: string, data: Partial<EducationalContract>): Promise<EducationalContract | undefined>;
+  createContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract>;
+  updateContract(id: number, data: Partial<EducationalContract>): Promise<EducationalContract | null>;
   
   // Templates de contrato
   getContractTemplates(filters?: { contractType?: string, active?: boolean }): Promise<any[]>;
