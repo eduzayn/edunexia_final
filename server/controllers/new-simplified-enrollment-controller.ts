@@ -486,12 +486,19 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       // Verificar se temos um ID de usuário válido (novo ou existente)
       if (userId) {
         // Atualizar a matrícula com a informação do usuário
-        await db.update(simplifiedEnrollments)
-          .set({ 
-            studentId: userId, 
-            updatedAt: new Date() 
-          })
-          .where(eq(simplifiedEnrollments.id, newEnrollment.id));
+        try {
+          await db.update(simplifiedEnrollments)
+            .set({ 
+              // Campo adicionado ao schema e ao banco de dados
+              studentId: userId, 
+              updatedAt: new Date() 
+            })
+            .where(eq(simplifiedEnrollments.id, newEnrollment.id));
+          
+          console.log(`[MATRÍCULA] Matrícula #${newEnrollment.id} atualizada com studentId=${userId}`);
+        } catch (updateError) {
+          console.error('[MATRÍCULA] Erro ao atualizar matrícula com ID do estudante:', updateError);
+        }
           
         console.log(`[MATRÍCULA] Matrícula simplificada #${newEnrollment.id} atualizada com studentId: ${userId}`);
           
