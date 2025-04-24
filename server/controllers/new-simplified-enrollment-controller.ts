@@ -502,16 +502,56 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
           
         console.log(`[MATRÍCULA] Matrícula simplificada #${newEnrollment.id} atualizada com studentId: ${userId}`);
           
-        // Gerar contrato educacional usando o serviço existente
+        // Criar matrícula formal no sistema para associar o aluno ao curso
         try {
-          // O serviço espera um ID de matrícula, mas temos apenas o ID da matrícula simplificada
+          console.log(`[MATRÍCULA] Criando matrícula formal para associar o aluno ao curso...`);
+          
+          // Gerar código único para a matrícula formal (formato: MAT + ano + número sequencial)
+          const year = new Date().getFullYear().toString();
+          const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+          const enrollmentCode = `MAT${year.substring(2)}${randomSuffix}`;
+          
+          // Criar a matrícula formal com os dados da matrícula simplificada
+          const formalEnrollment = await storage.createEnrollment({
+            code: enrollmentCode,
+            studentId: userId,
+            courseId: courseId,
+            institutionId: institutionId,
+            poloId: poloId || null,
+            amount: parseFloat(amount.replace(',', '.')),
+            paymentGateway: 'ASAAS',
+            paymentExternalId: paymentLinkId || null,
+            paymentUrl: paymentLinkUrl || null,
+            paymentMethod: billingType || 'UNDEFINED',
+            enrollmentDate: new Date(),
+            status: 'pending_payment',
+            observations: `Matrícula criada automaticamente a partir da matrícula simplificada #${newEnrollment.id}`,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          if (formalEnrollment) {
+            console.log(`[MATRÍCULA] Matrícula formal criada com sucesso! ID: ${formalEnrollment.id}, Código: ${formalEnrollment.code}`);
+            
+            // Atualizar a matrícula simplificada com o ID da matrícula formal
+            await db.update(simplifiedEnrollments)
+              .set({ 
+                enrollmentId: formalEnrollment.id,
+                updatedAt: new Date() 
+              })
+              .where(eq(simplifiedEnrollments.id, newEnrollment.id));
+            
+            console.log(`[MATRÍCULA] Matrícula simplificada #${newEnrollment.id} atualizada com enrollmentId=${formalEnrollment.id}`);
+          }
+          
+          // Gerar contrato educacional usando o serviço existente
           const contract = await contractsService.generateContract(newEnrollment.id);
           
           if (contract) {
             console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${contract.id}`);
           }
-        } catch (contractError) {
-          console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);
+        } catch (enrollmentError) {
+          console.error(`[MATRÍCULA] Erro ao criar matrícula formal:`, enrollmentError);
         }
       } else {
         console.error(`[MATRÍCULA] Não foi possível obter um ID de usuário válido para associar à matrícula #${newEnrollment.id}`);
