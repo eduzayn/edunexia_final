@@ -13,6 +13,7 @@ import certificationPaymentRoutes from './routes/certification-payment-routes';
 import certificationRequestRoutes from './routes/certification-requests';
 import certificationStatsRouter from './routes/certification-stats';
 import asaasWebhookRoutes from './routes/asaas-webhook';
+import studentChargesRoutes from './routes/student-charges-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
@@ -802,6 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Webhooks para integrações externas (não requerem autenticação)
   app.use('/api/webhooks/asaas', asaasWebhookRoutes); // Webhooks do Asaas
+  app.use('/api/student', studentChargesRoutes); // Rotas para aluno acessar suas cobranças
   
   // Rota para buscar avaliações do aluno
   app.get('/api-json/student/assessments', requireStudent, async (req, res) => {

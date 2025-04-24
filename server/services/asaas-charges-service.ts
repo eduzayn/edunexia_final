@@ -268,6 +268,45 @@ export async function findCustomerByCpfCnpj(cpfCnpj: string) {
   }
 }
 
+/**
+ * Obter o campo de identificação para visualização de uma cobrança
+ * Útil para gerar um link que o aluno possa visualizar e pagar a cobrança
+ */
+export async function getChargeIdentificationField(id: string) {
+  try {
+    logger.info(`[AsaasChargesService] Obtendo campo de identificação para cobrança: ${id}`);
+    
+    const response = await asaasApi.get(`/payments/${id}/identificationField`);
+    
+    logger.info(`[AsaasChargesService] Campo de identificação obtido com sucesso para cobrança: ${id}`);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error?.response?.data?.errors?.[0]?.description || error?.message || 'Erro desconhecido';
+    logger.error(`[AsaasChargesService] Erro ao obter campo de identificação para cobrança ${id}: ${errorMessage}`);
+    throw new Error(`Erro ao obter campo de identificação para cobrança: ${errorMessage}`);
+  }
+}
+
+/**
+ * Gerar link de visualização pública para a cobrança
+ */
+export async function generatePublicLinkForCharge(id: string) {
+  try {
+    logger.info(`[AsaasChargesService] Gerando link de visualização pública para cobrança: ${id}`);
+    
+    // O Asaas possui um formato padrão para links de visualização pública de cobranças
+    // Este formato permite que o cliente acesse a cobrança diretamente, sem necessidade de login
+    const publicLink = `https://www.asaas.com/i/${id}`;
+    
+    logger.info(`[AsaasChargesService] Link de visualização pública gerado: ${publicLink}`);
+    return publicLink;
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Erro desconhecido';
+    logger.error(`[AsaasChargesService] Erro ao gerar link de visualização pública para cobrança ${id}: ${errorMessage}`);
+    throw new Error(`Erro ao gerar link de visualização pública para cobrança: ${errorMessage}`);
+  }
+}
+
 export default {
   getAllCharges,
   getChargeById,
@@ -277,5 +316,7 @@ export default {
   getCustomerCharges,
   receivePayment,
   cancelCharge,
-  findCustomerByCpfCnpj
+  findCustomerByCpfCnpj,
+  getChargeIdentificationField,
+  generatePublicLinkForCharge
 };
