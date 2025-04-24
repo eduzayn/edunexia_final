@@ -121,8 +121,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // para evitar conflitos de estado entre logins
       queryClient.removeQueries({ queryKey: ["/api-json/user"] });
       
-      const response = await apiRequest("POST", "/api-json/login", data);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", "/api-json/login", data);
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Resposta não-JSON do servidor:', await response.text());
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        try {
+          return await response.json();
+        } catch (error) {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        }
+      } catch (error) {
+        console.error('Erro durante requisição de login:', error);
+        throw error;
+      }
     },
     onSuccess: async (response) => {
       // Salvar o token no localStorage
@@ -147,8 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         state: null,
         zipCode: null,
         birthDate: null,
-        poloId: null
-      } as SelectUser;
+        poloId: null,
+        asaasId: null
+      } as unknown as SelectUser;
       
       // Atualizar o cache do usuário com os dados mais recentes
       queryClient.setQueryData(["/api-json/user"], user);

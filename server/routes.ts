@@ -71,15 +71,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sistema de autenticação super-simplificado
   app.post('/api-json/login', (req, res) => {
-    const { username, password, portalType } = req.body;
+    // Definir o tipo de conteúdo como JSON para evitar problemas
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const { username, password, portalType } = req.body;
 
-    console.log(`Tentativa de login: ${username}, tipo portal: ${portalType}`);
+      console.log(`Tentativa de login: ${username}, tipo portal: ${portalType}`);
 
-    // Credenciais de emergência para admin (acesso direto)
-    if ((username === 'admin' && password === 'Admin123') || 
-        (username === 'superadmin' && password === 'Super123') ||
-        (username === 'admin' && password === 'admin123') ||
-        (username === 'admin@edunexa.com' && password === 'Admin123')) {
+      // Credenciais de emergência para admin (acesso direto)
+      if ((username === 'admin' && password === 'Admin123') || 
+          (username === 'superadmin' && password === 'Super123') ||
+          (username === 'admin' && password === 'admin123') ||
+          (username === 'admin@edunexa.com' && password === 'Admin123')) {
 
       // Criar usuário simulado
       const user = {
@@ -174,22 +178,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Erro interno durante autenticação."
         });
       });
+    } catch (error) {
+      console.error('Erro durante o processamento do login:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Erro durante o processamento do login",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
   });
 
   // Rota para logout simples
   app.post('/api-json/logout', (req, res) => {
-    // Verificar o token no header de Authorization
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-
-    if (token) {
-      removeActiveUser(token);
+    // Definir o tipo de conteúdo como JSON para evitar problemas
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Verificar o token no header de Authorization
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+  
+      if (token) {
+        removeActiveUser(token);
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Logout realizado com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      res.status(500).json({
+        success: false,
+        message: "Erro durante logout",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Logout realizado com sucesso"
-    });
   });
 
   // Rota para obter usuário atual

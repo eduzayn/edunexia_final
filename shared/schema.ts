@@ -3,6 +3,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Interface para dados de login
+export interface LoginData {
+  username: string;
+  password: string;
+  portalType?: string;
+  rememberMe?: boolean;
+}
+
 // Importações para exportação de tabelas de certificados
 import { 
   certificates, 
