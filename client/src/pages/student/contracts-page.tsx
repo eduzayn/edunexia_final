@@ -201,7 +201,49 @@ export default function ContractsPage() {
   
   // Buscar contratos do estudante
   const { data: contracts, isLoading, isError, refetch } = useQuery({
-    queryKey: ['/api/student/contracts'],
+    queryKey: ['/api-json/student/contracts'],
+    queryFn: async () => {
+      try {
+        if (!user) {
+          console.warn("Usuário não autenticado");
+          throw new Error('Autenticação necessária');
+        }
+        
+        // Usar a API baseada em token
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.warn("Token de autenticação não encontrado");
+          throw new Error('Autenticação necessária');
+        }
+        
+        // Fazer requisição à API com token de autenticação
+        const response = await fetch('/api-json/student/contracts', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // Se a resposta não for OK (2xx), lançamos um erro
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            console.warn(`Erro de autenticação: ${response.status}`);
+            throw new Error('Autenticação necessária');
+          } else {
+            throw new Error(`Erro ao carregar contratos: ${response.statusText}`);
+          }
+        }
+        
+        const data = await response.json();
+        console.log("Contratos carregados com sucesso:", data);
+        return data;
+      } catch (err) {
+        console.error("Erro ao carregar contratos:", err);
+        throw err;
+      }
+    },
+    enabled: !!user, // Só executa a query se o usuário estiver autenticado
     retry: false
   });
   
@@ -210,23 +252,71 @@ export default function ContractsPage() {
   
   useEffect(() => {
     if (contracts?.data) {
-      const uniqueCourseIds = [...new Set(contracts.data.map((contract: Contract) => contract.courseId))];
+      const uniqueCourseIds = Array.from(new Set(contracts.data.map((contract: Contract) => contract.courseId)));
       
-      // Buscar informações dos cursos
+      if (uniqueCourseIds.length === 0) return;
+      
+      // Buscar informações dos cursos da API
       const fetchCourses = async () => {
-        const courseMap: Record<number, Course> = {};
-        
-        // Em um sistema real, você buscaria os cursos da API
-        // Aqui vamos simular com dados básicos
-        for (const courseId of uniqueCourseIds) {
-          courseMap[courseId] = {
-            id: courseId,
-            name: `Curso ID ${courseId}`,
-            code: `C${courseId}`
-          };
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.warn("Token não encontrado para buscar cursos");
+            return;
+          }
+          
+          const courseMap: Record<number, Course> = {};
+          
+          // Buscar cursos individualmente ou em lote, dependendo da API
+          const promises = uniqueCourseIds.map(async (courseId) => {
+            try {
+              const response = await fetch(`/api-json/courses/${courseId}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (!response.ok) {
+                console.warn(`Erro ao buscar curso ${courseId}: ${response.statusText}`);
+                // Usar um fallback em caso de erro
+                courseMap[courseId] = {
+                  id: courseId,
+                  name: `Curso ${courseId}`,
+                  code: `C-${courseId}`
+                };
+                return;
+              }
+              
+              const data = await response.json();
+              if (data.success && data.data) {
+                courseMap[courseId] = data.data;
+              } else {
+                // Usar um fallback em caso de erro
+                courseMap[courseId] = {
+                  id: courseId,
+                  name: `Curso ${courseId}`,
+                  code: `C-${courseId}`
+                };
+              }
+            } catch (error) {
+              console.error(`Erro ao buscar curso ${courseId}:`, error);
+              // Usar um fallback em caso de erro
+              courseMap[courseId] = {
+                id: courseId,
+                name: `Curso ${courseId}`,
+                code: `C-${courseId}`
+              };
+            }
+          });
+          
+          // Aguardar todas as requisições terminarem
+          await Promise.all(promises);
+          setCourses(courseMap);
+          
+        } catch (error) {
+          console.error("Erro ao buscar informações dos cursos:", error);
         }
-        
-        setCourses(courseMap);
       };
       
       fetchCourses();
@@ -236,13 +326,25 @@ export default function ContractsPage() {
   // Função para baixar contrato
   const handleDownloadContract = async (contractId: number) => {
     try {
-      // Redirecionamento para API de download
-      window.open(`/api/contracts/${contractId}/download`, '_blank');
-    } catch (error) {
+      if (!user) {
+        throw new Error('Você precisa estar autenticado para baixar o contrato');
+      }
+      
+      // Obter token do localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Você precisa estar autenticado para baixar o contrato');
+      }
+
+      // Redirecionamento para API de download com token no URL
+      window.open(`/api-json/contracts/${contractId}/download?token=${token}`, '_blank');
+      
+      console.log(`Solicitação de download do contrato ${contractId} enviada`);
+    } catch (error: any) {
       console.error('Erro ao baixar contrato:', error);
       toast({
         title: "Erro ao baixar contrato",
-        description: "Não foi possível baixar o contrato. Tente novamente mais tarde.",
+        description: error.message || "Não foi possível baixar o contrato. Tente novamente mais tarde.",
         variant: "destructive"
       });
     }
@@ -251,13 +353,42 @@ export default function ContractsPage() {
   // Função para assinar contrato
   const handleSignContract = async (contractId: number, signatureData: string) => {
     try {
+      if (!user) {
+        throw new Error('Você precisa estar autenticado para assinar o contrato');
+      }
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Você precisa estar autenticado para assinar o contrato');
+      }
+      
       const payload: ContractSignatureData = {
         signatureData
       };
       
-      const response = await apiRequest('POST', `/api/contracts/${contractId}/sign`, payload);
+      // Usar o formato api-json
+      const response = await fetch(`/api-json/contracts/${contractId}/sign`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
       
-      if (response.ok) {
+      // Verificar resposta
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Você não tem permissão para assinar este contrato');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao assinar contrato');
+      }
+      
+      // Processar resposta bem-sucedida
+      const data = await response.json();
+      
+      if (data.success) {
         toast({
           title: "Contrato assinado com sucesso",
           description: "Seu contrato foi assinado com sucesso.",
@@ -268,8 +399,7 @@ export default function ContractsPage() {
         setIsSignatureDialogOpen(false);
         refetch();
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao assinar contrato');
+        throw new Error(data.message || 'Erro ao assinar contrato');
       }
     } catch (error: any) {
       console.error('Erro ao assinar contrato:', error);

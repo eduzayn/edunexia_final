@@ -15,6 +15,7 @@ import certificationStatsRouter from './routes/certification-stats';
 import asaasWebhookRoutes from './routes/asaas-webhook';
 import studentChargesRoutes from './routes/student-charges-routes';
 import contractRoutes from './routes/contract-routes';
+import contractApiJsonRoutes from './routes/contracts-api-json';
 import enrollmentIntegrationRoutes from './routes/enrollment-integration-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
