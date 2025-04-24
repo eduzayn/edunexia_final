@@ -5,19 +5,18 @@
   "framework": null,
   "builds": [
     { "src": "package.json", "use": "@vercel/node" },
-    { "src": "client/index.html", "use": "@vercel/static" },
     { "src": "vercel-build.sh", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
     { "src": "server/api/**/*.js", "use": "@vercel/node" },
     { "src": "server/auth/token.js", "use": "@vercel/node" },
     { "src": "server/module-alias.js", "use": "@vercel/node" }
   ],
   "rewrites": [
-    { "source": "/api/login", "destination": "/api/login.js" },
-    { "source": "/api-json/login", "destination": "/api/login.js" },
-    { "source": "/api/jwt", "destination": "/api/index.js" },
-    { "source": "/api/jwt/:path*", "destination": "/api/index.js" },
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/api-json/(.*)", "destination": "/api/index.js" },
+    { "source": "/api/login", "destination": "/server/api/login.js" },
+    { "source": "/api-json/login", "destination": "/server/api/login.js" },
+    { "source": "/api/jwt", "destination": "/server/api/index.js" },
+    { "source": "/api/jwt/:path*", "destination": "/server/api/index.js" },
+    { "source": "/api/(.*)", "destination": "/server/api/index.js" },
+    { "source": "/api-json/(.*)", "destination": "/server/api/index.js" },
     { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
     { "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))", "destination": "/dist/$1" },
     { "source": "/(.*)", "destination": "/dist/index.html" }
@@ -30,7 +29,7 @@
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
         { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.stripe.com; style-src 'self' 'unsafe-inline' *.googleapis.com; img-src 'self' data: blob: *.vercel.com; font-src 'self' *.googleapis.com *.gstatic.com; connect-src 'self' *.vercel.com *.stripe.com; frame-src 'self' *.stripe.com" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' *.vercel.com *.stripe.com *.vercel-live.com; style-src 'self' 'unsafe-inline' *.googleapis.com; img-src 'self' data: blob: *.vercel.com; font-src 'self' *.googleapis.com *.gstatic.com; connect-src 'self' *.vercel.com *.vercel-live.com *.stripe.com; frame-src 'self' *.stripe.com *.vercel-live.com" },
         { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     },

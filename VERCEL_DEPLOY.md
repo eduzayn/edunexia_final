@@ -111,6 +111,30 @@ A aplicação está configurada para trabalhar com a Vercel através dos seguint
 
 ## Problemas Comuns
 
+### Erro 404 (NOT_FOUND)
+Se você encontrar erros 404 após o deploy:
+
+1. **Verifique as regras de roteamento em vercel.json**:
+   - Confirme que os caminhos de origem e destino estão corretos
+   - Para API, verifique se os destinos apontam para `/server/api/*` em vez de `/api/*`
+   - Se necessário, ajuste os caminhos para `/dist/...` nas rotas de arquivos estáticos
+
+2. **Problemas com o script de build**:
+   - Verifique se o script vercel-build.sh foi executado com sucesso
+   - Verifique os logs de build na dashboard do Vercel
+   - Confirme que os arquivos foram copiados para os diretórios corretos
+
+3. **Problemas de configuração de build**:
+   - Confirme que outputDirectory está definido como "dist"
+   - Verifique se o buildCommand está configurado para usar vercel-build.sh
+
+### Violações de Content Security Policy (CSP)
+Se encontrar erros de CSP no console do navegador:
+
+1. Verifique os headers em vercel.json, especialmente os domínios permitidos no Content-Security-Policy
+2. Adicione quaisquer domínios externos necessários (*.vercel-live.com, etc.)
+3. Para recursos como imagens e scripts, verifique se os domínios estão incluídos nas diretivas apropriadas
+
 ### CORS
 Se encontrar problemas de CORS, verifique se a variável `CORS_ORIGIN` está configurada corretamente com o domínio da sua aplicação.
 
