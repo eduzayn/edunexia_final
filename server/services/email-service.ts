@@ -52,21 +52,19 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 
 /**
  * Envia e-mail de boas-vindas com credenciais para um novo estudante
- * @param email E-mail do estudante
- * @param cpf CPF do estudante (usado como senha inicial)
- * @param name Nome completo do estudante
- * @param courseName Nome do curso
+ * @param params Parâmetros do email com credenciais
  * @returns Promise<boolean> Indica se o envio foi bem-sucedido
  */
-export async function sendStudentCredentialsEmail(
-  email: string,
-  cpf: string,
-  name: string,
-  courseName: string
-): Promise<boolean> {
+export async function sendStudentCredentialsEmail(params: {
+  to: string;
+  name: string;
+  username: string;
+  password: string;
+  courseName?: string;
+}): Promise<boolean> {
   try {
-    // Remover formatação do CPF (pontos e traços)
-    const cleanCpf = cpf.replace(/[^\d]/g, '');
+    // Obter os parâmetros necessários
+    const { to, name, username, password, courseName = "nosso curso" } = params;
 
     // Template do e-mail de boas-vindas com credenciais
     const emailHtml = `
@@ -85,8 +83,8 @@ export async function sendStudentCredentialsEmail(
         </p>
         
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Login:</strong> ${email}</p>
-          <p style="margin: 5px 0;"><strong>Senha:</strong> ${cleanCpf} (seu CPF sem pontos ou traços)</p>
+          <p style="margin: 5px 0;"><strong>Login:</strong> ${username}</p>
+          <p style="margin: 5px 0;"><strong>Senha:</strong> ${password}</p>
           <p style="margin: 15px 0 5px;"><strong>Link de acesso:</strong> <a href="https://portal.edunexa.com/login" style="color: #0066cc;">https://portal.edunexa.com/login</a></p>
         </div>
         
@@ -113,7 +111,7 @@ export async function sendStudentCredentialsEmail(
 
     // Enviar o e-mail
     return await sendEmail({
-      to: email,
+      to,
       from: 'noreply@edunexa.com',
       subject: 'Bem-vindo(a) à EdunexIA - Seus dados de acesso ao Portal do Aluno',
       html: emailHtml

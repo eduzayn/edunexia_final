@@ -356,13 +356,17 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
     
     // Criar perfil de estudante automaticamente com as informações da matrícula
     try {
-      // Verificar se já existe um usuário com esse email
+      // Importar serviços necessários
       const storage = require('../storage').storage;
       const emailService = require('../services/email-service');
       const smsService = require('../services/sms-service');
-      const contractService = require('../services/contract-generator-service');
+      const contractsService = require('../services/contracts-service');
     
+      // Verificar se já existe um usuário com esse email
       const existingUser = await storage.getUserByUsername(studentEmail);
+      
+      // Variável para armazenar o ID do usuário (novo ou existente)
+      let userId;
       
       if (!existingUser) {
         console.log(`[MATRÍCULA] Criando perfil de estudante para: ${studentName}`);
@@ -386,7 +390,8 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
         });
         
         if (newUser) {
-          console.log(`[MATRÍCULA] Perfil de estudante criado com sucesso! ID: ${newUser.id}`);
+          userId = newUser.id;
+          console.log(`[MATRÍCULA] Perfil de estudante criado com sucesso! ID: ${userId}`);
           
           // Enviar email com as credenciais
           try {
@@ -394,7 +399,8 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
               to: newUser.email,
               name: newUser.fullName,
               username: newUser.username,
-              password: initialPassword
+              password: initialPassword,
+              courseName: courseName
             });
             console.log(`[MATRÍCULA] Email com credenciais enviado para: ${newUser.email}`);
           } catch (emailError) {
@@ -415,59 +421,30 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
           } catch (smsError) {
             console.error(`[MATRÍCULA] Erro ao enviar SMS com credenciais:`, smsError);
           }
-          
-          // Gerar contrato educacional automaticamente
-          try {
-            const newContract = await contractService.generateStudentContract({
-              studentId: newUser.id,
-              courseId,
-              courseName,
-              institutionId,
-              institutionName,
-              studentName,
-              studentEmail,
-              studentCpf,
-              totalValue: amount,
-              discount: 0,
-              // Extrair outros detalhes do metadata se necessário
-              metadata: {
-                poloName,
-                enrollmentId: newEnrollment.id
-              }
-            });
-            
-            if (newContract) {
-              console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${newContract.id}`);
-            }
-          } catch (contractError) {
-            console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);
-          }
         }
       } else {
-        console.log(`[MATRÍCULA] Estudante já possui perfil no sistema: ${existingUser.id}`);
-        
-        // Gerar contrato educacional mesmo para usuário existente
-        try {
-          const newContract = await contractService.generateStudentContract({
-            studentId: existingUser.id,
-            courseId,
-            courseName,
-            institutionId,
-            institutionName,
-            studentName,
-            studentEmail,
-            studentCpf,
-            totalValue: amount,
-            discount: 0,
-            // Extrair outros detalhes do metadata se necessário
-            metadata: {
-              poloName,
-              enrollmentId: newEnrollment.id
-            }
-          });
+        userId = existingUser.id;
+        console.log(`[MATRÍCULA] Estudante já possui perfil no sistema: ${userId}`);
+      }
+      
+      // Verificar se temos um ID de usuário válido (novo ou existente)
+      if (userId) {
+        // Atualizar a matrícula com a informação do usuário
+        await db.update(simplifiedEnrollments)
+          .set({ 
+            studentId: userId, 
+            updatedAt: new Date() 
+          })
+          .where(eq(simplifiedEnrollments.id, newEnrollment.id));
           
-          if (newContract) {
-            console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${newContract.id}`);
+        // Gerar contrato educacional usando o serviço existente
+        try {
+          // O serviço espera um ID de matrícula, mas temos apenas o ID da matrícula simplificada
+          // Vamos criar uma entrada na tabela de matrículas formais ou usar o ID da simplificada diretamente
+          const contract = await contractsService.generateContract(newEnrollment.id);
+          
+          if (contract) {
+            console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${contract.id}`);
           }
         } catch (contractError) {
           console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);

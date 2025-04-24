@@ -82,16 +82,16 @@ export async function sendSMS(params: SMSParams): Promise<boolean> {
 /**
  * Envia SMS com credenciais para um novo estudante
  * @param phone Número de telefone do estudante
- * @param cpf CPF do estudante (usado como senha inicial)
+ * @param password Senha do estudante (geralmente é o CPF)
  * @param name Nome do estudante
- * @param email Email do estudante (usado como login)
+ * @param username Email do estudante (usado como login)
  * @returns Promise<boolean> Indica se o envio foi bem-sucedido
  */
 export async function sendStudentCredentialsSMS(
   phone: string,
-  cpf: string,
+  password: string,
   name: string,
-  email: string
+  username: string
 ): Promise<boolean> {
   try {
     // Se o número de telefone não for fornecido, retorna falso
@@ -100,14 +100,11 @@ export async function sendStudentCredentialsSMS(
       return false;
     }
     
-    // Remover formatação do CPF (pontos e traços)
-    const cleanCpf = cpf.replace(/[^\d]/g, '');
-    
     // Obter apenas o primeiro nome
     const firstName = name.split(' ')[0];
     
     // Texto do SMS com as credenciais
-    const smsText = `Olá ${firstName}! Sua conta no Portal do Aluno da EdunexIA foi criada. Login: ${email} / Senha: ${cleanCpf} (seu CPF). Acesse: portal.edunexa.com/login`;
+    const smsText = `Olá ${firstName}! Sua conta no Portal do Aluno da EdunexIA foi criada. Login: ${username} / Senha: ${password}. Acesse: portal.edunexa.com/login`;
     
     // Enviar o SMS
     return await sendSMS({
