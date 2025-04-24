@@ -644,14 +644,15 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                         <SelectItem 
                                           key={course.id} 
                                           value={course.id.toString()}
+                                          className="py-3"
                                         >
-                                        <div className="flex flex-col">
-                                          <span>{course.name}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            {course.code} - {course.category}
-                                          </span>
-                                        </div>
-                                      </SelectItem>
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{course.name}</span>
+                                            <span className="text-xs text-muted-foreground mt-1">
+                                              {course.code} - {course.category}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
                                     ))
                                   )}
                                 </div>
@@ -713,14 +714,15 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                         <SelectItem 
                                           key={institution.id} 
                                           value={institution.id.toString()}
+                                          className="py-3"
                                         >
-                                        <div className="flex flex-col">
-                                          <span>{institution.name}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            {institution.code} - {institution.cnpj}
-                                          </span>
-                                        </div>
-                                      </SelectItem>
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{institution.name}</span>
+                                            <span className="text-xs text-muted-foreground mt-1">
+                                              {institution.code} - {institution.cnpj}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
                                     ))
                                   )}
                                 </div>
@@ -753,8 +755,19 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                               </FormControl>
                               <SelectContent>
                                 {polos.map((polo: any) => (
-                                  <SelectItem key={polo.id} value={polo.id.toString()}>
-                                    {polo.name}
+                                  <SelectItem 
+                                    key={polo.id} 
+                                    value={polo.id.toString()}
+                                    className="py-3"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{polo.name}</span>
+                                      {polo.city && polo.state && (
+                                        <span className="text-xs text-muted-foreground mt-1">
+                                          {polo.city} - {polo.state}
+                                        </span>
+                                      )}
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
