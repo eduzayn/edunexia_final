@@ -25,10 +25,10 @@ import { getNavigationPath } from "../lib/url-utils";
 // Definir as rotas da API para padronizar todas as chamadas
 // Note: Todas as rotas devem usar caminhos relativos sem domínio, para funcionar em produção
 const API_ROUTES = {
-  LOGIN: "/login", 
-  LOGOUT: "/logout",
-  USER: "/user",
-  REGISTER: "/register"
+  LOGIN: "/api/login", 
+  LOGOUT: "/api/logout",
+  USER: "/api/user",
+  REGISTER: "/api/register"
 };
 
 type AuthContextType = {
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
-    queryKey: ["/api-json/user"],
+    queryKey: [API_ROUTES.USER],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
@@ -128,10 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Limpar o cache de usuário antes de tentar o login
       // para evitar conflitos de estado entre logins
-      queryClient.removeQueries({ queryKey: ["/api-json/user"] });
+      queryClient.removeQueries({ queryKey: [API_ROUTES.USER] });
       
       try {
-        const response = await apiRequest("POST", "/api-json/login", data);
+        const response = await apiRequest("POST", API_ROUTES.LOGIN, data);
         
         // Verificar o tipo de conteúdo antes de tentar parsear como JSON
         const contentType = response.headers.get('content-type');
@@ -179,10 +179,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } as unknown as SelectUser;
       
       // Atualizar o cache do usuário com os dados mais recentes
-      queryClient.setQueryData(["/api-json/user"], user);
+      queryClient.setQueryData([API_ROUTES.USER], user);
       
       // Forçar uma invalidação do cache para garantir que temos os dados mais recentes
-      await queryClient.invalidateQueries({ queryKey: ["/api-json/user"] });
+      await queryClient.invalidateQueries({ queryKey: [API_ROUTES.USER] });
       
       // Adicionar logs para debug
       console.log("Login bem-sucedido. Dados do usuário:", user);
@@ -211,11 +211,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const response = await apiRequest("POST", "/api-json/register", credentials);
+      const response = await apiRequest("POST", API_ROUTES.REGISTER, credentials);
       return await response.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api-json/user"], user);
+      queryClient.setQueryData([API_ROUTES.USER], user);
       toast({
         title: "Registro bem-sucedido",
         description: `Bem-vindo(a), ${user.fullName}!`,
@@ -238,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Executando logout - mutationFn");
-      const response = await apiRequest("POST", "/api-json/logout");
+      const response = await apiRequest("POST", API_ROUTES.LOGOUT);
       
       // Limpar todos os dados em cache para evitar problemas de persistência
       queryClient.clear();
@@ -251,7 +251,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('auth_token');
       
       // Definir explicitamente o usuário como null no cache
-      queryClient.setQueryData(["/api-json/user"], null);
+      queryClient.setQueryData([API_ROUTES.USER], null);
       
       // Notificar o usuário
       toast({

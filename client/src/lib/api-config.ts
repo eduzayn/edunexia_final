@@ -24,14 +24,25 @@ export function formatApiPath(path: string): string {
   // Garantimos que o caminho comece com '/'
   const apiPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Se estamos em produção (baseUrl vazio), garantimos que o caminho comece com /api
+  // Se estamos em produção (baseUrl vazio), garantimos que o caminho comece com /api ou /api-json
   if (!baseUrl) {
-    // Se o caminho já começa com /api, não precisamos adicionar novamente
-    return apiPath.startsWith('/api') ? apiPath : `/api${apiPath}`;
+    // Manter compatibilidade com ambos os padrões /api/ e /api-json/
+    if (apiPath.startsWith('/api/') || apiPath.startsWith('/api-json/')) {
+      return apiPath;
+    }
+    
+    // Se não começa com nenhum dos prefixos, adiciona /api/
+    return `/api${apiPath}`;
   }
   
   // Em desenvolvimento, usamos a URL base completa
-  return `${baseUrl}${apiPath.startsWith('/api') ? apiPath : `/api${apiPath}`}`;
+  // Mantém compatibilidade com ambos os padrões /api/ e /api-json/
+  if (apiPath.startsWith('/api/') || apiPath.startsWith('/api-json/')) {
+    return `${baseUrl}${apiPath}`;
+  }
+  
+  // Caso contrário, adiciona /api/ como padrão
+  return `${baseUrl}/api${apiPath}`;
 }
 
 // Configuração padrão para fetch
