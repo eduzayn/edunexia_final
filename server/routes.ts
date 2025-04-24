@@ -21,6 +21,7 @@ import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
+import { db, executeWithRetry } from './db';
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
 
@@ -110,8 +111,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } 
 
-    // Tentar login via banco de dados como último recurso
-    storage.getUserByUsername(username)
+    // Tentar login via banco de dados com retry para ambiente serverless
+    executeWithRetry(() => storage.getUserByUsername(username))
       .then(dbUser => {
         if (!dbUser || dbUser.password !== password) {
           console.log(`Login falhou: credenciais inválidas para ${username}`);
@@ -160,9 +161,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Gerar token JWT
           const token = generateToken(user);
-
-          // Não usar cookies, enviar o token na resposta
-          // O cliente irá armazenar no localStorage
 
           console.log(`Login de emergência para ${username}, token JWT gerado`);
 
