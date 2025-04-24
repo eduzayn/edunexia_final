@@ -147,9 +147,13 @@ function Router() {
       <Route path="/portal-selection" component={PortalSelectionPage} />
       <Route path="/admin">
         {() => {
+          console.log("Renderizando rota /admin com usuário:", user?.portalType);
+          
           if (user && user.portalType === "admin") {
+            console.log("Redirecionando admin para dashboard");
             return <Redirect to="/admin/dashboard" />;
           }
+          console.log("Mostrando página de autenticação admin");
           return <AdminAuthPage />;
         }}
       </Route>

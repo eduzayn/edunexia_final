@@ -83,21 +83,23 @@ export function AsaasCustomerSearch({
     
     console.log('⚠️ Cliente selecionado de lista existente:', customerName);
     
-    // IMPORTANTE: A ordem aqui é crítica para evitar perdas de estado
-    // 1. Atualizar o valor do input interno para garantir coerência visual
-    setInputValue(customerName);
-    
-    // 2. Atualizar o valor no formulário
-    onChange(customerName);
-    
-    // 3. Notificar o componente pai com as informações do cliente
-    onCustomerSelect({
-      ...customer,
-      name: customerName // Garantir que o nome está corretamente formatado
-    });
-    
-    // 4. Fechar o diálogo somente depois que todas as atualizações são feitas
-    setOpen(false);
+    // Usar setTimeout para garantir que o React complete seu ciclo de renderização 
+    // antes de alterar mais estados - isso ajuda a evitar problemas de DOM em produção
+    setTimeout(() => {
+      // IMPORTANTE: A ordem aqui é crítica para evitar perdas de estado
+      // 1. Fechar o diálogo primeiro para evitar conflitos de DOM
+      setOpen(false);
+      
+      // 2. Atualizar estados após o fechamento do diálogo
+      setInputValue(customerName);
+      onChange(customerName);
+      
+      // 3. Notificar o componente pai com as informações do cliente
+      onCustomerSelect({
+        ...customer,
+        name: customerName // Garantir que o nome está corretamente formatado
+      });
+    }, 0);
   }, [onChange, onCustomerSelect]);
   
   // Função para criar um novo cliente quando nenhum é encontrado
