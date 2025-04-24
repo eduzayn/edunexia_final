@@ -362,8 +362,19 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       const smsService = require('../services/sms-service');
       const contractsService = require('../services/contracts-service');
     
-      // Verificar se já existe um usuário com esse email
-      const existingUser = await storage.getUserByUsername(studentEmail);
+      // Verificar se já existe um usuário com esse email (verificando tanto username quanto email)
+      let existingUser = await storage.getUserByUsername(studentEmail);
+      
+      // Se não encontrou pelo username, tentar pelo email (pode acontecer se o email e username forem diferentes)
+      if (!existingUser) {
+        try {
+          existingUser = await storage.getUserByEmail(studentEmail);
+          console.log(`[MATRÍCULA] Usuário encontrado pelo email, mas não pelo username: ${studentEmail}`);
+        } catch (emailLookupError) {
+          const errorMessage = emailLookupError instanceof Error ? emailLookupError.message : 'Erro desconhecido';
+          console.log(`[MATRÍCULA] Erro ao buscar usuário pelo email: ${errorMessage}`);
+        }
+      }
       
       // Variável para armazenar o ID do usuário (novo ou existente)
       let userId;
@@ -383,7 +394,16 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
         
         // Criar o usuário no sistema com dados completos
         try {
-          const newUser = await storage.createUser({
+          console.log(`[MATRÍCULA] Preparando dados para criar usuário:`);
+          console.log(`- Username: ${studentEmail}`);
+          console.log(`- Nome completo: ${studentName}`);
+          console.log(`- Email: ${studentEmail}`);
+          console.log(`- CPF formatado: ${formattedCpf}`);
+          console.log(`- Telefone: ${studentPhone || 'Não informado'}`);
+          console.log(`- Portal Type: student`);
+          console.log(`- Status: active`);
+
+          const userData = {
             username: studentEmail,
             password: initialPassword,
             fullName: studentName,
@@ -393,7 +413,9 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
             portalType: 'student',
             status: 'active',
             asaasId: asaasCustomerId || null
-          });
+          };
+
+          const newUser = await storage.createUser(userData);
           
           if (newUser) {
             userId = newUser.id;
@@ -411,6 +433,7 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
               console.log(`[MATRÍCULA] Email com credenciais enviado para: ${newUser.email}`);
             } catch (emailError) {
               console.error(`[MATRÍCULA] Erro ao enviar email com credenciais:`, emailError);
+              console.error(`[MATRÍCULA] Detalhes do erro de email:`, emailError.message, emailError.stack);
             }
             
             // Enviar SMS com as credenciais
@@ -426,12 +449,14 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
               }
             } catch (smsError) {
               console.error(`[MATRÍCULA] Erro ao enviar SMS com credenciais:`, smsError);
+              console.error(`[MATRÍCULA] Detalhes do erro de SMS:`, smsError.message, smsError.stack);
             }
           } else {
             console.error(`[MATRÍCULA] Falha ao criar usuário: retorno nulo do storage.createUser`);
           }
         } catch (createUserError) {
           console.error(`[MATRÍCULA] Erro ao criar usuário no sistema:`, createUserError);
+          console.error(`[MATRÍCULA] Detalhes do erro:`, createUserError.message, createUserError.stack);
           
           // Tenta uma abordagem alternativa com menos campos
           try {
