@@ -30,24 +30,13 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   CircleAlert as CircleAlertIcon,
-  X as XIcon,
-  LayoutDashboard as DashboardIcon,
-  BookOpen,
-  GraduationCap,
-  FileQuestion as FileQuestionIcon,
-  BriefcaseBusiness,
-  Handshake,
-  Banknote,
-  Calendar,
-  MessagesSquare,
-  User,
-  BookMarked
+  X as XIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { queryClient } from "@/lib/queryClient";
 import { Spinner } from "@/components/ui/spinner";
-import { Sidebar } from "@/components/layout/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import StudentLayout from "@/components/layout/student-layout";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Pagination } from "@/components/ui/pagination";
 
@@ -91,20 +80,7 @@ export default function FinancialPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all"); // Filtro por status: all, pending, paid, overdue
   const [searchTerm, setSearchTerm] = useState<string>("");
   
-  // Definir itens da sidebar igual ao modelo do portal do polo
-  const sidebarItems = [
-    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpen size={18} />, href: "/student/courses" },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestionIcon size={18} />, href: "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: true },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
-  ];
+  // Remover definição de itens da sidebar já que vamos usar o StudentLayout
 
   // Consulta as cobranças do aluno
   const {
