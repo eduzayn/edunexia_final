@@ -124,12 +124,18 @@ export function AsaasCustomerSearch({
         description: `Preencha os dados do novo cliente: ${name}`,
       });
       
-      // Importante: manter o nome exato digitado pelo usuário em sincronia
-      // Este é um ponto crítico onde o nome pode ser substituído se não for feito corretamente
-      setInputValue(name); // Garantir que o inputValue está atualizado
-      onChange(name);      // Atualizar o valor do campo do formulário
-      onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
-      setOpen(false);
+      // Usar setTimeout para evitar problemas de manipulação DOM em produção
+      setTimeout(() => {
+        // 1. Primeiro fechar o diálogo para evitar conflitos de DOM
+        setOpen(false);
+        
+        // 2. Em seguida, atualizar os estados e notificar o componente pai
+        setInputValue(name); // Garantir que o inputValue está atualizado
+        onChange(name);      // Atualizar o valor do campo do formulário
+        
+        // 3. Por último, passar o cliente para o componente pai
+        onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
+      }, 0);
     }
   }, [debouncedSearch, inputValue, onChange, onCustomerSelect, toast]);
   

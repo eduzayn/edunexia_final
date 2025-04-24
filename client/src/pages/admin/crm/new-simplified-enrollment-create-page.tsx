@@ -580,15 +580,31 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                             <FormLabel>Curso*</FormLabel>
                             <Select
                               onValueChange={(value) => {
-                                field.onChange(value);
+                                console.log("Curso selecionado, id:", value);
                                 
-                                // Buscar o curso selecionado para obter o preço
-                                const selectedCourse = courses.find((course: any) => course.id.toString() === value);
-                                if (selectedCourse && selectedCourse.price) {
-                                  // Formatar o valor do curso para exibição e atualizar o campo de valor
-                                  const formattedPrice = selectedCourse.price.toString().replace('.', ',');
-                                  form.setValue('amount', formattedPrice);
-                                }
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  // Primeiro atualizar o campo do formulário
+                                  field.onChange(value);
+                                  
+                                  // Em seguida, processar a lógica adicional
+                                  try {
+                                    // Buscar o curso selecionado para obter o preço
+                                    const selectedCourse = courses.find((course: any) => course.id.toString() === value);
+                                    console.log("Curso encontrado:", selectedCourse?.name);
+                                    
+                                    if (selectedCourse && selectedCourse.price) {
+                                      // Formatar o valor do curso para exibição e atualizar o campo de valor
+                                      const formattedPrice = selectedCourse.price.toString().replace('.', ',');
+                                      setTimeout(() => {
+                                        form.setValue('amount', formattedPrice);
+                                        console.log("Preço atualizado para:", formattedPrice);
+                                      }, 10);
+                                    }
+                                  } catch (err) {
+                                    console.error("Erro ao processar seleção de curso:", err);
+                                  }
+                                }, 0);
                               }}
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
