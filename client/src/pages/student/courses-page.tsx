@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sidebar } from "@/components/layout/sidebar";
+import { StudentLayout } from "@/components/layout";
 import {
   LayoutDashboard,
   BookOpen,
@@ -277,214 +277,194 @@ export default function StudentCoursesPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <StudentLayout title="Meus Cursos" subtitle="Acesse e gerencie todos os seus cursos">
+      {/* Tabs de navegação principal */}
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all" className="gap-2">
+            <BookText size={16} /> Todos
+          </TabsTrigger>
+          <TabsTrigger value="in-progress" className="gap-2">
+            <Hourglass size={16} /> Em andamento
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="gap-2">
+            <CheckCircle2 size={16} /> Concluídos
+          </TabsTrigger>
+          <TabsTrigger value="not-started" className="gap-2">
+            <PauseCircle size={16} /> Não iniciados
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Conteúdo principal */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Meus Cursos</h1>
-            <p className="text-gray-600">Acesse e gerencie todos os seus cursos</p>
+        {/* Filtros e busca */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative md:w-1/3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Input
+              placeholder="Buscar cursos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          
-          {/* Tabs de navegação principal */}
-          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all" className="gap-2">
-                <BookText size={16} /> Todos
-              </TabsTrigger>
-              <TabsTrigger value="in-progress" className="gap-2">
-                <Hourglass size={16} /> Em andamento
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-2">
-                <CheckCircle2 size={16} /> Concluídos
-              </TabsTrigger>
-              <TabsTrigger value="not-started" className="gap-2">
-                <PauseCircle size={16} /> Não iniciados
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Filtros e busca */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-              <div className="relative md:w-1/3">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input
-                  placeholder="Buscar cursos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex gap-3 flex-1 flex-wrap">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown size={16} />
-                      <SelectValue placeholder="Ordenar por" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recent">Mais recentes</SelectItem>
-                    <SelectItem value="name">Nome (A-Z)</SelectItem>
-                    <SelectItem value="progress">Progresso</SelectItem>
-                    <SelectItem value="workload">Carga horária</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-full md:w-40">
-                    <div className="flex items-center gap-2">
-                      <SlidersHorizontal size={16} />
-                      <SelectValue placeholder="Categorias" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas categorias</SelectItem>
-                    <SelectItem value="graduation">Graduação</SelectItem>
-                    <SelectItem value="postgraduate">Pós-Graduação</SelectItem>
-                    <SelectItem value="extension">Extensão</SelectItem>
-                    <SelectItem value="technical">Técnico</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Conteúdo das tabs - Cursos */}
-            <TabsContent value={activeTab} className="mt-0">
-              {isLoading ? (
-                // Skeletons de carregamento
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Array(6).fill(0).map((_, i) => (
-                    <Card key={i} className="overflow-hidden border border-gray-200">
-                      <div className="h-36 bg-gray-200 animate-pulse" />
-                      <CardContent className="p-4">
-                        <Skeleton className="h-6 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-1/2 mb-4" />
-                        <Skeleton className="h-3 w-full mb-3" />
-                        <div className="flex justify-between items-center">
-                          <Skeleton className="h-4 w-1/3" />
-                          <Skeleton className="h-9 w-24 rounded-md" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+          <div className="flex gap-3 flex-1 flex-wrap">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-40">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown size={16} />
+                  <SelectValue placeholder="Ordenar por" />
                 </div>
-              ) : filteredCourses.length === 0 ? (
-                // Estado vazio
-                <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-100">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                    <BookOpen className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum curso encontrado</h3>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                    {searchTerm || filterCategory !== "all" || filterStatus !== "all"
-                      ? "Tente ajustar seus filtros de busca para encontrar o curso que procura."
-                      : "Você ainda não tem cursos disponíveis nesta categoria."}
-                  </p>
-                  {(searchTerm || filterCategory !== "all" || filterStatus !== "all") && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setFilterCategory("all");
-                        setFilterStatus("all");
-                      }}
-                    >
-                      Limpar filtros
-                    </Button>
-                  )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Mais recentes</SelectItem>
+                <SelectItem value="name">Nome (A-Z)</SelectItem>
+                <SelectItem value="progress">Progresso</SelectItem>
+                <SelectItem value="workload">Carga horária</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full md:w-40">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal size={16} />
+                  <SelectValue placeholder="Categorias" />
                 </div>
-              ) : (
-                // Grid de cursos
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCourses.map((course: StudentCourse, index: number) => (
-                    <Card key={course.id} className="overflow-hidden border border-gray-200 transition-all hover:shadow-md">
-                      <div className={`h-36 ${getCardColor(index)} relative flex items-center justify-center p-4`}>
-                        {course.imageUrl ? (
-                          <img 
-                            src={course.imageUrl} 
-                            alt={course.name} 
-                            className="h-full w-full object-cover absolute inset-0" 
-                          />
-                        ) : (
-                          <BookText className="h-16 w-16 text-gray-400" />
-                        )}
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="absolute top-2 right-2 bg-white bg-opacity-70 hover:bg-opacity-100"
-                          onClick={() => handleFavorite(course.id)}
-                        >
-                          <Bookmark className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-medium text-gray-900 line-clamp-1">{course.name}</h3>
-                        </div>
-                        
-                        <div className="flex items-center text-gray-500 text-sm mb-1">
-                          <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-                          <span>Carga horária: {course.workload || 0}h</span>
-                        </div>
-                        
-                        {course.instructor && (
-                          <div className="flex items-center text-gray-500 text-sm mb-3">
-                            <User className="h-4 w-4 mr-1 flex-shrink-0" />
-                            <span className="line-clamp-1">{course.instructor}</span>
-                          </div>
-                        )}
-                        
-                        <div className="mb-3">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span>Progresso</span>
-                            <span className="font-medium">{course.progress}%</span>
-                          </div>
-                          <Progress value={course.progress} className="h-2" />
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          {getStatusBadge(course.progress)}
-                          <Button
-                            size="sm"
-                            className="gap-1"
-                            asChild
-                          >
-                            <Link to={`/student/courses/${course.id}`}>
-                              {getButtonText(course.progress)}
-                              <ChevronRight size={16} />
-                            </Link>
-                          </Button>
-                        </div>
-                      </CardContent>
-                      
-                      {course.nextDeadline && (
-                        <CardFooter className="px-4 py-3 bg-amber-50 border-t border-amber-100">
-                          <div className="flex items-center text-amber-700 text-xs w-full">
-                            <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
-                            <span>
-                              Próximo prazo: <strong>{course.nextDeadline}</strong>
-                            </span>
-                          </div>
-                        </CardFooter>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                <SelectItem value="graduation">Graduação</SelectItem>
+                <SelectItem value="postgraduate">Pós-Graduação</SelectItem>
+                <SelectItem value="extension">Extensão</SelectItem>
+                <SelectItem value="technical">Técnico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-    </div>
+
+        {/* Conteúdo das tabs - Cursos */}
+        <TabsContent value={activeTab} className="mt-0">
+          {isLoading ? (
+            // Skeletons de carregamento
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array(6).fill(0).map((_, i) => (
+                <Card key={i} className="overflow-hidden border border-gray-200">
+                  <div className="h-36 bg-gray-200 animate-pulse" />
+                  <CardContent className="p-4">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-4" />
+                    <Skeleton className="h-3 w-full mb-3" />
+                    <div className="flex justify-between items-center">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-9 w-24 rounded-md" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            // Estado vazio
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-100">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                <BookOpen className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum curso encontrado</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                {searchTerm || filterCategory !== "all" || filterStatus !== "all"
+                  ? "Tente ajustar seus filtros de busca para encontrar o curso que procura."
+                  : "Você ainda não tem cursos disponíveis nesta categoria."}
+              </p>
+              {(searchTerm || filterCategory !== "all" || filterStatus !== "all") && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterCategory("all");
+                    setFilterStatus("all");
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              )}
+            </div>
+          ) : (
+            // Grid de cursos
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCourses.map((course: StudentCourse, index: number) => (
+                <Card key={course.id} className="overflow-hidden border border-gray-200 transition-all hover:shadow-md">
+                  <div className={`h-36 ${getCardColor(index)} relative flex items-center justify-center p-4`}>
+                    {course.imageUrl ? (
+                      <img 
+                        src={course.imageUrl} 
+                        alt={course.name} 
+                        className="h-full w-full object-cover absolute inset-0" 
+                      />
+                    ) : (
+                      <BookText className="h-16 w-16 text-gray-400" />
+                    )}
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="absolute top-2 right-2 bg-white bg-opacity-70 hover:bg-opacity-100"
+                      onClick={() => handleFavorite(course.id)}
+                    >
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-gray-900 line-clamp-1">{course.name}</h3>
+                    </div>
+                    
+                    <div className="flex items-center text-gray-500 text-sm mb-1">
+                      <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
+                      <span>Carga horária: {course.workload || 0}h</span>
+                    </div>
+                    
+                    {course.instructor && (
+                      <div className="flex items-center text-gray-500 text-sm mb-3">
+                        <User className="h-4 w-4 mr-1 flex-shrink-0" />
+                        <span className="line-clamp-1">{course.instructor}</span>
+                      </div>
+                    )}
+                    
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span>Progresso</span>
+                        <span className="font-medium">{course.progress}%</span>
+                      </div>
+                      <Progress value={course.progress} className="h-2" />
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      {getStatusBadge(course.progress)}
+                      <Button
+                        size="sm"
+                        className="gap-1"
+                        asChild
+                      >
+                        <Link to={`/student/courses/${course.id}`}>
+                          {getButtonText(course.progress)}
+                          <ChevronRight size={16} />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                  
+                  {course.nextDeadline && (
+                    <CardFooter className="px-4 py-3 bg-amber-50 border-t border-amber-100">
+                      <div className="flex items-center text-amber-700 text-xs w-full">
+                        <AlertCircle className="h-3 w-3 mr-1 flex-shrink-0" />
+                        <span>
+                          Próximo prazo: <strong>{course.nextDeadline}</strong>
+                        </span>
+                      </div>
+                    </CardFooter>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </StudentLayout>
   );
 }
