@@ -225,6 +225,16 @@ export default function NewSimplifiedEnrollmentPage() {
 
   return (
     <div className="container mx-auto py-6">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="mb-4" 
+        onClick={() => setLocation('/admin')}
+      >
+        <ChevronLeft className="h-4 w-4 mr-2" />
+        Voltar para Dashboard
+      </Button>
+      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Matrículas Simplificadas</h1>

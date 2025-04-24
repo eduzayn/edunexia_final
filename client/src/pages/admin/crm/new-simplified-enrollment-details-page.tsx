@@ -173,9 +173,9 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center mb-6">
-          <Button variant="ghost" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
+          <Button variant="outline" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+            Voltar para Matrículas
           </Button>
           <h1 className="text-2xl font-bold ml-4">Carregando matrícula...</h1>
         </div>
@@ -219,9 +219,9 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center mb-6">
-          <Button variant="ghost" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
+          <Button variant="outline" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+            Voltar para Matrículas
           </Button>
           <h1 className="text-2xl font-bold ml-4">Erro ao carregar matrícula</h1>
         </div>
@@ -246,9 +246,9 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center mb-6">
-        <Button variant="ghost" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
+        <Button variant="outline" size="sm" onClick={() => setLocation('/admin/crm/new-simplified-enrollments')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
+          Voltar para Matrículas
         </Button>
         <h1 className="text-2xl font-bold ml-4">Detalhes da Matrícula</h1>
 
