@@ -225,7 +225,7 @@ export default function CourseFormPage() {
   const updateCourseMutation = useMutation({
     mutationFn: async (data: CourseFormValues) => {
       if (!courseId) throw new Error("ID do curso não encontrado");
-      const response = await apiRequest("PUT", `/api/admin/courses/${courseId}`, data);
+      const response = await apiRequest(`/api/admin/courses/${courseId}`, { method: "PUT", data });
       return response.json();
     },
     onSuccess: () => {
@@ -257,10 +257,13 @@ export default function CourseFormPage() {
         console.log("Disciplinas selecionadas:", disciplineIds);
         
         // Armazenar temporariamente as disciplinas selecionadas como backup
-        await apiRequest("POST", "/api/admin/system-settings", {
-          key: `temp_course_disciplines_${courseId}`,
-          value: JSON.stringify(disciplineIds),
-          scope: "system"
+        await apiRequest("/api/admin/system-settings", {
+          method: "POST", 
+          data: {
+            key: `temp_course_disciplines_${courseId}`,
+            value: JSON.stringify(disciplineIds),
+            scope: "system"
+          }
         });
         
         // Remover disciplinas existentes de forma segura
