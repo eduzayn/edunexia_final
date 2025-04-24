@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from 'wouter';
 import { 
   LayoutDashboard, 
@@ -13,10 +14,13 @@ import {
   MessagesSquare,
   User
 } from 'lucide-react';
-import StudentLayout from '@/components/layout/student-layout';
+import { Sidebar } from "@/components/layout/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function InternshipsPage() {
+export default function StudentInternshipsPage() {
+  const { user } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   // Definir itens da sidebar diretamente (sem depender do componente obsoleto)
   const [location] = useLocation();
   const sidebarItems = [
@@ -34,25 +38,41 @@ export default function InternshipsPage() {
   ];
 
   return (
-    <StudentLayout sidebarItems={sidebarItems}>
-      <div className="flex flex-col gap-6 p-6">
-        <h1 className="text-2xl font-bold">Estágios</h1>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Oportunidades de Estágio</CardTitle>
-            <CardDescription>
-              Visualize e candidate-se para oportunidades de estágio disponíveis.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Nenhuma oportunidade de estágio disponível no momento.</p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Esta página está em desenvolvimento. Em breve você poderá acessar oportunidades de estágio aqui.
-            </p>
-          </CardContent>
-        </Card>
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        items={sidebarItems}
+        user={user}
+        portalType="student"
+        portalColor="#12B76A"
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+
+      {/* Conteúdo principal */}
+      <div className="flex-1 overflow-auto">
+        <div className="px-4 py-20 md:py-6 md:px-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Estágios</h1>
+            <p className="text-gray-600">Visualize e candidate-se para oportunidades de estágio</p>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Oportunidades de Estágio</CardTitle>
+              <CardDescription>
+                Visualize e candidate-se para oportunidades de estágio disponíveis.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Nenhuma oportunidade de estágio disponível no momento.</p>
+              <p className="text-sm text-muted-foreground mt-4">
+                Esta página está em desenvolvimento. Em breve você poderá acessar oportunidades de estágio aqui.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </StudentLayout>
+    </div>
   );
 }

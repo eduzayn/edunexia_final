@@ -57,7 +57,7 @@ import AdvancedChargePage from "@/pages/admin/finance/advanced-charge-page";
 import SubscriptionChargePage from "@/pages/admin/finance/subscription-charge-page";
 import PaymentsPage from "@/pages/admin/finance/payments-page";
 import NewPaymentPage from "@/pages/admin/finance/new-payment-page";
-import ContractsPage from "@/pages/admin/contracts";
+import AdminContractsPage from "@/pages/admin/contracts";
 import NewContractPage from "@/pages/admin/contracts/new-contract-page";
 // Módulo de Comunicação
 import InboxPage from "@/pages/admin/inbox";
@@ -82,6 +82,12 @@ import SecretariaPage from "@/pages/student/secretaria-page";
 import CredencialPage from "@/pages/student/credencial-page";
 import LearningPage from "@/pages/student/learning-page";
 import StudentFinancialPage from "@/pages/student/financial-page";
+// Import das novas páginas do portal do aluno
+import StudentAssessmentsPage from "@/pages/student/assessments-page";
+import StudentInternshipsPage from "@/pages/student/internships-page";
+import StudentContractsPage from "@/pages/student/contracts-page";
+import StudentCalendarPage from "@/pages/student/calendar-page";
+import StudentMessagesPage from "@/pages/student/messages-page";
 
 // Import ebooks pages
 import EbooksIndexPage from "@/pages/admin/ebooks/index";
@@ -221,6 +227,22 @@ function Router() {
       </Route>
       <Route path="/student/financeiro">
         {() => user?.portalType === "student" ? <Redirect to="/student/financial" /> : <Redirect to="/auth" />}
+      </Route>
+      {/* Novas rotas para o portal do aluno */}
+      <Route path="/student/assessments">
+        {() => user?.portalType === "student" ? <StudentAssessmentsPage /> : <Redirect to="/auth" />}
+      </Route>
+      <Route path="/student/internships">
+        {() => user?.portalType === "student" ? <StudentInternshipsPage /> : <Redirect to="/auth" />}
+      </Route>
+      <Route path="/student/contracts">
+        {() => user?.portalType === "student" ? <StudentContractsPage /> : <Redirect to="/auth" />}
+      </Route>
+      <Route path="/student/calendar">
+        {() => user?.portalType === "student" ? <StudentCalendarPage /> : <Redirect to="/auth" />}
+      </Route>
+      <Route path="/student/messages">
+        {() => user?.portalType === "student" ? <StudentMessagesPage /> : <Redirect to="/auth" />}
       </Route>
       {/* Fallback para URLs do student não definidas explicitamente */}
       <Route path="/student/:rest*">
@@ -574,7 +596,7 @@ function Router() {
       
       {/* Rotas do Módulo de Contratos */}
       <Route path="/admin/contracts">
-        {() => user?.portalType === "admin" ? <ContractsPage /> : <Redirect to="/admin" />}
+        {() => user?.portalType === "admin" ? <AdminContractsPage /> : <Redirect to="/admin" />}
       </Route>
       
       <Route path="/admin/contracts/new">
