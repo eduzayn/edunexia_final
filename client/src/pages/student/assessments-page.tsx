@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import StudentLayout from "@/components/layout/student-layout"; 
 import { 
-  LayoutDashboard, 
-  BookOpenText,
-  BookMarked,
-  GraduationCap,
   FileQuestion,
-  BriefcaseBusiness,
-  Handshake,
-  Banknote,
-  Calendar,
-  MessagesSquare,
-  User,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -22,7 +12,6 @@ import {
   Search,
   Loader2
 } from 'lucide-react';
-import { Sidebar } from "@/components/layout/sidebar";
 import { 
   Card, 
   CardContent, 
@@ -155,25 +144,8 @@ const AssessmentStatusBadge = ({ status }: { status: string }) => {
 
 export default function StudentAssessmentsPage() {
   const { user } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
-  
-  // Definir itens da sidebar
-  const [location] = useLocation();
-  const sidebarItems = [
-    { name: "Dashboard", icon: <LayoutDashboard size={18} />, href: "/student/dashboard", active: location === "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpenText size={18} />, href: "/student/courses", active: location === "/student/courses" || location.startsWith("/student/courses/") },
-    { name: "Biblioteca", icon: <BookMarked size={18} />, href: "/student/library", active: location === "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credencial", active: location === "/student/credencial" },
-    { name: "Avaliações", icon: <FileQuestion size={18} />, href: "/student/assessments", active: location === "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships", active: location === "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: location === "/student/contracts" },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial", active: location === "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar", active: location === "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages", active: location === "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile", active: location === "/student/profile" }
-  ];
 
   // Consulta para buscar avaliações
   const { data, isLoading, isError, error } = useQuery({
@@ -303,291 +275,251 @@ export default function StudentAssessmentsPage() {
   }, [filteredAssessments]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#12B76A"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      {/* Conteúdo principal */}
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Avaliações</h1>
-            <p className="text-gray-600">Visualize e realize suas avaliações</p>
-          </div>
+    <StudentLayout
+      title="Avaliações"
+      subtitle="Visualize e realize suas avaliações"
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Avaliações", href: "/student/assessments" }
+      ]}
+    >
+      {/* Carregando */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-gray-600">Carregando avaliações...</p>
+        </div>
+      )}
+      
+      {/* Erro */}
+      {isError && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-700">Erro ao carregar avaliações</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600">
+              Não foi possível carregar suas avaliações. Por favor, tente novamente mais tarde.
+            </p>
+            <p className="text-sm text-red-500 mt-2">
+              {error instanceof Error ? error.message : 'Erro desconhecido'}
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" 
+              onClick={() => window.location.reload()}
+              className="border-red-300 text-red-700 hover:bg-red-100"
+            >
+              Tentar novamente
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+      
+      {/* Conteúdo */}
+      {!isLoading && !isError && (
+        <Tabs defaultValue="available" className="space-y-6">
+          <TabsList className="mb-4">
+            <TabsTrigger value="available">Disponíveis</TabsTrigger>
+            <TabsTrigger value="history">Histórico</TabsTrigger>
+            <TabsTrigger value="stats">Estatísticas</TabsTrigger>
+          </TabsList>
           
-          {/* Carregando */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="mt-2 text-gray-600">Carregando avaliações...</p>
+          {/* Abas de conteúdo */}
+          
+          {/* Avaliações disponíveis */}
+          <TabsContent value="available" className="space-y-6">
+            {/* Filtros */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="search"
+                  placeholder="Buscar avaliação..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full md:w-40">
+                  <SelectValue placeholder="Filtrar por tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="simulado">Simulados</SelectItem>
+                  <SelectItem value="avaliacao_final">Avaliações Finais</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
+            
+            {/* Lista de avaliações */}
+            {filteredAssessments.length === 0 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nenhuma avaliação disponível</CardTitle>
+                  <CardDescription>
+                    Não foram encontradas avaliações com os critérios atuais.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <FileQuestion className="h-12 w-12 text-gray-300" />
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">Nenhuma avaliação encontrada</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Tente mudar os filtros ou verifique mais tarde.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAssessments.map((assessment: Assessment) => (
+                  <AssessmentCard key={assessment.id} assessment={assessment} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
           
-          {/* Erro */}
-          {isError && (
-            <Card className="border-red-200 bg-red-50">
+          {/* Histórico de avaliações */}
+          <TabsContent value="history">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-red-700">Erro ao carregar avaliações</CardTitle>
+                <CardTitle>Histórico de Avaliações</CardTitle>
+                <CardDescription>
+                  Visualize todas as suas avaliações realizadas e pendentes
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-red-600">
-                  Não foi possível carregar suas avaliações. Por favor, tente novamente mais tarde.
-                </p>
-                <p className="text-sm text-red-500 mt-2">
-                  {error instanceof Error ? error.message : 'Erro desconhecido'}
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" 
-                  onClick={() => window.location.reload()}
-                  className="border-red-300 text-red-700 hover:bg-red-100"
-                >
-                  Tentar novamente
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-          
-          {/* Conteúdo */}
-          {!isLoading && !isError && (
-            <Tabs defaultValue="available" className="space-y-6">
-              <TabsList className="mb-4">
-                <TabsTrigger value="available">Disponíveis</TabsTrigger>
-                <TabsTrigger value="history">Histórico</TabsTrigger>
-                <TabsTrigger value="stats">Estatísticas</TabsTrigger>
-              </TabsList>
-              
-              {/* Abas de conteúdo */}
-              
-              {/* Avaliações disponíveis */}
-              <TabsContent value="available" className="space-y-6">
-                {/* Filtros */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      type="search"
-                      placeholder="Buscar avaliação..."
-                      className="pl-9"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                {assessmentHistory.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <BookOpen className="h-12 w-12 text-gray-300" />
+                    <h3 className="mt-4 text-lg font-medium text-gray-900">Nenhuma avaliação no histórico</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Quando você realizar avaliações, elas aparecerão aqui.
+                    </p>
                   </div>
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-full md:w-40">
-                      <SelectValue placeholder="Filtrar por tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="simulado">Simulados</SelectItem>
-                      <SelectItem value="avaliacao_final">Avaliações Finais</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Lista de avaliações */}
-                {filteredAssessments.length === 0 ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Nenhuma avaliação disponível</CardTitle>
-                      <CardDescription>
-                        Não foram encontradas avaliações com os critérios atuais.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col items-center justify-center py-6 text-center">
-                        <FileQuestion className="h-12 w-12 text-gray-300" />
-                        <h3 className="mt-4 text-lg font-medium text-gray-900">Nenhuma avaliação encontrada</h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Tente mudar os filtros ou volte mais tarde.
-                        </p>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => {
-                            setSearchTerm('');
-                            setFilterType('all');
-                          }}
-                          className="mt-4"
-                        >
-                          Limpar filtros
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
                 ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredAssessments.map((assessment: Assessment) => (
-                      <AssessmentCard key={assessment.id} assessment={assessment} />
-                    ))}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Avaliação</TableHead>
+                          <TableHead>Disciplina</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Nota</TableHead>
+                          <TableHead className="text-right">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {assessmentHistory.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.title}</TableCell>
+                            <TableCell>{item.disciplineName}</TableCell>
+                            <TableCell>
+                              <Badge variant={item.type === 'simulado' ? 'secondary' : 'default'}>
+                                {item.type === 'simulado' ? 'Simulado' : 'Avaliação Final'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <AssessmentStatusBadge status={item.status} />
+                            </TableCell>
+                            <TableCell>
+                              {item.score ? `${item.score}%` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                              >
+                                {item.status === 'not_started' ? 'Iniciar' : 'Ver detalhes'}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
-              </TabsContent>
-              
-              {/* Histórico */}
-              <TabsContent value="history">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Histórico de Avaliações</CardTitle>
-                    <CardDescription>
-                      Veja todas as avaliações que você já realizou
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Avaliação</TableHead>
-                            <TableHead>Disciplina</TableHead>
-                            <TableHead>Tipo</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Nota</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {assessmentHistory.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={5} className="h-24 text-center">
-                                Nenhuma avaliação realizada ainda.
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            assessmentHistory.map((item: any) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.title}</TableCell>
-                                <TableCell>{item.disciplineName}</TableCell>
-                                <TableCell>
-                                  {item.type === 'simulado' ? 'Simulado' : 'Avaliação Final'}
-                                </TableCell>
-                                <TableCell>
-                                  <AssessmentStatusBadge status={item.status} />
-                                </TableCell>
-                                <TableCell>
-                                  {item.score !== null ? `${item.score}%` : '-'}
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Estatísticas */}
-              <TabsContent value="stats">
-                <div className="grid gap-6 md:grid-cols-2">
-                  {/* Sumário */}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Estatísticas */}
+          <TabsContent value="stats">
+            <Card>
+              <CardHeader>
+                <CardTitle>Estatísticas de Desempenho</CardTitle>
+                <CardDescription>
+                  Acompanhe seu progresso geral nas avaliações
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Resumo de Desempenho</CardTitle>
-                      <CardDescription>
-                        Visão geral das suas avaliações
-                      </CardDescription>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Total de Avaliações</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-gray-500">Avaliações totais</p>
-                          <div className="flex items-center">
-                            <FileQuestion className="mr-2 h-5 w-5 text-primary" />
-                            <span className="text-2xl font-bold">{statsData.totalAssessments}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-gray-500">Concluídas</p>
-                          <div className="flex items-center">
-                            <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
-                            <span className="text-2xl font-bold">{statsData.completedAssessments}</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-gray-500">Nota média</p>
-                          <div className="flex items-center">
-                            <BarChart className="mr-2 h-5 w-5 text-blue-500" />
-                            <span className="text-2xl font-bold">{statsData.averageScore}%</span>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-gray-500">Pendentes</p>
-                          <div className="flex items-center">
-                            <Clock className="mr-2 h-5 w-5 text-amber-500" />
-                            <span className="text-2xl font-bold">{statsData.pendingAssessments}</span>
-                          </div>
-                        </div>
-                      </div>
+                      <div className="text-2xl font-bold">{statsData.totalAssessments}</div>
                     </CardContent>
                   </Card>
-                  
-                  {/* Progresso */}
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Progresso Geral</CardTitle>
-                      <CardDescription>
-                        Acompanhe sua jornada acadêmica
-                      </CardDescription>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Concluídas</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <p className="text-sm font-medium">Simulados completados</p>
-                          <p className="text-sm text-gray-500">0/1</p>
-                        </div>
-                        <Progress value={0} className="h-2" />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <p className="text-sm font-medium">Avaliações finais</p>
-                          <p className="text-sm text-gray-500">0/1</p>
-                        </div>
-                        <Progress value={0} className="h-2" />
-                      </div>
-                      <Separator />
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <h4 className="text-sm font-medium">Por disciplina</h4>
-                          <p className="text-xs text-gray-500">Avaliações pendentes</p>
-                        </div>
-                        {data?.assessments && data.assessments.length > 0 ? (
-                          <ul className="space-y-2 text-sm">
-                            {(() => {
-                              // Criar uma lista de disciplinas únicas
-                              const disciplineNames: string[] = [];
-                              data.assessments.forEach((a: Assessment) => {
-                                if (!disciplineNames.includes(a.disciplineName)) {
-                                  disciplineNames.push(a.disciplineName);
-                                }
-                              });
-                              return disciplineNames;
-                            })().map((disciplineName, index) => (
-                              <li key={index} className="flex justify-between">
-                                <span>{disciplineName}</span>
-                                <span className="text-gray-500">2</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-gray-500 text-center py-2">
-                            Nenhuma disciplina com avaliações
-                          </p>
-                        )}
-                      </div>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-green-600">{statsData.completedAssessments}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Pendentes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-amber-600">{statsData.pendingAssessments}</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-500">Média de Notas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{statsData.averageScore}%</div>
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </div>
-      </div>
-    </div>
+                
+                <Separator className="my-4" />
+                
+                <div className="mt-8">
+                  <h3 className="text-lg font-medium mb-4">Progresso Geral</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">Total Concluído</span>
+                        <span className="text-sm font-medium">
+                          {statsData.completedAssessments}/{statsData.totalAssessments}
+                        </span>
+                      </div>
+                      <Progress value={(statsData.completedAssessments / Math.max(1, statsData.totalAssessments)) * 100} className="h-2" />
+                    </div>
+                    
+                    <div className="flex flex-col items-center justify-center mt-8 text-center">
+                      <BarChart className="h-12 w-12 text-gray-300" />
+                      <h3 className="mt-4 text-lg font-medium text-gray-900">Sem dados suficientes</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Complete algumas avaliações para ver estatísticas mais detalhadas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+    </StudentLayout>
   );
 }
