@@ -115,7 +115,8 @@ export default function DisciplinesPage() {
       const url = `/api/admin/disciplines${searchTerm ? `?search=${searchTerm}` : ""}`;
       console.log("Buscando disciplinas...");
       try {
-        const response = await apiRequest(url);
+        // Utilizando o formato com método explícito "GET" para evitar problemas
+        const response = await apiRequest("GET", url);
         // Verificar se o conteúdo retornado é HTML (indicação de erro)
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
