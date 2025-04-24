@@ -1,12 +1,40 @@
-import path from 'path';
-import fs from 'fs';
-import { Request, Response } from 'express';
-import { storage } from '../storage';
+import { db } from '../db';
+import { eq } from 'drizzle-orm';
 import {
-  EducationalContract,
-  educationalContracts
+  educationalContracts,
+  simplifiedEnrollments,
+  courses,
+  users,
+  contractStatusEnum,
+  type EducationalContract
 } from '@shared/schema';
 import PDFDocument from 'pdfkit';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Interface para um contrato educacional
+ */
+export interface EducationalContract {
+  id: number;
+  enrollmentId: number;
+  studentId: number;
+  courseId: number;
+  contractType: string;
+  contractNumber: string;
+  status: 'pending' | 'signed' | 'cancelled';
+  totalValue: number;
+  installments: number;
+  installmentValue: number;
+  paymentMethod: string;
+  discount: number;
+  createdAt: Date;
+  signatureDate: Date | null;
+  signatureData: string | null;
+  additionalTerms: string | null;
+  startDate: Date;
+  endDate: Date;
+  campus: string;
+}
 
 /**
  * Gera um contrato educacional com base nos dados da matrícula
@@ -14,91 +42,74 @@ import PDFDocument from 'pdfkit';
  */
 export async function generateContract(enrollmentId: number): Promise<EducationalContract> {
   try {
-    // Buscar a matrícula pelo ID
-    const enrollment = await storage.getSimplifiedEnrollmentById(enrollmentId);
+    // Buscar dados da matrícula
+    const [enrollment] = await db.select().from(simplifiedEnrollments)
+      .where(eq(simplifiedEnrollments.id, enrollmentId));
     
     if (!enrollment) {
-      throw new Error(`Matrícula não encontrada com ID: ${enrollmentId}`);
+      throw new Error(`Matrícula com ID ${enrollmentId} não encontrada`);
     }
     
-    // Verificar se já existe um contrato para esta matrícula
-    const existingContracts = await storage.getContracts({
-      enrollmentId: enrollmentId
-    });
-    
-    if (existingContracts && existingContracts.length > 0) {
-      // Retornar o contrato existente se já houver um
-      console.log(`Contrato já existe para a matrícula ${enrollmentId}, retornando o contrato existente.`);
-      return existingContracts[0];
-    }
-    
-    // Buscar informações do curso
-    const course = enrollment.courseId 
-      ? await storage.getCourseById(enrollment.courseId)
-      : null;
+    // Buscar dados do curso
+    const [course] = await db.select().from(courses)
+      .where(eq(courses.id, enrollment.courseId));
     
     if (!course) {
-      throw new Error(`Curso não encontrado para a matrícula ID: ${enrollmentId}`);
-    }
-    
-    // Buscar informações do aluno
-    const student = enrollment.studentId
-      ? await storage.getUserById(enrollment.studentId)
-      : null;
-    
-    if (!student) {
-      throw new Error(`Aluno não encontrado para a matrícula ID: ${enrollmentId}`);
+      throw new Error(`Curso com ID ${enrollment.courseId} não encontrado`);
     }
     
     // Determinar o tipo de contrato com base no tipo de curso
-    let contractType = 'default';
+    let contractType = 'graduacao';
     
     if (course.courseTypeId) {
-      const courseType = await storage.getCourseTypeById(course.courseTypeId);
+      // Buscar dados do tipo de curso
+      const [courseType] = await db.select().from(educationalContracts)
+        .where(eq(educationalContracts.id, course.courseTypeId));
+      
       if (courseType) {
-        switch(courseType.code) {
-          case 'POS': 
-            contractType = 'pos-graduacao';
-            break;
-          case 'MBA':
-            contractType = 'mba';
-            break;
-          case 'GRADUACAO':
-          case 'SEG_LICENCIATURA':
-            contractType = 'graduacao';
-            break;
-          default:
-            contractType = 'default';
-        }
+        contractType = courseType.slug || 'graduacao';
       }
     }
     
-    // Criar dados do contrato com base nas informações da matrícula
-    const contractData = {
-      enrollmentId: enrollment.id,
-      studentId: student.id,
-      courseId: course.id,
-      contractType: contractType,
-      contractNumber: `${new Date().getFullYear()}-${enrollment.id}`,
-      status: 'pending' as const,
-      totalValue: enrollment.totalValue || course.price || 0,
-      installments: enrollment.installments || 1,
-      installmentValue: enrollment.installmentValue || (enrollment.totalValue ? enrollment.totalValue / (enrollment.installments || 1) : 0),
-      paymentMethod: enrollment.paymentMethod || 'credit_card',
-      discount: enrollment.discount || 0,
-      createdAt: new Date(),
-      signatureDate: null,
-      signatureData: null,
-      additionalTerms: null,
-      startDate: course.startDate || new Date(),
-      endDate: course.endDate || new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      campus: enrollment.campus || 'Online'
-    };
+    // Calcular valores financeiros
+    const totalValue = enrollment.totalValue || 0;
+    const installments = enrollment.installments || 1;
+    const installmentValue = installments ? totalValue / installments : totalValue;
     
-    // Criar o contrato no banco de dados
-    const contract = await storage.createContract(contractData);
+    const paymentMethod = enrollment.paymentMethod || 'boleto';
+    const discount = enrollment.discount || 0;
     
-    return contract;
+    // Determinar datas de início e término
+    const startDate = course.startDate || new Date();
+    const courseMonths = Math.ceil(course.endDate ? (course.endDate.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000) : 24);
+    const endDate = course.endDate || new Date(startDate.getTime() + courseMonths * 30 * 24 * 60 * 60 * 1000);
+    
+    // Determinar campus
+    const campus = enrollment.campus || 'SEDE VIRTUAL';
+    
+    // Gerar número do contrato (formato: CTR-ANO-NÚMERO_SEQUENCIAL)
+    const contractNumber = `CTR-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`;
+    
+    // Inserir contrato no banco de dados
+    const [contract] = await db.insert(educationalContracts).values({
+      id: uuidv4(),
+      enrollmentId: enrollment.id.toString(),
+      studentId: enrollment.studentId,
+      courseId: enrollment.courseId,
+      contractNumber,
+      contractType,
+      status: 'pending',
+      totalValue,
+      installments,
+      installmentValue,
+      paymentMethod,
+      discount,
+      startDate,
+      endDate,
+      campus
+    }).returning();
+    
+    return contract as unknown as EducationalContract;
   } catch (error) {
     console.error('Erro ao gerar contrato:', error);
     throw error;
@@ -111,10 +122,12 @@ export async function generateContract(enrollmentId: number): Promise<Educationa
  */
 export async function getContractById(contractId: number): Promise<EducationalContract | null> {
   try {
-    const contract = await storage.getContract(contractId);
-    return contract;
+    const [contract] = await db.select().from(educationalContracts)
+      .where(eq(educationalContracts.id, contractId.toString()));
+    
+    return contract as unknown as EducationalContract;
   } catch (error) {
-    console.error(`Erro ao buscar contrato com ID ${contractId}:`, error);
+    console.error('Erro ao obter contrato:', error);
     throw error;
   }
 }
@@ -125,13 +138,12 @@ export async function getContractById(contractId: number): Promise<EducationalCo
  */
 export async function getContractsByStudentId(studentId: number): Promise<EducationalContract[]> {
   try {
-    const contracts = await storage.getContracts({
-      studentId: studentId
-    });
+    const contracts = await db.select().from(educationalContracts)
+      .where(eq(educationalContracts.studentId, studentId));
     
-    return contracts;
+    return contracts as unknown as EducationalContract[];
   } catch (error) {
-    console.error(`Erro ao buscar contratos do estudante ${studentId}:`, error);
+    console.error('Erro ao obter contratos do estudante:', error);
     throw error;
   }
 }
@@ -142,13 +154,12 @@ export async function getContractsByStudentId(studentId: number): Promise<Educat
  */
 export async function getContractsByEnrollmentId(enrollmentId: number): Promise<EducationalContract[]> {
   try {
-    const contracts = await storage.getContracts({
-      enrollmentId: enrollmentId
-    });
+    const contracts = await db.select().from(educationalContracts)
+      .where(eq(educationalContracts.enrollmentId, enrollmentId.toString()));
     
-    return contracts;
+    return contracts as unknown as EducationalContract[];
   } catch (error) {
-    console.error(`Erro ao buscar contratos da matrícula ${enrollmentId}:`, error);
+    console.error('Erro ao obter contratos da matrícula:', error);
     throw error;
   }
 }
@@ -159,26 +170,34 @@ export async function getContractsByEnrollmentId(enrollmentId: number): Promise<
  * @param signatureData Dados da assinatura (imagem em base64 ou string)
  */
 export async function signContract(
-  contractId: number, 
+  contractId: number,
   signatureData: string
-): Promise<EducationalContract | null> {
+): Promise<EducationalContract> {
   try {
-    const contract = await storage.getContract(contractId);
+    const [contract] = await db.select().from(educationalContracts)
+      .where(eq(educationalContracts.id, contractId.toString()));
     
     if (!contract) {
-      throw new Error(`Contrato não encontrado com ID: ${contractId}`);
+      throw new Error(`Contrato com ID ${contractId} não encontrado`);
     }
     
-    // Atualizar o contrato com os dados da assinatura
-    const updatedContract = await storage.updateContract(contractId, {
-      status: 'signed',
-      signatureDate: new Date(),
-      signatureData: signatureData
-    });
+    if (contract.status === 'signed') {
+      throw new Error('Este contrato já foi assinado');
+    }
     
-    return updatedContract;
+    // Atualizar contrato com dados de assinatura
+    const [updatedContract] = await db.update(educationalContracts)
+      .set({
+        status: 'signed',
+        signatureDate: new Date(),
+        signatureData
+      })
+      .where(eq(educationalContracts.id, contractId.toString()))
+      .returning();
+    
+    return updatedContract as unknown as EducationalContract;
   } catch (error) {
-    console.error(`Erro ao assinar contrato ${contractId}:`, error);
+    console.error('Erro ao assinar contrato:', error);
     throw error;
   }
 }
@@ -189,136 +208,141 @@ export async function signContract(
  */
 export async function downloadContract(contractId: number): Promise<Buffer> {
   try {
-    // Buscar o contrato
-    const contract = await storage.getContract(contractId);
+    // Buscar contrato
+    const contract = await getContractById(contractId);
     
     if (!contract) {
-      throw new Error(`Contrato não encontrado com ID: ${contractId}`);
+      throw new Error(`Contrato com ID ${contractId} não encontrado`);
     }
     
-    // Buscar informações relacionadas ao contrato
-    const student = await storage.getUserById(contract.studentId);
-    const course = await storage.getCourseById(contract.courseId);
+    // Buscar estudante
+    const [student] = await db.select().from(users)
+      .where(eq(users.id, contract.studentId));
     
-    if (!student || !course) {
-      throw new Error('Informações do contrato incompletas');
+    if (!student) {
+      throw new Error(`Estudante com ID ${contract.studentId} não encontrado`);
     }
     
-    // Criar um novo documento PDF
-    const doc = new PDFDocument({ margin: 50 });
+    // Buscar curso
+    const [course] = await db.select().from(courses)
+      .where(eq(courses.id, contract.courseId));
     
-    // Buffer para armazenar o PDF
-    const buffers: Buffer[] = [];
-    doc.on('data', buffers.push.bind(buffers));
-    
-    // Adicionar cabeçalho
-    doc.fontSize(18).text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(14).text(`Contrato Nº: ${contract.contractNumber}`, { align: 'center' });
-    doc.moveDown(2);
-    
-    // Adicionar informações do contrato
-    doc.fontSize(12).text('CONTRATANTE:', { bold: true });
-    doc.fontSize(10).text(`Nome: ${student.fullName}`);
-    doc.text(`CPF: ${student.cpf || 'Não informado'}`);
-    doc.text(`Email: ${student.email}`);
-    doc.text(`Telefone: ${student.phone || 'Não informado'}`);
-    doc.text(`Endereço: ${student.address || 'Não informado'}`);
-    doc.moveDown();
-    
-    doc.fontSize(12).text('CONTRATADA:', { bold: true });
-    doc.fontSize(10).text('Nome: EdunexIA - Educação e Tecnologia LTDA');
-    doc.text('CNPJ: XX.XXX.XXX/0001-XX');
-    doc.text('Endereço: Av. XXXX, nº XXX, Bairro, Cidade - UF');
-    doc.moveDown();
-    
-    doc.fontSize(12).text('CURSO:', { bold: true });
-    doc.fontSize(10).text(`Nome: ${course.name}`);
-    doc.text(`Código: ${course.code}`);
-    doc.text(`Carga Horária: ${course.workload} horas`);
-    doc.text(`Campus: ${contract.campus}`);
-    doc.text(`Data de Início: ${contract.startDate.toLocaleDateString('pt-BR')}`);
-    doc.text(`Data de Término: ${contract.endDate.toLocaleDateString('pt-BR')}`);
-    doc.moveDown();
-    
-    doc.fontSize(12).text('INVESTIMENTO:', { bold: true });
-    doc.fontSize(10).text(`Valor Total: R$ ${contract.totalValue.toFixed(2)}`);
-    doc.text(`Número de Parcelas: ${contract.installments}`);
-    doc.text(`Valor da Parcela: R$ ${contract.installmentValue.toFixed(2)}`);
-    doc.text(`Forma de Pagamento: ${formatPaymentMethod(contract.paymentMethod)}`);
-    
-    if (contract.discount > 0) {
-      doc.text(`Desconto: R$ ${contract.discount.toFixed(2)}`);
-    }
-    doc.moveDown(2);
-    
-    // Texto do contrato baseado no tipo
-    doc.fontSize(12).text('TERMOS E CONDIÇÕES', { bold: true, align: 'center' });
-    doc.moveDown();
-    
-    // Texto do contrato com base no tipo
-    const terms = getContractTextByType(contract.contractType);
-    doc.fontSize(10).text(terms, { align: 'justify' });
-    doc.moveDown(2);
-    
-    // Termos adicionais, se houver
-    if (contract.additionalTerms) {
-      doc.fontSize(12).text('TERMOS ADICIONAIS', { bold: true });
-      doc.fontSize(10).text(contract.additionalTerms, { align: 'justify' });
-      doc.moveDown(2);
+    if (!course) {
+      throw new Error(`Curso com ID ${contract.courseId} não encontrado`);
     }
     
-    // Local de assinatura
-    doc.fontSize(10).text(`${contract.campus}, ${new Date().toLocaleDateString('pt-BR')}`);
-    doc.moveDown(2);
-    
-    // Espaço para assinaturas
-    doc.fontSize(10).text('_____________________________', { align: 'center' });
-    doc.text('Assinatura do Contratante', { align: 'center' });
-    doc.moveDown();
-    
-    // Se o contrato já foi assinado, adicionar a assinatura
-    if (contract.status === 'signed' && contract.signatureData) {
-      try {
-        // Se a assinatura for uma imagem em base64
-        if (contract.signatureData.startsWith('data:image')) {
-          // Extrair os dados da imagem base64
-          const base64Data = contract.signatureData.split(',')[1];
-          // Converter base64 para buffer
-          const signatureBuffer = Buffer.from(base64Data, 'base64');
-          // Adicionar a imagem ao PDF (ajustar conforme necessário)
-          doc.image(signatureBuffer, { fit: [200, 100], align: 'center' });
-        } else {
-          // Se for apenas texto, adicionar como texto
-          doc.fontSize(10).text(`Assinado eletronicamente por: ${student.fullName}`, { align: 'center' });
-          doc.text(`Data: ${contract.signatureDate?.toLocaleDateString('pt-BR')}`, { align: 'center' });
-        }
-      } catch (err) {
-        console.error('Erro ao processar assinatura:', err);
-        // Em caso de erro, apenas adicionar texto de assinatura
-        doc.fontSize(10).text('(Assinado eletronicamente)', { align: 'center' });
-      }
-    }
-    
-    doc.moveDown(2);
-    doc.fontSize(10).text('_____________________________', { align: 'center' });
-    doc.text('Assinatura da Contratada', { align: 'center' });
-    
-    // Finalizar o documento
-    doc.end();
-    
-    // Retornar o buffer do PDF
-    return new Promise<Buffer>((resolve, reject) => {
-      doc.on('end', () => {
-        resolve(Buffer.concat(buffers));
+    // Criar PDF
+    const pdfBuffer: Buffer = await new Promise((resolve) => {
+      const doc = new PDFDocument({
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        size: 'A4'
       });
       
-      doc.on('error', (err) => {
-        reject(err);
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfData = Buffer.concat(buffers);
+        resolve(pdfData);
       });
+      
+      // Cabeçalho
+      doc.fontSize(16).text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Contrato Nº: ${contract.contractNumber}`, { align: 'right' });
+      doc.moveDown(2);
+      
+      // Informações do contrato
+      doc.fontSize(12).text('CONTRATADA:', { continued: true }).fontSize(10).text(' Instituição de Ensino EdunexIA');
+      doc.moveDown();
+      doc.fontSize(12).text('CONTRATANTE:', { continued: true }).fontSize(10).text(` ${student.fullName}`);
+      doc.moveDown();
+      doc.fontSize(12).text('CPF:', { continued: true }).fontSize(10).text(` ${student.cpf || 'Não informado'}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Telefone:', { continued: true }).fontSize(10).text(` ${student.phone || 'Não informado'}`);
+      doc.moveDown();
+      doc.fontSize(12).text('E-mail:', { continued: true }).fontSize(10).text(` ${student.email || 'Não informado'}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Endereço:', { continued: true }).fontSize(10).text(` ${student.address || 'Não informado'}`);
+      doc.moveDown(2);
+      
+      // Dados do curso
+      doc.fontSize(14).text('DADOS DO CURSO', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text('Curso:', { continued: true }).fontSize(10).text(` ${course.name}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Código:', { continued: true }).fontSize(10).text(` ${course.code}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Campus:', { continued: true }).fontSize(10).text(` ${contract.campus}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Início:', { continued: true }).fontSize(10).text(` ${new Date(contract.startDate).toLocaleDateString('pt-BR')}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Término previsto:', { continued: true }).fontSize(10).text(` ${new Date(contract.endDate).toLocaleDateString('pt-BR')}`);
+      doc.moveDown(2);
+      
+      // Dados financeiros
+      doc.fontSize(14).text('DADOS FINANCEIROS', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text('Valor total do curso:', { continued: true }).fontSize(10).text(` R$ ${contract.totalValue.toFixed(2).replace('.', ',')}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Número de parcelas:', { continued: true }).fontSize(10).text(` ${contract.installments}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Valor da parcela:', { continued: true }).fontSize(10).text(` R$ ${contract.installmentValue.toFixed(2).replace('.', ',')}`);
+      doc.moveDown();
+      doc.fontSize(12).text('Forma de pagamento:', { continued: true }).fontSize(10).text(` ${formatPaymentMethod(contract.paymentMethod)}`);
+      
+      if (contract.discount > 0) {
+        doc.moveDown();
+        doc.fontSize(12).text('Desconto:', { continued: true }).fontSize(10).text(` ${contract.discount}%`);
+      }
+      
+      doc.moveDown(2);
+      
+      // Texto do contrato
+      doc.fontSize(14).text('TERMOS E CONDIÇÕES', { align: 'center' });
+      doc.moveDown();
+      
+      const contractText = getContractTextByType(contract.contractType);
+      doc.fontSize(10).text(contractText, { align: 'justify' });
+      
+      doc.moveDown(2);
+      
+      // Assinatura
+      doc.fontSize(12).text('LOCAL E DATA:', { align: 'left' });
+      doc.moveDown();
+      doc.fontSize(10).text('__________________, _____ de ______________ de ________', { align: 'center' });
+      doc.moveDown(2);
+      
+      doc.fontSize(12).text('ASSINATURAS:', { align: 'left' });
+      doc.moveDown();
+      
+      // Linha para assinatura da instituição
+      doc.fontSize(10).text('________________________________', { align: 'left' });
+      doc.fontSize(10).text('INSTITUIÇÃO DE ENSINO', { align: 'left' });
+      
+      // Linha para assinatura do aluno
+      doc.fontSize(10).text('________________________________', { align: 'right' });
+      doc.fontSize(10).text('CONTRATANTE', { align: 'right' });
+      
+      // Se o contrato já foi assinado, adicionar informações da assinatura
+      if (contract.status === 'signed' && contract.signatureDate) {
+        doc.moveDown(2);
+        doc.fontSize(12).text('INFORMAÇÕES DA ASSINATURA DIGITAL:', { align: 'left' });
+        doc.moveDown();
+        doc.fontSize(10).text(`Assinado digitalmente por: ${student.fullName}`);
+        doc.fontSize(10).text(`Data: ${new Date(contract.signatureDate).toLocaleDateString('pt-BR')} às ${new Date(contract.signatureDate).toLocaleTimeString('pt-BR')}`);
+        
+        if (contract.signatureData) {
+          doc.moveDown();
+          doc.fontSize(10).text(`Assinatura: ${contract.signatureData}`);
+        }
+      }
+      
+      doc.end();
     });
+    
+    return pdfBuffer;
   } catch (error) {
-    console.error(`Erro ao gerar PDF do contrato ${contractId}:`, error);
+    console.error('Erro ao gerar PDF do contrato:', error);
     throw error;
   }
 }
@@ -328,13 +352,13 @@ export async function downloadContract(contractId: number): Promise<Buffer> {
  */
 function formatPaymentMethod(method: string): string {
   const methods: Record<string, string> = {
+    'boleto': 'Boleto Bancário',
     'credit_card': 'Cartão de Crédito',
     'debit_card': 'Cartão de Débito',
-    'bank_slip': 'Boleto Bancário',
-    'bank_transfer': 'Transferência Bancária',
     'pix': 'PIX',
+    'bank_transfer': 'Transferência Bancária',
     'cash': 'Dinheiro',
-    'other': 'Outro'
+    'installment': 'Parcelamento'
   };
   
   return methods[method] || method;
@@ -344,117 +368,85 @@ function formatPaymentMethod(method: string): string {
  * Retorna o texto do contrato com base no tipo
  */
 function getContractTextByType(contractType: string): string {
-  switch (contractType) {
-    case 'pos-graduacao':
-      return `
-CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE PÓS-GRADUAÇÃO LATO SENSU
+  // Textos simplificados para fins de demonstração
+  const texts: Record<string, string> = {
+    'graduacao': `
+      CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE GRADUAÇÃO
 
-Pelo presente instrumento particular de Contrato de Prestação de Serviços Educacionais, de um lado, o CONTRATANTE, devidamente qualificado no anverso, e, de outro lado, a CONTRATADA, instituição de ensino superior, também qualificada no anverso, representada na forma de seus atos constitutivos, têm entre si, justo e contratado o seguinte:
+      Pelo presente instrumento particular de CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS, de um lado, como CONTRATADA, a instituição de ensino superior qualificada no anverso, e, de outro lado, como CONTRATANTE, o aluno ou seu responsável legal, também qualificado no anverso, firmam o presente contrato, mediante as seguintes cláusulas e condições:
 
-CLÁUSULA 1ª - DO OBJETO
-O objeto do presente contrato é a prestação de serviços educacionais pela CONTRATADA ao CONTRATANTE, para o curso de pós-graduação lato sensu acima especificado, conforme Projeto Pedagógico do Curso.
+      CLÁUSULA 1ª - O objeto do presente contrato é a prestação de serviços educacionais correspondentes ao curso de graduação identificado no anverso, que serão ministrados em conformidade com a legislação aplicável, com o projeto pedagógico do curso e com o Regimento Geral da CONTRATADA.
 
-CLÁUSULA 2ª - DA MATRÍCULA
-A matrícula do CONTRATANTE será efetivada mediante o preenchimento e assinatura do presente contrato, bem como do pagamento da primeira parcela do curso.
+      CLÁUSULA 2ª - A CONTRATADA se obriga a ministrar aulas presenciais e/ou por meios tecnológicos, conforme o caso, nas datas e locais preestabelecidos, de acordo com a legislação vigente e com o projeto pedagógico do curso.
 
-CLÁUSULA 3ª - DO REGIME DIDÁTICO
-O CONTRATANTE declara estar ciente do regime didático adotado pela CONTRATADA, bem como das normas e procedimentos internos, comprometendo-se a respeitá-los integralmente.
+      CLÁUSULA 3ª - São de inteira responsabilidade da CONTRATADA o planejamento e a prestação dos serviços educacionais, no que se refere à definição de calendários de aulas, de provas e de exames, fixação de cargas horárias, designação de professores, orientação didático-pedagógica e educacional, além de outras providências que as atividades docentes exigirem.
 
-CLÁUSULA 4ª - DO PREÇO E FORMA DE PAGAMENTO
-O valor total do curso é o indicado no anverso, podendo ser pago à vista ou de forma parcelada, conforme opção do CONTRATANTE.
+      CLÁUSULA 4ª - Em contraprestação aos serviços educacionais, o CONTRATANTE pagará à CONTRATADA o valor total do curso em parcelas mensais e consecutivas, conforme especificado no anverso, com vencimento no dia 5 (cinco) de cada mês.
 
-CLÁUSULA 5ª - DA INTERRUPÇÃO DOS SERVIÇOS
-O CONTRATANTE poderá resilir o presente contrato, desde que notifique previamente a CONTRATADA e quite todas as parcelas vencidas até a data da resilição, além de multa compensatória correspondente a 20% das parcelas vincendas.
+      CLÁUSULA 5ª - O não comparecimento do aluno aos atos escolares ora contratados não o exime do pagamento, tendo em vista a disponibilidade do serviço colocado à sua disposição.
 
-CLÁUSULA 6ª - DO CERTIFICADO
-O certificado de conclusão de curso será expedido somente após o CONTRATANTE cumprir todas as exigências acadêmicas e financeiras estabelecidas pela CONTRATADA.
+      CLÁUSULA 6ª - O presente contrato tem validade para o período letivo de duração do curso, conforme especificado no anverso, podendo ser rescindido nas seguintes hipóteses: a) pelo CONTRATANTE, por desistência formal; b) pela CONTRATADA, por infração disciplinar ou inadimplência do CONTRATANTE.
 
-CLÁUSULA 7ª - DO FORO
-As partes elegem o foro da Comarca da sede da CONTRATADA para dirimir quaisquer dúvidas ou controvérsias oriundas do presente contrato.
-      `;
-      
-    case 'mba':
-      return `
-CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE MBA PÓS-GRADUAÇÃO LATO SENSU
+      CLÁUSULA 7ª - Para dirimir questões oriundas deste contrato, fica eleito o Foro da Comarca onde o curso é ministrado.
+    `,
+    'pos_graduacao': `
+      CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE PÓS-GRADUAÇÃO LATO SENSU
 
-Pelo presente instrumento particular de Contrato de Prestação de Serviços Educacionais, de um lado, o CONTRATANTE, devidamente qualificado no anverso, e, de outro lado, a CONTRATADA, instituição de ensino superior, também qualificada no anverso, representada na forma de seus atos constitutivos, têm entre si, justo e contratado o seguinte:
+      Pelo presente instrumento particular de CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS, de um lado, como CONTRATADA, a instituição de ensino superior qualificada no anverso, e, de outro lado, como CONTRATANTE, o aluno também qualificado no anverso, firmam o presente contrato, mediante as seguintes cláusulas e condições:
 
-CLÁUSULA 1ª - DO OBJETO
-O objeto do presente contrato é a prestação de serviços educacionais pela CONTRATADA ao CONTRATANTE, para o curso de MBA pós-graduação lato sensu acima especificado, conforme Projeto Pedagógico do Curso.
+      CLÁUSULA 1ª - O objeto do presente contrato é a prestação de serviços educacionais correspondentes ao curso de pós-graduação lato sensu identificado no anverso, que serão ministrados em conformidade com a legislação aplicável, com o projeto pedagógico do curso e com o Regimento Geral da CONTRATADA.
 
-CLÁUSULA 2ª - DA MATRÍCULA
-A matrícula do CONTRATANTE será efetivada mediante o preenchimento e assinatura do presente contrato, bem como do pagamento da primeira parcela do curso.
+      CLÁUSULA 2ª - A CONTRATADA se obriga a ministrar aulas presenciais e/ou por meios tecnológicos, conforme o caso, nas datas e locais preestabelecidos, de acordo com a legislação vigente e com o projeto pedagógico do curso.
 
-CLÁUSULA 3ª - DO REGIME DIDÁTICO
-O CONTRATANTE declara estar ciente do regime didático adotado pela CONTRATADA, bem como das normas e procedimentos internos, comprometendo-se a respeitá-los integralmente.
+      CLÁUSULA 3ª - São de inteira responsabilidade da CONTRATADA o planejamento e a prestação dos serviços educacionais, no que se refere à definição de calendários de aulas, de provas e de exames, fixação de cargas horárias, designação de professores, orientação didático-pedagógica e educacional, além de outras providências que as atividades docentes exigirem.
 
-CLÁUSULA 4ª - DO PREÇO E FORMA DE PAGAMENTO
-O valor total do curso é o indicado no anverso, podendo ser pago à vista ou de forma parcelada, conforme opção do CONTRATANTE.
+      CLÁUSULA 4ª - Em contraprestação aos serviços educacionais, o CONTRATANTE pagará à CONTRATADA o valor total do curso em parcelas mensais e consecutivas, conforme especificado no anverso, com vencimento no dia 5 (cinco) de cada mês.
 
-CLÁUSULA 5ª - DA INTERRUPÇÃO DOS SERVIÇOS
-O CONTRATANTE poderá resilir o presente contrato, desde que notifique previamente a CONTRATADA e quite todas as parcelas vencidas até a data da resilição, além de multa compensatória correspondente a 20% das parcelas vincendas.
+      CLÁUSULA 5ª - O não comparecimento do aluno aos atos escolares ora contratados não o exime do pagamento, tendo em vista a disponibilidade do serviço colocado à sua disposição.
 
-CLÁUSULA 6ª - DO CERTIFICADO
-O certificado de conclusão de curso será expedido somente após o CONTRATANTE cumprir todas as exigências acadêmicas e financeiras estabelecidas pela CONTRATADA.
+      CLÁUSULA 6ª - O presente contrato tem validade para o período letivo de duração do curso, conforme especificado no anverso, podendo ser rescindido nas seguintes hipóteses: a) pelo CONTRATANTE, por desistência formal; b) pela CONTRATADA, por infração disciplinar ou inadimplência do CONTRATANTE.
 
-CLÁUSULA 7ª - DO FORO
-As partes elegem o foro da Comarca da sede da CONTRATADA para dirimir quaisquer dúvidas ou controvérsias oriundas do presente contrato.
-      `;
-      
-    case 'graduacao':
-      return `
-CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE GRADUAÇÃO
+      CLÁUSULA 7ª - Para dirimir questões oriundas deste contrato, fica eleito o Foro da Comarca onde o curso é ministrado.
+    `,
+    'mba': `
+      CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE MBA
 
-Pelo presente instrumento particular de Contrato de Prestação de Serviços Educacionais, de um lado, o CONTRATANTE, devidamente qualificado no anverso, e, de outro lado, a CONTRATADA, instituição de ensino superior, também qualificada no anverso, representada na forma de seus atos constitutivos, têm entre si, justo e contratado o seguinte:
+      Pelo presente instrumento particular de CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS, de um lado, como CONTRATADA, a instituição de ensino superior qualificada no anverso, e, de outro lado, como CONTRATANTE, o aluno também qualificado no anverso, firmam o presente contrato, mediante as seguintes cláusulas e condições:
 
-CLÁUSULA 1ª - DO OBJETO
-O objeto do presente contrato é a prestação de serviços educacionais pela CONTRATADA ao CONTRATANTE, para o curso de graduação acima especificado, conforme Projeto Pedagógico do Curso aprovado pelo MEC.
+      CLÁUSULA 1ª - O objeto do presente contrato é a prestação de serviços educacionais correspondentes ao curso de MBA identificado no anverso, que serão ministrados em conformidade com a legislação aplicável, com o projeto pedagógico do curso e com o Regimento Geral da CONTRATADA.
 
-CLÁUSULA 2ª - DA MATRÍCULA
-A matrícula do CONTRATANTE será efetivada mediante o preenchimento e assinatura do presente contrato, bem como do pagamento da primeira parcela do curso.
+      CLÁUSULA 2ª - A CONTRATADA se obriga a ministrar aulas presenciais e/ou por meios tecnológicos, conforme o caso, nas datas e locais preestabelecidos, de acordo com a legislação vigente e com o projeto pedagógico do curso.
 
-CLÁUSULA 3ª - DO REGIME DIDÁTICO
-O CONTRATANTE declara estar ciente do regime didático adotado pela CONTRATADA, bem como das normas e procedimentos internos, comprometendo-se a respeitá-los integralmente.
+      CLÁUSULA 3ª - São de inteira responsabilidade da CONTRATADA o planejamento e a prestação dos serviços educacionais, no que se refere à definição de calendários de aulas, de provas e de exames, fixação de cargas horárias, designação de professores, orientação didático-pedagógica e educacional, além de outras providências que as atividades docentes exigirem.
 
-CLÁUSULA 4ª - DO PREÇO E FORMA DE PAGAMENTO
-O valor total do curso é o indicado no anverso, podendo ser pago à vista ou de forma parcelada, conforme opção do CONTRATANTE.
+      CLÁUSULA 4ª - Em contraprestação aos serviços educacionais, o CONTRATANTE pagará à CONTRATADA o valor total do curso em parcelas mensais e consecutivas, conforme especificado no anverso, com vencimento no dia 5 (cinco) de cada mês.
 
-CLÁUSULA 5ª - DA INTERRUPÇÃO DOS SERVIÇOS
-O CONTRATANTE poderá resilir o presente contrato, desde que notifique previamente a CONTRATADA e quite todas as parcelas vencidas até a data da resilição, além de multa compensatória correspondente a 20% das parcelas vincendas.
+      CLÁUSULA 5ª - O não comparecimento do aluno aos atos escolares ora contratados não o exime do pagamento, tendo em vista a disponibilidade do serviço colocado à sua disposição.
 
-CLÁUSULA 6ª - DO DIPLOMA
-O diploma de conclusão de curso será expedido somente após o CONTRATANTE cumprir todas as exigências acadêmicas e financeiras estabelecidas pela CONTRATADA e pelo MEC.
+      CLÁUSULA 6ª - O presente contrato tem validade para o período letivo de duração do curso, conforme especificado no anverso, podendo ser rescindido nas seguintes hipóteses: a) pelo CONTRATANTE, por desistência formal; b) pela CONTRATADA, por infração disciplinar ou inadimplência do CONTRATANTE.
 
-CLÁUSULA 7ª - DO FORO
-As partes elegem o foro da Comarca da sede da CONTRATADA para dirimir quaisquer dúvidas ou controvérsias oriundas do presente contrato.
-      `;
-      
-    default:
-      return `
-CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS
+      CLÁUSULA 7ª - Para dirimir questões oriundas deste contrato, fica eleito o Foro da Comarca onde o curso é ministrado.
+    `,
+    'segunda_graduacao': `
+      CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS - CURSO DE SEGUNDA GRADUAÇÃO
 
-Pelo presente instrumento particular de Contrato de Prestação de Serviços Educacionais, de um lado, o CONTRATANTE, devidamente qualificado no anverso, e, de outro lado, a CONTRATADA, instituição de ensino, também qualificada no anverso, representada na forma de seus atos constitutivos, têm entre si, justo e contratado o seguinte:
+      Pelo presente instrumento particular de CONTRATO DE PRESTAÇÃO DE SERVIÇOS EDUCACIONAIS, de um lado, como CONTRATADA, a instituição de ensino superior qualificada no anverso, e, de outro lado, como CONTRATANTE, o aluno também qualificado no anverso, firmam o presente contrato, mediante as seguintes cláusulas e condições:
 
-CLÁUSULA 1ª - DO OBJETO
-O objeto do presente contrato é a prestação de serviços educacionais pela CONTRATADA ao CONTRATANTE, para o curso acima especificado, conforme Projeto Pedagógico do Curso.
+      CLÁUSULA 1ª - O objeto do presente contrato é a prestação de serviços educacionais correspondentes ao curso de segunda graduação identificado no anverso, que serão ministrados em conformidade com a legislação aplicável, com o projeto pedagógico do curso e com o Regimento Geral da CONTRATADA.
 
-CLÁUSULA 2ª - DA MATRÍCULA
-A matrícula do CONTRATANTE será efetivada mediante o preenchimento e assinatura do presente contrato, bem como do pagamento da primeira parcela do curso.
+      CLÁUSULA 2ª - A CONTRATADA se obriga a ministrar aulas presenciais e/ou por meios tecnológicos, conforme o caso, nas datas e locais preestabelecidos, de acordo com a legislação vigente e com o projeto pedagógico do curso.
 
-CLÁUSULA 3ª - DO REGIME DIDÁTICO
-O CONTRATANTE declara estar ciente do regime didático adotado pela CONTRATADA, bem como das normas e procedimentos internos, comprometendo-se a respeitá-los integralmente.
+      CLÁUSULA 3ª - São de inteira responsabilidade da CONTRATADA o planejamento e a prestação dos serviços educacionais, no que se refere à definição de calendários de aulas, de provas e de exames, fixação de cargas horárias, designação de professores, orientação didático-pedagógica e educacional, além de outras providências que as atividades docentes exigirem.
 
-CLÁUSULA 4ª - DO PREÇO E FORMA DE PAGAMENTO
-O valor total do curso é o indicado no anverso, podendo ser pago à vista ou de forma parcelada, conforme opção do CONTRATANTE.
+      CLÁUSULA 4ª - Em contraprestação aos serviços educacionais, o CONTRATANTE pagará à CONTRATADA o valor total do curso em parcelas mensais e consecutivas, conforme especificado no anverso, com vencimento no dia 5 (cinco) de cada mês.
 
-CLÁUSULA 5ª - DA INTERRUPÇÃO DOS SERVIÇOS
-O CONTRATANTE poderá resilir o presente contrato, desde que notifique previamente a CONTRATADA e quite todas as parcelas vencidas até a data da resilição, além de multa compensatória correspondente a 20% das parcelas vincendas.
+      CLÁUSULA 5ª - O não comparecimento do aluno aos atos escolares ora contratados não o exime do pagamento, tendo em vista a disponibilidade do serviço colocado à sua disposição.
 
-CLÁUSULA 6ª - DO CERTIFICADO
-O certificado de conclusão de curso será expedido somente após o CONTRATANTE cumprir todas as exigências acadêmicas e financeiras estabelecidas pela CONTRATADA.
+      CLÁUSULA 6ª - O presente contrato tem validade para o período letivo de duração do curso, conforme especificado no anverso, podendo ser rescindido nas seguintes hipóteses: a) pelo CONTRATANTE, por desistência formal; b) pela CONTRATADA, por infração disciplinar ou inadimplência do CONTRATANTE.
 
-CLÁUSULA 7ª - DO FORO
-As partes elegem o foro da Comarca da sede da CONTRATADA para dirimir quaisquer dúvidas ou controvérsias oriundas do presente contrato.
-      `;
-  }
+      CLÁUSULA 7ª - Para dirimir questões oriundas deste contrato, fica eleito o Foro da Comarca onde o curso é ministrado.
+    `
+  };
+  
+  return texts[contractType] || texts['graduacao'];
 }

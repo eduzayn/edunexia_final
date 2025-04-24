@@ -1,238 +1,189 @@
 import express, { Request, Response } from 'express';
-import {
-  generateContract,
-  getContractById,
-  getContractsByStudentId,
-  signContract,
-  downloadContract
-} from '../services/contracts-service';
+import * as contractsService from '../services/contracts-service';
+import { EducationalContract } from '@shared/schema';
+import PDFDocument from 'pdfkit';
 
 const router = express.Router();
 
-// Middleware para verificar se é estudante
+// Middleware para verificar se o usuário é um estudante
 const requireStudent = (req: Request, res: Response, next: express.NextFunction) => {
   if (!req.isAuthenticated()) {
-    return res.status(401).json({
-      success: false,
-      message: 'Usuário não autenticado'
-    });
+    return res.status(401).json({ message: 'Não autenticado' });
   }
 
-  const user = req.user;
-  
-  if (!user || user.portalType !== 'student') {
-    return res.status(403).json({
-      success: false,
-      message: 'Acesso não autorizado. Apenas estudantes podem acessar este recurso.'
-    });
+  if (!req.user || req.user.portalType !== 'student') {
+    return res.status(403).json({ message: 'Acesso negado' });
   }
-  
+
   next();
 };
 
-// Obter todos os contratos do estudante
+// Rota para buscar todos os contratos do aluno
 router.get('/api/student/contracts', requireStudent, async (req: Request, res: Response) => {
   try {
     const studentId = req.user?.id;
     
     if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID do estudante não encontrado'
-      });
+      return res.status(400).json({ message: 'ID do estudante não encontrado' });
     }
     
-    const contracts = await getContractsByStudentId(studentId);
+    const contracts = await contractsService.getContractsByStudentId(studentId);
     
-    return res.json({
-      success: true,
-      data: contracts
+    return res.status(200).json({ 
+      success: true, 
+      data: contracts 
     });
-  } catch (error) {
-    console.error('Erro ao buscar contratos do estudante:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar contratos'
+  } catch (error: any) {
+    console.error('Erro ao obter contratos:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao obter contratos: ' + error.message 
     });
   }
 });
 
-// Obter um contrato específico
+// Rota para obter um contrato específico
 router.get('/api/contracts/:id', requireStudent, async (req: Request, res: Response) => {
   try {
     const contractId = parseInt(req.params.id);
     
     if (isNaN(contractId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID de contrato inválido'
-      });
+      return res.status(400).json({ message: 'ID do contrato inválido' });
     }
     
-    const contract = await getContractById(contractId);
+    const contract = await contractsService.getContractById(contractId);
     
     if (!contract) {
-      return res.status(404).json({
-        success: false,
-        message: 'Contrato não encontrado'
-      });
+      return res.status(404).json({ message: 'Contrato não encontrado' });
     }
     
-    // Verificar se o contrato pertence ao estudante autenticado
+    // Verificar se o contrato pertence ao aluno logado
     if (contract.studentId !== req.user?.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para acessar este contrato'
-      });
+      return res.status(403).json({ message: 'Acesso negado a este contrato' });
     }
     
-    return res.json({
-      success: true,
-      data: contract
+    return res.status(200).json({ 
+      success: true, 
+      data: contract 
     });
-  } catch (error) {
-    console.error('Erro ao buscar contrato:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar contrato'
+  } catch (error: any) {
+    console.error('Erro ao obter contrato:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao obter contrato: ' + error.message 
     });
   }
 });
 
-// Assinar um contrato
+// Rota para assinar um contrato
 router.post('/api/contracts/:id/sign', requireStudent, async (req: Request, res: Response) => {
   try {
     const contractId = parseInt(req.params.id);
     const { signatureData } = req.body;
     
     if (isNaN(contractId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID de contrato inválido'
-      });
+      return res.status(400).json({ message: 'ID do contrato inválido' });
     }
     
     if (!signatureData) {
-      return res.status(400).json({
-        success: false,
-        message: 'Dados de assinatura não fornecidos'
-      });
+      return res.status(400).json({ message: 'Dados de assinatura são obrigatórios' });
     }
     
-    const contract = await getContractById(contractId);
+    // Verificar se o contrato existe e pertence ao aluno
+    const contract = await contractsService.getContractById(contractId);
     
     if (!contract) {
-      return res.status(404).json({
-        success: false,
-        message: 'Contrato não encontrado'
-      });
+      return res.status(404).json({ message: 'Contrato não encontrado' });
     }
     
-    // Verificar se o contrato pertence ao estudante autenticado
     if (contract.studentId !== req.user?.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para assinar este contrato'
-      });
+      return res.status(403).json({ message: 'Acesso negado a este contrato' });
     }
     
-    // Verificar se o contrato já está assinado
     if (contract.status === 'signed') {
-      return res.status(400).json({
-        success: false,
-        message: 'Este contrato já foi assinado'
-      });
+      return res.status(400).json({ message: 'Este contrato já foi assinado' });
     }
     
     // Assinar o contrato
-    const signedContract = await signContract(contractId, signatureData);
+    const signedContract = await contractsService.signContract(contractId, signatureData);
     
-    return res.json({
-      success: true,
+    return res.status(200).json({ 
+      success: true, 
       data: signedContract,
       message: 'Contrato assinado com sucesso'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao assinar contrato:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao assinar contrato'
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao assinar contrato: ' + error.message 
     });
   }
 });
 
-// Baixar um contrato em PDF
+// Rota para baixar o contrato em PDF
 router.get('/api/contracts/:id/download', requireStudent, async (req: Request, res: Response) => {
   try {
     const contractId = parseInt(req.params.id);
     
     if (isNaN(contractId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID de contrato inválido'
-      });
+      return res.status(400).json({ message: 'ID do contrato inválido' });
     }
     
-    const contract = await getContractById(contractId);
+    // Verificar se o contrato existe e pertence ao aluno
+    const contract = await contractsService.getContractById(contractId);
     
     if (!contract) {
-      return res.status(404).json({
-        success: false,
-        message: 'Contrato não encontrado'
-      });
+      return res.status(404).json({ message: 'Contrato não encontrado' });
     }
     
-    // Verificar se o contrato pertence ao estudante autenticado
     if (contract.studentId !== req.user?.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para baixar este contrato'
-      });
+      return res.status(403).json({ message: 'Acesso negado a este contrato' });
     }
     
-    // Gerar o PDF do contrato
-    const pdfBuffer = await downloadContract(contractId);
+    // Gerar PDF do contrato
+    const pdfBuffer = await contractsService.downloadContract(contractId);
     
-    // Definir cabeçalhos para download do PDF
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=contrato-${contractId}.pdf`);
-    res.setHeader('Content-Length', pdfBuffer.length);
+    // Configurar headers para download do PDF
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="contrato_${contract.contractNumber}.pdf"`,
+      'Content-Length': pdfBuffer.length
+    });
     
-    // Enviar o buffer do PDF como resposta
-    return res.send(pdfBuffer);
-  } catch (error) {
+    // Enviar o PDF
+    res.send(pdfBuffer);
+  } catch (error: any) {
     console.error('Erro ao baixar contrato:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao baixar contrato'
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao baixar contrato: ' + error.message 
     });
   }
 });
 
-// Rota para gerar um contrato a partir de uma matrícula
+// Rota para gerar contrato a partir de uma matrícula
 router.post('/api/enrollments/:id/generate-contract', async (req: Request, res: Response) => {
   try {
     const enrollmentId = parseInt(req.params.id);
     
     if (isNaN(enrollmentId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID de matrícula inválido'
-      });
+      return res.status(400).json({ message: 'ID da matrícula inválido' });
     }
     
-    const contract = await generateContract(enrollmentId);
+    // Gerar contrato
+    const contract = await contractsService.generateContract(enrollmentId);
     
-    return res.json({
-      success: true,
+    return res.status(200).json({ 
+      success: true, 
       data: contract,
       message: 'Contrato gerado com sucesso'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao gerar contrato:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao gerar contrato'
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Erro ao gerar contrato: ' + error.message 
     });
   }
 });

@@ -500,6 +500,9 @@ export const contracts = pgTable("contracts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Enumeração para status de contrato educacional
+export const contractStatusEnum = pgEnum('contract_status', ['pending', 'signed', 'cancelled']);
+
 // Contratos educacionais
 export const educationalContracts = pgTable("educational_contracts", {
   id: text("id").primaryKey(), // Formato: contract_UUID
@@ -508,8 +511,8 @@ export const educationalContracts = pgTable("educational_contracts", {
   courseId: integer("course_id").notNull().references(() => courses.id),
   contractNumber: text("contract_number").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  signedAt: timestamp("signed_at"),
-  status: text("status").notNull(), // PENDING, SIGNED, EXPIRED, CANCELED
+  signatureDate: timestamp("signature_date"), // Alterado de signedAt para signatureDate
+  status: contractStatusEnum("status").notNull().default('pending'), // Usando enum para status
   contractType: text("contract_type").notNull(), // GRADUATION, POST_GRADUATION, etc.
   contractUrl: text("contract_url"),
   expiresAt: timestamp("expires_at"),
@@ -517,7 +520,12 @@ export const educationalContracts = pgTable("educational_contracts", {
   installments: integer("installments").notNull(),
   installmentValue: doublePrecision("installment_value").notNull(),
   paymentMethod: text("payment_method").notNull(),
-  discount: doublePrecision("discount"),
+  discount: doublePrecision("discount").default(0),
+  signatureData: text("signature_data"), // Campo para armazenar dados da assinatura
+  additionalTerms: text("additional_terms"), // Termos adicionais do contrato
+  startDate: timestamp("start_date"), // Data de início do contrato
+  endDate: timestamp("end_date"), // Data de término do contrato
+  campus: text("campus"), // Campus do curso
   // Metadados adicionais em formato JSON
   metadata: json("metadata"),
 });
@@ -675,6 +683,18 @@ export const financialTransactionsRelations = relations(financialTransactions, (
 
 export const financialCategoriesRelations = relations(financialCategories, ({ many }) => ({
   transactions: many(financialTransactions),
+}));
+
+// Relações para contratos educacionais
+export const educationalContractsRelations = relations(educationalContracts, ({ one }) => ({
+  student: one(users, {
+    fields: [educationalContracts.studentId],
+    references: [users.id],
+  }),
+  course: one(courses, {
+    fields: [educationalContracts.courseId],
+    references: [courses.id],
+  }),
 }));
 
 // Modelo para login
