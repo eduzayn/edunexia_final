@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { SchoolIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/ui/icons";
 import { useAuth } from "@/hooks/use-auth";
-import { User } from "@shared/schema";
+import { ExtendedUser } from "@/types/user";
 import { Menu, X, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +12,7 @@ import { SidebarItem, SidebarCategory, SidebarItemOrCategory, isCategory } from 
 
 interface SidebarProps {
   items: SidebarItemOrCategory[];
-  user: User | null;
+  user: ExtendedUser | null;
   portalType: string;
   portalColor: string;
   isMobileMenuOpen: boolean;
