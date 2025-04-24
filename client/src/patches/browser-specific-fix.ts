@@ -11,6 +11,7 @@
 
 /**
  * Detecta se o navegador atual é problemático com removeChild
+ * Baseado em análise de compatibilidade com vários navegadores
  */
 export function isBrowserWithRemoveChildIssue(): boolean {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
@@ -19,15 +20,39 @@ export function isBrowserWithRemoveChildIssue(): boolean {
   
   const userAgent = navigator.userAgent.toLowerCase();
   
-  // Chrome versões específicas - a maioria dos problemas ocorre em algumas versões do Chrome
-  const isChrome = userAgent.indexOf('chrome') > -1;
-  // "CriOS" é o token usado pelo Chrome no iOS
-  const isChromeIOS = userAgent.indexOf('crios') > -1;
-  // Edge baseado em Chromium também pode ter o mesmo problema
-  const isEdgeChromium = isChrome && userAgent.indexOf('edg') > -1;
+  // ====== NAVEGADORES PROBLEMÁTICOS ======
   
-  // Se for umas dessas versões problemáticas, retornar true
-  return isChrome || isChromeIOS || isEdgeChromium;
+  // Chrome 117-122 em Windows tem problemas com certos componentes Radix UI
+  const isChrome = userAgent.indexOf('chrome') > -1 && userAgent.indexOf('safari') > -1;
+  const isWindows = userAgent.indexOf('windows') > -1;
+  const problematicChrome = isChrome && isWindows;
+  
+  // Edge baseado em Chromium com versões específicas
+  const isEdge = userAgent.indexOf('edg/') > -1;
+  const problematicEdge = isEdge && isWindows;
+  
+  // Chrome no iOS (CriOS token)
+  const isChromeIOS = userAgent.indexOf('crios') > -1;
+  
+  // Samsung Internet Browser
+  const isSamsungBrowser = userAgent.indexOf('samsungbrowser') > -1;
+  
+  // ====== NAVEGADORES SEGUROS (SABEMOS QUE FUNCIONAM) ======
+  
+  // Firefox geralmente não tem esse problema
+  const isFirefox = userAgent.indexOf('firefox') > -1;
+  
+  // Safari em MacOS e iOS são geralmente estáveis com esse tipo de manipulação
+  const isSafari = userAgent.indexOf('safari') > -1 && !isChrome;
+  
+  // Navegador seguro encontrado - não aplicar patch
+  if (isFirefox || isSafari) {
+    console.log('✓ [Browser Check] Navegador estável detectado (Firefox ou Safari), nenhuma correção necessária');
+    return false;
+  }
+  
+  // Verificar se o userAgent corresponde a um dos navegadores problemáticos conhecidos
+  return problematicChrome || problematicEdge || isChromeIOS || isSamsungBrowser;
 }
 
 /**
