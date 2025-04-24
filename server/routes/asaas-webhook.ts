@@ -111,6 +111,106 @@ async function processSimplifiedEnrollment(externalReference: string, paymentEve
       
       console.log(`[ASAAS WEBHOOK] Matrícula convertida com sucesso! Nova ID: ${newEnrollment.id}`);
       
+      // Criar perfil de estudante automaticamente com as informações da matrícula
+      try {
+        // Verificar se já existe um usuário com esse email
+        const existingUser = await storage.getUserByUsername(enrollment.studentEmail);
+        
+        if (!existingUser) {
+          console.log(`[ASAAS WEBHOOK] Criando perfil de estudante para: ${enrollment.studentName}`);
+          
+          // Usar CPF como senha inicial (ou gerar senha aleatória se não houver CPF)
+          const initialPassword = enrollment.studentCpf ? 
+            enrollment.studentCpf.replace(/[^\d]/g, '') : // remover pontos e traços
+            Math.random().toString(36).slice(-8); // senha aleatória se não tiver CPF
+          
+          // Criar o usuário no sistema
+          const newUser = await storage.createUser({
+            username: enrollment.studentEmail,
+            password: initialPassword,
+            fullName: enrollment.studentName,
+            email: enrollment.studentEmail,
+            cpf: enrollment.studentCpf,
+            phone: enrollment.studentPhone,
+            portalType: 'student',
+            status: 'active',
+            asaasId: enrollment.asaasCustomerId || null
+          });
+          
+          if (newUser) {
+            console.log(`[ASAAS WEBHOOK] Perfil de estudante criado com sucesso! ID: ${newUser.id}`);
+            
+            // Importar serviços para envio de notificações
+            const emailService = require('../services/email-service');
+            const smsService = require('../services/sms-service');
+            
+            // Enviar email com as credenciais
+            try {
+              await emailService.sendStudentCredentialsEmail({
+                to: newUser.email,
+                name: newUser.fullName,
+                username: newUser.username,
+                password: initialPassword
+              });
+              console.log(`[ASAAS WEBHOOK] Email com credenciais enviado para: ${newUser.email}`);
+            } catch (emailError) {
+              console.error(`[ASAAS WEBHOOK] Erro ao enviar email com credenciais:`, emailError);
+            }
+            
+            // Enviar SMS com as credenciais
+            try {
+              if (newUser.phone) {
+                await smsService.sendStudentCredentialsSMS(
+                  newUser.phone,
+                  initialPassword,
+                  newUser.fullName,
+                  newUser.email
+                );
+                console.log(`[ASAAS WEBHOOK] SMS com credenciais enviado para: ${newUser.phone}`);
+              }
+            } catch (smsError) {
+              console.error(`[ASAAS WEBHOOK] Erro ao enviar SMS com credenciais:`, smsError);
+            }
+            
+            // Gerar contrato automaticamente
+            try {
+              const contractService = require('../services/contract-generator-service');
+              const newContract = await contractService.generateContractFromEnrollment(
+                newEnrollment.id, 
+                newUser.id,
+                enrollment.courseId
+              );
+              
+              if (newContract) {
+                console.log(`[ASAAS WEBHOOK] Contrato gerado automaticamente! ID: ${newContract.id}`);
+              }
+            } catch (contractError) {
+              console.error(`[ASAAS WEBHOOK] Erro ao gerar contrato:`, contractError);
+            }
+          }
+        } else {
+          console.log(`[ASAAS WEBHOOK] Estudante já possui perfil no sistema: ${existingUser.id}`);
+          
+          // Gerar contrato automaticamente mesmo para usuário existente
+          try {
+            const contractService = require('../services/contract-generator-service');
+            const newContract = await contractService.generateContractFromEnrollment(
+              newEnrollment.id, 
+              existingUser.id,
+              enrollment.courseId
+            );
+            
+            if (newContract) {
+              console.log(`[ASAAS WEBHOOK] Contrato gerado automaticamente! ID: ${newContract.id}`);
+            }
+          } catch (contractError) {
+            console.error(`[ASAAS WEBHOOK] Erro ao gerar contrato:`, contractError);
+          }
+        }
+      } catch (profileError) {
+        console.error(`[ASAAS WEBHOOK] Erro ao criar perfil de estudante:`, profileError);
+      }
+      
       return { 
         success: true, 
         message: 'Matrícula processada e convertida com sucesso', 

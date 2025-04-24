@@ -354,6 +354,130 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
       createdById: 18 // ID do usuário admin no banco de dados, corresponde ao username 'admin'
     }).returning();
     
+    // Criar perfil de estudante automaticamente com as informações da matrícula
+    try {
+      // Verificar se já existe um usuário com esse email
+      const storage = require('../storage').storage;
+      const emailService = require('../services/email-service');
+      const smsService = require('../services/sms-service');
+      const contractService = require('../services/contract-generator-service');
+    
+      const existingUser = await storage.getUserByUsername(studentEmail);
+      
+      if (!existingUser) {
+        console.log(`[MATRÍCULA] Criando perfil de estudante para: ${studentName}`);
+        
+        // Usar CPF como senha inicial (remover pontos e traços)
+        const initialPassword = studentCpf ? 
+          studentCpf.replace(/[^\d]/g, '') : // remover pontos e traços
+          Math.random().toString(36).slice(-8); // senha aleatória se não tiver CPF
+        
+        // Criar o usuário no sistema
+        const newUser = await storage.createUser({
+          username: studentEmail,
+          password: initialPassword,
+          fullName: studentName,
+          email: studentEmail,
+          cpf: studentCpf,
+          phone: studentPhone,
+          portalType: 'student',
+          status: 'active',
+          asaasId: asaasCustomerId || null
+        });
+        
+        if (newUser) {
+          console.log(`[MATRÍCULA] Perfil de estudante criado com sucesso! ID: ${newUser.id}`);
+          
+          // Enviar email com as credenciais
+          try {
+            await emailService.sendStudentCredentialsEmail({
+              to: newUser.email,
+              name: newUser.fullName,
+              username: newUser.username,
+              password: initialPassword
+            });
+            console.log(`[MATRÍCULA] Email com credenciais enviado para: ${newUser.email}`);
+          } catch (emailError) {
+            console.error(`[MATRÍCULA] Erro ao enviar email com credenciais:`, emailError);
+          }
+          
+          // Enviar SMS com as credenciais
+          try {
+            if (newUser.phone) {
+              await smsService.sendStudentCredentialsSMS(
+                newUser.phone,
+                initialPassword,
+                newUser.fullName,
+                newUser.email
+              );
+              console.log(`[MATRÍCULA] SMS com credenciais enviado para: ${newUser.phone}`);
+            }
+          } catch (smsError) {
+            console.error(`[MATRÍCULA] Erro ao enviar SMS com credenciais:`, smsError);
+          }
+          
+          // Gerar contrato educacional automaticamente
+          try {
+            const newContract = await contractService.generateStudentContract({
+              studentId: newUser.id,
+              courseId,
+              courseName,
+              institutionId,
+              institutionName,
+              studentName,
+              studentEmail,
+              studentCpf,
+              totalValue: amount,
+              discount: 0,
+              // Extrair outros detalhes do metadata se necessário
+              metadata: {
+                poloName,
+                enrollmentId: newEnrollment.id
+              }
+            });
+            
+            if (newContract) {
+              console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${newContract.id}`);
+            }
+          } catch (contractError) {
+            console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);
+          }
+        }
+      } else {
+        console.log(`[MATRÍCULA] Estudante já possui perfil no sistema: ${existingUser.id}`);
+        
+        // Gerar contrato educacional mesmo para usuário existente
+        try {
+          const newContract = await contractService.generateStudentContract({
+            studentId: existingUser.id,
+            courseId,
+            courseName,
+            institutionId,
+            institutionName,
+            studentName,
+            studentEmail,
+            studentCpf,
+            totalValue: amount,
+            discount: 0,
+            // Extrair outros detalhes do metadata se necessário
+            metadata: {
+              poloName,
+              enrollmentId: newEnrollment.id
+            }
+          });
+          
+          if (newContract) {
+            console.log(`[MATRÍCULA] Contrato gerado automaticamente! ID: ${newContract.id}`);
+          }
+        } catch (contractError) {
+          console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);
+        }
+      }
+    } catch (profileError) {
+      console.error(`[MATRÍCULA] Erro ao criar perfil de estudante:`, profileError);
+      // Não interromper o fluxo se houver erro na criação do perfil
+    }
+    
     // Adicionar os campos extras para a resposta
     const enrollmentWithDetails = {
       ...newEnrollment,
