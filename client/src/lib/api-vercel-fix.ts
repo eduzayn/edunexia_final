@@ -11,11 +11,11 @@
 export function normalizeUrl(url: string): string {
   const isProd = import.meta.env.PROD;
   
-  // Se estamos em produção e a URL contém um domínio completo como o da Vercel,
+  // Se estamos em produção e a URL contém um domínio completo como o da Vercel ou Replit,
   // extrair apenas o caminho relativo
   if (isProd && typeof url === 'string') {
-    const vercelUrlPattern = /^https?:\/\/[\w.-]+(\.vercel\.app|\.edunexia\.com)\/(.+)$/;
-    const match = url.match(vercelUrlPattern);
+    const domainUrlPattern = /^https?:\/\/[\w.-]+(\.vercel\.app|\.edunexia\.com|\.replit\.app)\/(.+)$/;
+    const match = url.match(domainUrlPattern);
     
     if (match) {
       console.log(`normalizeUrl - URL com domínio Vercel detectada: ${url}`);

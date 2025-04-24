@@ -6,11 +6,17 @@
 
 // Determina a base URL para chamadas de API com base no ambiente
 export function getApiBaseUrl(): string {
-  // Em produção, sempre forçar URLs relativas
+  // Verificar se estamos em ambiente de produção de várias maneiras
   const isProd = import.meta.env.PROD;
-  if (isProd) {
+  const isReplitApp = typeof window !== 'undefined' && 
+                      (window.location.hostname.includes('replit.app') || 
+                       window.location.hostname.includes('vercel.app') ||
+                       window.location.hostname.includes('edunexia.com'));
+  
+  // Se qualquer uma das verificações indicar produção, usar URLs relativas
+  if (isProd || isReplitApp) {
     // Em produção, forçamos caminhos relativos sem domínio
-    console.log("Ambiente de produção detectado - usando URLs relativas");
+    console.log(`Ambiente de produção detectado [isProd=${isProd}, isReplitApp=${isReplitApp}] - usando URLs relativas`);
     return '';
   }
   
