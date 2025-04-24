@@ -6,10 +6,41 @@
 /**
  * Normaliza uma URL para garantir que não haja barras duplas
  * exceto após o protocolo (http:// ou https://)
+ * Em produção, converte URLs completas para URLs relativas
  */
 export function normalizeUrl(url: string): string {
+  const isProd = import.meta.env.PROD;
+  
+  // Se estamos em produção e a URL contém um domínio completo como o da Vercel,
+  // extrair apenas o caminho relativo
+  if (isProd && typeof url === 'string') {
+    const vercelUrlPattern = /^https?:\/\/[\w.-]+(\.vercel\.app|\.edunexia\.com)\/(.+)$/;
+    const match = url.match(vercelUrlPattern);
+    
+    if (match) {
+      console.log(`normalizeUrl - URL com domínio Vercel detectada: ${url}`);
+      // Extrair apenas o caminho relativo
+      const relativePath = `/${match[2]}`;
+      console.log(`normalizeUrl - Convertida para caminho relativo: ${relativePath}`);
+      url = relativePath;
+    }
+  }
+  
   // Se a URL for absoluta e já tiver protocolo, preservar o protocolo com // duplo
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    // Em produção, preferimos não usar URLs absolutas
+    if (isProd) {
+      try {
+        const urlObj = new URL(url);
+        // Extrair apenas o caminho e a query string
+        const relativePath = urlObj.pathname + urlObj.search;
+        console.log(`normalizeUrl - URL absoluta convertida para relativa: ${relativePath}`);
+        return relativePath.replace(/\/+/g, '/');
+      } catch (e) {
+        console.error(`normalizeUrl - Erro ao processar URL absoluta: ${url}`, e);
+      }
+    }
+    
     // Dividir a URL em partes: protocolo e caminho
     const [protocol, ...rest] = url.split('://');
     // Juntar o restante e garantir que não haja barras duplas
@@ -47,8 +78,30 @@ export function buildApiUrl(path: string, baseUrl?: string): string {
   // Em produção, usar URLs relativas para evitar problemas com CORS
   const isProd = import.meta.env.PROD;
   
+  if (isProd) {
+    // Em produção, garantir que são apenas caminhos relativos
+    // Remover qualquer URL completa que possa estar sendo usada
+    let relativePath = path;
+    
+    // Se o caminho começa com http(s)://, extrair apenas o caminho relativo
+    if (relativePath.match(/^https?:\/\//)) {
+      try {
+        const url = new URL(relativePath);
+        relativePath = url.pathname + url.search;
+      } catch (e) {
+        console.error("Erro ao analisar URL completa:", relativePath);
+      }
+    }
+    
+    // Normalizar o caminho garantindo que começa com /
+    const normalizedPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    
+    // Em produção, não usar baseUrl, apenas retornar o caminho relativo
+    return normalizedPath;
+  }
+  
   // Base URL padrão para desenvolvimento
-  const apiBase = baseUrl || (isProd ? '' : 'http://localhost:5000');
+  const apiBase = baseUrl || 'http://localhost:5000';
   
   // Normalizar o caminho e juntar com a base
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

@@ -6,15 +6,17 @@
 
 // Determina a base URL para chamadas de API com base no ambiente
 export function getApiBaseUrl(): string {
-  // Em produção (Vercel ou qualquer ambiente que não seja localhost),
-  // usamos URLs relativas que serão resolvidas contra o domínio atual
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Em produção, usamos caminhos relativos sem domínio
+  // Em produção, sempre forçar URLs relativas
+  const isProd = import.meta.env.PROD;
+  if (isProd) {
+    // Em produção, forçamos caminhos relativos sem domínio
+    console.log("Ambiente de produção detectado - usando URLs relativas");
     return '';
   }
   
   // Em desenvolvimento local, apontamos para o servidor local
   // Isso só deve ser usado durante desenvolvimento
+  console.log("Ambiente de desenvolvimento detectado - usando http://localhost:5000");
   return 'http://localhost:5000';
 }
 

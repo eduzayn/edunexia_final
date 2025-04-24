@@ -21,10 +21,24 @@ export async function apiRequest(
   url: string,
   requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {}
 ): Promise<Response> {
+  // Em produção, forçamos URLs relativas para evitar o problema de domínio completo
+  const isProd = import.meta.env.PROD;
+  
+  // Log para debug em produção
+  if (isProd) {
+    console.log(`apiRequest - URL original: ${url}`);
+  }
+  
   // Normalizar a URL antes de passar para formatApiPath para evitar barras duplas
   const normalizedUrl = normalizeUrl(url);
+  
   // Usar formatApiPath para garantir URL relativa em produção
   const apiUrl = formatApiPath(normalizedUrl);
+  
+  // Log para debug em produção
+  if (isProd) {
+    console.log(`apiRequest - URL final formatada: ${apiUrl}`);
+  }
   
   const token = localStorage.getItem("auth_token");
   const headers: HeadersInit = {
@@ -87,10 +101,24 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Em produção, forçamos URLs relativas para evitar o problema de domínio completo
+    const isProd = import.meta.env.PROD;
+    
+    // Log para debug em produção
+    if (isProd) {
+      console.log(`getQueryFn - URL original: ${queryKey[0]}`);
+    }
+    
     // Normalizar a URL primeiro
     const normalizedUrl = normalizeUrl(queryKey[0] as string);
+    
     // Formatar URL com formatApiPath para garantir URLs relativas em produção
     const apiUrl = formatApiPath(normalizedUrl);
+    
+    // Log para debug em produção
+    if (isProd) {
+      console.log(`getQueryFn - URL final formatada: ${apiUrl}`);
+    }
     
     // Log para debug
     console.log(`QueryClient fazendo requisição para: ${apiUrl}`);
