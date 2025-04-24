@@ -3,6 +3,10 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "framework": null,
+  "builds": [
+    { "src": "client/index.html", "use": "@vercel/static" },
+    { "src": "server/api/**/*.js", "use": "@vercel/node" }
+  ],
   "rewrites": [
     { "source": "/api/login", "destination": "/api/login.js" },
     { "source": "/api-json/login", "destination": "/api/login.js" },
@@ -11,7 +15,7 @@
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/api-json/(.*)", "destination": "/api/index.js" },
     { "source": "/assets/(.*)", "destination": "/public/assets/$1" },
-    { "source": "/(.*)", "destination": "/public/index.html" }
+    { "source": "/(.*)", "destination": "/dist/index.html" }
   ],
   "headers": [
     {
