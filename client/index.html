@@ -4,62 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     
-    <!-- Detector de navegador e carregador de patch -->
+    <!-- Fix universal de DOM para todos os navegadores -->
     <script>
+      // Aplicar patch diretamente no HTML para garantir que seja executado antes de qualquer coisa
       (function() {
-        // Detectar se este navegador precisa do patch
-        function isBrowserWithIssues() {
-          if (typeof navigator === 'undefined') return false;
-          
-          const userAgent = navigator.userAgent.toLowerCase();
-          
-          // Chrome em Windows - problemas conhecidos
-          const isChrome = userAgent.indexOf('chrome') > -1 && userAgent.indexOf('safari') > -1;
-          const isWindows = userAgent.indexOf('windows') > -1;
-          const problematicChrome = isChrome && isWindows;
-          
-          // Edge baseado em Chromium
-          const isEdge = userAgent.indexOf('edg/') > -1;
-          const problematicEdge = isEdge && isWindows;
-          
-          // Chrome no iOS
-          const isChromeIOS = userAgent.indexOf('crios') > -1;
-          
-          // Samsung Internet Browser
-          const isSamsungBrowser = userAgent.indexOf('samsungbrowser') > -1;
-          
-          // Navegadores seguros conhecidos
-          const isFirefox = userAgent.indexOf('firefox') > -1;
-          const isSafari = userAgent.indexOf('safari') > -1 && !isChrome;
-          
-          // Se for navegador conhecido como seguro, não precisa do patch
-          if (isFirefox || isSafari) {
-            console.log('✓ [Browser Detector] Navegador estável detectado, não precisa de patch');
-            return false;
+        // Salvar referência ao método original
+        if (typeof Node !== 'undefined') {
+          try {
+            const originalRemoveChild = Node.prototype.removeChild;
+            
+            // Substituir com versão segura
+            Node.prototype.removeChild = function(child) {
+              try {
+                // Verificar se o filho realmente existe como filho do nó
+                if (!this.contains(child)) {
+                  console.log('[HTML DOM Fix] Evitou erro de removeChild - nó não encontrado');
+                  return child;
+                }
+                
+                // Se tudo estiver ok, chamar método original
+                return originalRemoveChild.call(this, child);
+              } catch (error) {
+                console.log('[HTML DOM Fix] Erro capturado:', error.message);
+                return child; // Retornar o nó sem propagar o erro
+              }
+            };
+            
+            console.log('[HTML DOM Fix] Proteção global aplicada com sucesso');
+          } catch (error) {
+            console.error('[HTML DOM Fix] Erro ao aplicar patch:', error);
           }
-          
-          return problematicChrome || problematicEdge || isChromeIOS || isSamsungBrowser;
-        }
-        
-        // Carregar script de patch apenas para navegadores com problemas
-        if (isBrowserWithIssues()) {
-          console.log('⚠️ [Browser Detector] Navegador com problemas conhecidos detectado, carregando patch...');
-          
-          // Criar elemento de script
-          const script = document.createElement('script');
-          script.src = '/browser-patch.js'; // Localizado na pasta public
-          script.id = 'browser-compatibility-patch';
-          
-          // Anexar ao cabeçalho para carregamento imediato
-          document.head.appendChild(script);
-          
-          // Adicionar flag para aplicação saber que está no modo de compatibilidade
-          window.BROWSER_COMPATIBILITY_MODE = true;
-          
-          console.log('✅ [Browser Detector] Patch de compatibilidade carregado com sucesso');
-        } else {
-          console.log('✓ [Browser Detector] Navegador compatível, não é necessário patch');
-          window.BROWSER_COMPATIBILITY_MODE = false;
         }
       })();
     </script>
