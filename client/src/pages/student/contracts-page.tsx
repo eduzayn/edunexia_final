@@ -283,7 +283,17 @@ export default function ContractsPage() {
         if (!res.ok) {
           throw new Error('Erro ao buscar usuário');
         }
-        return res.json();
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        return res.json().catch(error => {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        });
       })
       .then(userData => {
         setUser(userData);
@@ -299,7 +309,17 @@ export default function ContractsPage() {
         if (!res.ok) {
           throw new Error('Erro ao buscar contratos');
         }
-        return res.json();
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        return res.json().catch(error => {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        });
       })
       .then(contractsData => {
         // Se não houver contratos ou a resposta for inválida, usar dados de demonstração
@@ -330,7 +350,17 @@ export default function ContractsPage() {
             if (!res.ok) {
               throw new Error(`Erro ao buscar curso ${courseId}`);
             }
-            return res.json();
+            
+            // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+            const contentType = res.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+              throw new Error('Resposta do servidor não está no formato JSON');
+            }
+            
+            return res.json().catch(error => {
+              console.error(`Erro ao parsear resposta do curso ${courseId} como JSON:`, error);
+              throw new Error('Formato de resposta inválido');
+            });
           })
           .then(data => ({ id: courseId, data }))
           .catch(err => {
@@ -471,11 +501,32 @@ export default function ContractsPage() {
       
       // Verificar resposta
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao assinar contrato');
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Erro ao assinar contrato');
+          } else {
+            throw new Error('Erro ao assinar contrato: resposta do servidor inválida');
+          }
+        } catch (parseError) {
+          throw new Error('Erro ao assinar contrato: resposta do servidor inválida');
+        }
       }
       
-      const responseData = await response.json();
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido ao assinar contrato');
+      }
       
       // Atualizar o contrato na lista
       setContracts(prevState => {
