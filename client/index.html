@@ -13,12 +13,15 @@
           try {
             const originalRemoveChild = Node.prototype.removeChild;
             
-            // Substituir com versão segura
+            // Substituir com versão segura - implementação robusta conforme recomendado
             Node.prototype.removeChild = function(child) {
               try {
-                // Verificar se o filho realmente existe como filho do nó
-                if (!this.contains(child)) {
-                  console.log('[HTML DOM Fix] Evitou erro de removeChild - nó não encontrado');
+                // Verificação robusta:
+                // 1. Verificar se o elemento existe
+                // 2. Verificar se o elemento tem um pai
+                // 3. Verificar se este nó contém o elemento filho
+                if (!child || !child.parentNode || !this.contains(child)) {
+                  console.log('[HTML DOM Fix] Evitou erro de removeChild - nó não encontrado ou já removido');
                   return child;
                 }
                 

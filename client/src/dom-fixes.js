@@ -5,7 +5,32 @@
  * do DOM em vários navegadores, especialmente o erro "Failed to execute 'removeChild' on 'Node'".
  * 
  * A solução é simples e direta, sem depender de detecção de navegador.
+ * 
+ * Também fornece uma função auxiliar "safeRemoveChild" que pode ser chamada
+ * diretamente por componentes problemáticos para garantir operações DOM seguras.
  */
+
+// Função auxiliar global que qualquer componente pode usar
+export function safeRemoveChild(parent, child) {
+  if (!parent || !child) {
+    console.log('[Safe DOM] Operação cancelada: parent ou child é nulo/undefined');
+    return child;
+  }
+  
+  try {
+    // Validação completa antes de remover
+    if (!child.parentNode || !parent.contains(child)) {
+      console.log('[Safe DOM] Operação cancelada: child não é filho do parent ou já foi removido');
+      return child;
+    }
+    
+    // Se tudo estiver OK, realizar a remoção
+    return parent.removeChild(child);
+  } catch (error) {
+    console.error('[Safe DOM] Erro ao remover child:', error.message);
+    return child;
+  }
+}
 
 // Função principal que aplica o fix
 export function applyDOMFixes() {
@@ -16,11 +41,14 @@ export function applyDOMFixes() {
     const originalRemoveChild = Node.prototype.removeChild;
     
     // Substituir com versão segura que verifica se o nó existe antes de tentar removê-lo
+    // Implementação completa conforme sugerido
     Node.prototype.removeChild = function(child) {
       try {
-        // Verificar se o filho realmente existe como filho do nó pai
-        if (!this.contains(child)) {
-          console.log('[DOM Fix] Evitou erro: nó filho não encontrado no pai');
+        // Verificação dupla mais robusta (exatamente como sugerido):
+        // 1. Verificar se o elemento tem um pai
+        // 2. Verificar se o pai contém o elemento
+        if (!child || !child.parentNode || !this.contains(child)) {
+          console.log('[DOM Fix] Evitou erro: nó filho não encontrado no pai ou já removido');
           return child; // Retornar o nó sem erro
         }
         

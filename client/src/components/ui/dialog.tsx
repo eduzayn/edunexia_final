@@ -3,6 +3,8 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+// Importar função de remoção segura
+import { safeRemoveChild } from "../../dom-fixes"
 
 const Dialog = DialogPrimitive.Root
 
@@ -36,8 +38,16 @@ const DialogContent = React.forwardRef<
   // Referência para verificar se o componente está montado
   const mountedRef = React.useRef(true);
   
+  // Referência para o nó do content para usar nossa função segura
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  
   // Efeito para corrigir problemas de montagem/desmontagem no Chrome
   React.useEffect(() => {
+    // Obter referência para o elemento diretamente
+    if (ref && typeof ref === 'object' && ref.current) {
+      contentRef.current = ref.current;
+    }
+    
     // Usar requestAnimationFrame em vez de setTimeout para maior sincronização com o navegador
     const frameId = requestAnimationFrame(() => {
       if (mountedRef.current) {
@@ -49,6 +59,12 @@ const DialogContent = React.forwardRef<
     return () => {
       mountedRef.current = false;
       cancelAnimationFrame(frameId);
+      
+      // Usar safeRemoveChild para remover elementos com segurança
+      if (contentRef.current && contentRef.current.parentNode) {
+        // Usar nossa função segura em vez de removeChild diretamente
+        safeRemoveChild(contentRef.current.parentNode, contentRef.current);
+      }
     };
   }, []);
   
