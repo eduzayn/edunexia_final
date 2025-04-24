@@ -59,13 +59,15 @@ export default function PortalSelectionPage() {
     const redirectToPortal = () => {
       console.log("Redirecionando para portal:", portalId);
       
+      // Correção: redirecionar para páginas específicas de autenticação para cada portal
       if (portalId === "admin") {
-        navigate("/admin");
+        // Usando window.location.href para garantir um redirecionamento completo
+        window.location.href = "/admin";
       } else if (portalId === "polo") {
-        navigate("/polo");
+        window.location.href = "/polo";
       } else {
         // Rota padrão para student e partner
-        navigate(`/auth?portal=${portalId}`);
+        window.location.href = `/auth?portal=${portalId}`;
       }
     };
     
@@ -74,6 +76,9 @@ export default function PortalSelectionPage() {
       try {
         setIsLoggingOut(true);
         await logoutMutation.mutateAsync();
+        
+        // Aguardar um pequeno tempo após o logout para garantir que tudo está limpo
+        await new Promise(resolve => setTimeout(resolve, 300));
       } catch (error) {
         console.error("Erro ao fazer logout:", error);
       } finally {
@@ -81,7 +86,7 @@ export default function PortalSelectionPage() {
       }
     }
     
-    // Redirecionar imediatamente
+    // Redirecionar após limpeza completa
     redirectToPortal();
   };
 
