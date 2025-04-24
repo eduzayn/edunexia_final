@@ -24,12 +24,33 @@ Command.displayName = CommandPrimitive.displayName
 interface CommandDialogProps extends DialogProps {}
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
+  const [mounted, setMounted] = React.useState(false);
+  
+  // Efeito para corrigir problemas de montagem/desmontagem no Chrome
+  React.useEffect(() => {
+    // Montagem com atraso para evitar problemas no Chrome
+    if (props.open) {
+      const timer = setTimeout(() => {
+        setMounted(true);
+      }, 10);
+      return () => clearTimeout(timer);
+    } else {
+      // Desmontagem com atraso para evitar "removeChild" errors no Chrome
+      const timer = setTimeout(() => {
+        setMounted(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [props.open]);
+  
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
-          {children}
-        </Command>
+        {(props.open || mounted) && (
+          <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+            {children}
+          </Command>
+        )}
       </DialogContent>
     </Dialog>
   )
