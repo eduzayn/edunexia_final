@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
 import { Loader2, FileText, Download, PenLine, Search, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
+import StudentLayout from '@/components/layout/student-layout';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -190,7 +191,7 @@ const ContractDetails = ({ contract }: { contract: Contract }) => {
 
 // Página principal de contratos
 export default function ContractsPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [isSignatureDialogOpen, setIsSignatureDialogOpen] = useState(false);
@@ -324,202 +325,287 @@ export default function ContractsPage() {
     : null;
   
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Meus Contratos</h1>
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar contratos..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <StudentLayout
+      title="Meus Contratos"
+      breadcrumbs={[
+        { title: "Home", href: "/student" },
+        { title: "Meus Contratos", href: "/student/contracts" }
+      ]}
+    >
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Meus Contratos</h1>
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar contratos..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-      </div>
       
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all" className="text-center">
-            Todos
-            <Badge variant="secondary" className="ml-2">{filteredContracts.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="text-center">
-            Pendentes
-            <Badge variant="secondary" className="ml-2">{pendingContracts.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="signed" className="text-center">
-            Assinados
-            <Badge variant="secondary" className="ml-2">{signedContracts.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="mt-6">
-          {filteredContracts.length === 0 ? (
-            <div className="text-center py-12 border rounded-md bg-muted/20">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Nenhum contrato encontrado</h3>
-              <p className="text-muted-foreground">
-                {searchTerm ? "Nenhum contrato corresponde à sua pesquisa." : "Você ainda não possui contratos."}
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredContracts.map((contract: Contract) => (
-                <Card key={contract.id} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
-                      {contract.status === 'signed' ? (
-                        <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
-                      ) : contract.status === 'pending' ? (
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
-                      ) : (
-                        <Badge variant="destructive">Cancelado</Badge>
-                      )}
-                    </div>
-                    <CardDescription>
-                      Contrato: {contract.contractNumber}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-0">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Valor Total</p>
-                        <p>{formatCurrency(contract.totalValue)}</p>
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all" className="text-center">
+              Todos
+              <Badge variant="secondary" className="ml-2">{filteredContracts.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="text-center">
+              Pendentes
+              <Badge variant="secondary" className="ml-2">{pendingContracts.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="signed" className="text-center">
+              Assinados
+              <Badge variant="secondary" className="ml-2">{signedContracts.length}</Badge>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all" className="mt-6">
+            {filteredContracts.length === 0 ? (
+              <div className="text-center py-12 border rounded-md bg-muted/20">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum contrato encontrado</h3>
+                <p className="text-muted-foreground">
+                  {searchTerm ? "Nenhum contrato corresponde à sua pesquisa." : "Você ainda não possui contratos."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredContracts.map((contract: Contract) => (
+                  <Card key={contract.id} className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
+                        {contract.status === 'signed' ? (
+                          <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
+                        ) : contract.status === 'pending' ? (
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
+                        ) : (
+                          <Badge variant="destructive">Cancelado</Badge>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Parcelas</p>
-                        <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
+                      <CardDescription>
+                        Contrato: {contract.contractNumber}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-0">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Valor Total</p>
+                          <p>{formatCurrency(contract.totalValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Parcelas</p>
+                          <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground">Período</p>
+                          <p>{formatDate(new Date(contract.startDate))} a {formatDate(new Date(contract.endDate))}</p>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Período</p>
-                        <p>{formatDate(new Date(contract.startDate))} a {formatDate(new Date(contract.endDate))}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between pt-4 pb-4">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => { 
-                              setSelectedContractId(contract.id);
-                              setIsDetailDialogOpen(true);
-                            }}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Detalhes
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Ver detalhes do contrato</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    
-                    <div className="flex gap-2">
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-4 pb-4">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleDownloadContract(contract.id)}
+                              onClick={() => { 
+                                setSelectedContractId(contract.id);
+                                setIsDetailDialogOpen(true);
+                              }}
                             >
-                              <Download className="h-4 w-4" />
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Detalhes
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Baixar contrato (PDF)</p>
+                            <p>Ver detalhes do contrato</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {contract.status === 'pending' && (
+                      <div className="flex gap-2">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button 
-                                variant="default" 
+                                variant="outline" 
                                 size="sm"
-                                onClick={() => {
-                                  setSelectedContractId(contract.id);
-                                  setIsSignatureDialogOpen(true);
-                                }}
+                                onClick={() => handleDownloadContract(contract.id)}
                               >
-                                <PenLine className="h-4 w-4 mr-1" />
-                                Assinar
+                                <Download className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Assinar contrato</p>
+                              <p>Baixar contrato (PDF)</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                      )}
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="pending" className="mt-6">
-          {pendingContracts.length === 0 ? (
-            <div className="text-center py-12 border rounded-md bg-muted/20">
-              <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Nenhum contrato pendente</h3>
-              <p className="text-muted-foreground">
-                Todos os seus contratos já foram assinados.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {pendingContracts.map((contract: Contract) => (
-                <Card key={contract.id} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
-                      <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
-                    </div>
-                    <CardDescription>
-                      Contrato: {contract.contractNumber}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-0">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Valor Total</p>
-                        <p>{formatCurrency(contract.totalValue)}</p>
+                        
+                        {contract.status === 'pending' && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="default" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedContractId(contract.id);
+                                    setIsSignatureDialogOpen(true);
+                                  }}
+                                >
+                                  <PenLine className="h-4 w-4 mr-1" />
+                                  Assinar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Assinar contrato</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Parcelas</p>
-                        <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="pending" className="mt-6">
+            {pendingContracts.length === 0 ? (
+              <div className="text-center py-12 border rounded-md bg-muted/20">
+                <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum contrato pendente</h3>
+                <p className="text-muted-foreground">
+                  Todos os seus contratos já foram assinados.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {pendingContracts.map((contract: Contract) => (
+                  <Card key={contract.id} className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
+                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">Pendente</Badge>
                       </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Período</p>
-                        <p>{formatDate(new Date(contract.startDate))} a {formatDate(new Date(contract.endDate))}</p>
+                      <CardDescription>
+                        Contrato: {contract.contractNumber}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-0">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Valor Total</p>
+                          <p>{formatCurrency(contract.totalValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Parcelas</p>
+                          <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground">Período</p>
+                          <p>{formatDate(new Date(contract.startDate))} a {formatDate(new Date(contract.endDate))}</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between pt-4 pb-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => { 
-                        setSelectedContractId(contract.id);
-                        setIsDetailDialogOpen(true);
-                      }}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Detalhes
-                    </Button>
-                    
-                    <div className="flex gap-2">
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-4 pb-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => { 
+                          setSelectedContractId(contract.id);
+                          setIsDetailDialogOpen(true);
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Detalhes
+                      </Button>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownloadContract(contract.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedContractId(contract.id);
+                            setIsSignatureDialogOpen(true);
+                          }}
+                        >
+                          <PenLine className="h-4 w-4 mr-1" />
+                          Assinar
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="signed" className="mt-6">
+            {signedContracts.length === 0 ? (
+              <div className="text-center py-12 border rounded-md bg-muted/20">
+                <PenLine className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">Nenhum contrato assinado</h3>
+                <p className="text-muted-foreground">
+                  Você ainda não assinou nenhum contrato.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {signedContracts.map((contract: Contract) => (
+                  <Card key={contract.id} className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
+                        <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
+                      </div>
+                      <CardDescription>
+                        Contrato: {contract.contractNumber}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-0">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Valor Total</p>
+                          <p>{formatCurrency(contract.totalValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Parcelas</p>
+                          <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground">Período</p>
+                          <p>{formatDate(new Date(contract.startDate))} a {formatDate(new Date(contract.endDate))}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between pt-4 pb-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => { 
+                          setSelectedContractId(contract.id);
+                          setIsDetailDialogOpen(true);
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Detalhes
+                      </Button>
+                      
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -527,100 +613,22 @@ export default function ContractsPage() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => {
-                          setSelectedContractId(contract.id);
-                          setIsSignatureDialogOpen(true);
-                        }}
-                      >
-                        <PenLine className="h-4 w-4 mr-1" />
-                        Assinar
-                      </Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="signed" className="mt-6">
-          {signedContracts.length === 0 ? (
-            <div className="text-center py-12 border rounded-md bg-muted/20">
-              <PenLine className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium">Nenhum contrato assinado</h3>
-              <p className="text-muted-foreground">
-                Você ainda não assinou nenhum contrato.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {signedContracts.map((contract: Contract) => (
-                <Card key={contract.id} className="overflow-hidden">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-base">{courses[contract.courseId]?.name || `Curso ID ${contract.courseId}`}</CardTitle>
-                      <Badge variant="secondary" className="bg-green-600 text-white">Assinado</Badge>
-                    </div>
-                    <CardDescription>
-                      Contrato: {contract.contractNumber}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pb-0">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Valor Total</p>
-                        <p>{formatCurrency(contract.totalValue)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Parcelas</p>
-                        <p>{contract.installments}x de {formatCurrency(contract.installmentValue)}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Assinado em</p>
-                        <p>{contract.signatureDate ? formatDate(new Date(contract.signatureDate)) : 'Data não disponível'}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between pt-4 pb-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => { 
-                        setSelectedContractId(contract.id);
-                        setIsDetailDialogOpen(true);
-                      }}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Detalhes
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDownloadContract(contract.id)}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Baixar
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
       
       {/* Diálogo para detalhes do contrato */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Detalhes do Contrato</DialogTitle>
             <DialogDescription>
-              Informações detalhadas do contrato selecionado.
+              Informações completas sobre o contrato.
             </DialogDescription>
           </DialogHeader>
           
@@ -628,39 +636,53 @@ export default function ContractsPage() {
             <ContractDetails contract={selectedContract} />
           )}
           
-          <DialogFooter className="sm:justify-end">
+          <DialogFooter className="flex justify-between">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => setIsDetailDialogOpen(false)}
             >
               Fechar
             </Button>
             
-            <Button
-              variant="outline"
-              onClick={() => selectedContract && handleDownloadContract(selectedContract.id)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Baixar PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => selectedContract && handleDownloadContract(selectedContract.id)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Baixar Contrato
+              </Button>
+              
+              {selectedContract && selectedContract.status === 'pending' && (
+                <Button
+                  onClick={() => {
+                    setIsDetailDialogOpen(false);
+                    setIsSignatureDialogOpen(true);
+                  }}
+                >
+                  <PenLine className="h-4 w-4 mr-2" />
+                  Assinar
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Diálogo para assinar contrato */}
+      {/* Diálogo para assinatura do contrato */}
       <Dialog open={isSignatureDialogOpen} onOpenChange={setIsSignatureDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Assinar Contrato</DialogTitle>
             <DialogDescription>
-              Ao assinar este contrato, você concorda com todos os termos e condições nele estabelecidos.
+              Leia atentamente o contrato antes de assinar.
             </DialogDescription>
           </DialogHeader>
           
           {selectedContract && (
-            <div className="py-4">
-              <p className="mb-4 text-sm">
-                Por favor, leia o contrato completo antes de assinar. Você pode baixar uma cópia para leitura clicando no botão abaixo.
+            <div className="space-y-4">
+              <p className="text-sm">
+                Ao assinar este contrato, você concorda com todos os termos e condições estabelecidos.
               </p>
               
               <Button
@@ -688,6 +710,6 @@ export default function ContractsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </StudentLayout>
   );
 }
