@@ -2,6 +2,40 @@
 
 Este guia fornece instruções para implantar a aplicação EdunexIA na Vercel.
 
+## Correção de Problemas de Implantação
+
+Ao fazer o deploy na Vercel, podem ocorrer erros relacionados a problemas na compilação dos módulos shared/certificate-schema.ts e shared/certification-request-schema.ts, devido a diferenças no ambiente serverless da Vercel.
+
+### Solução para o Erro de Compilação
+
+O erro exibido no console do Vercel é relacionado à importação e processamento dos arquivos de schema do Drizzle:
+
+```
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+[...]
+import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision, json, pgEnum } from "drizzle-orm/pg-core";
+[...]
+```
+
+Este erro ocorre porque o Vercel tem dificuldades em processar os módulos TypeScript com importações complexas em ambiente serverless. Para resolver esse problema:
+
+1. **Use os arquivos serverless especializados**:
+   - Use `server/api/index.js` e `server/api/login.js` que foram adaptados para o ambiente serverless da Vercel
+   - Estes arquivos evitam as importações problemáticas e fornecem funcionalidade básica para a API
+
+2. **Configuração do ambiente**:
+   - Adicione a variável `VERCEL=1` nas configurações do projeto na Vercel
+   - Isso ativa adaptações específicas no código para o ambiente serverless
+
+3. **Simplificação para o ambiente serverless**:
+   - O arquivo `module-alias.js` ajuda a resolver problemas de caminho no ambiente serverless
+   - Adapte importações complexas para formatos mais simples no ambiente Vercel
+
+Se o problema persistir, você pode precisar adaptar diretamente os arquivos de schema para o formato ESM tradicional, removendo alguns recursos avançados do TypeScript.
+
 ## Pré-requisitos
 
 - Conta na Vercel (https://vercel.com)
@@ -50,6 +84,10 @@ A aplicação está configurada para trabalhar com a Vercel através dos seguint
 
 - `vercel.json`: Configuração principal para a Vercel
 - `server/api/index.js`: Ponto de entrada para as APIs serverless
+- `server/api/login.js`: Endpoint específico para login no Vercel
+- `server/module-alias.js`: Resolvedor de caminhos para importações no Vercel
+- `server/auth/token.js`: Módulo de autenticação adaptado para o formato ESM
+- `client/src/lib/api-vercel-config.ts`: Configurações de API específicas para o Vercel
 - `package.json`: Script "vercel-build" para build específico da Vercel
 
 ## Problemas Comuns
