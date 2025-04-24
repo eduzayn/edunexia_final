@@ -22,6 +22,15 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { getNavigationPath } from "../lib/url-utils";
 
+// Definir as rotas da API para padronizar todas as chamadas
+// Note: Todas as rotas devem usar caminhos relativos sem domínio, para funcionar em produção
+const API_ROUTES = {
+  LOGIN: "/login", 
+  LOGOUT: "/logout",
+  USER: "/user",
+  REGISTER: "/register"
+};
+
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
@@ -187,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Login bem-sucedido, redirecionando para dashboard administrativo");
       // Forçar o redirecionamento para o dashboard
       if (user.portalType) {
+        // Usar o redirecionamento relativo para garantir compatibilidade em produção
         window.location.href = `/${user.portalType}/dashboard`;
       }
     },
@@ -249,33 +259,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Você foi desconectado com sucesso.",
       });
       
-      // Forçar limpeza do sessionStorage/localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          // Limpar quaisquer dados armazenados localmente que possam interferir
-          sessionStorage.clear();
-          localStorage.removeItem('queryClient');
-          localStorage.removeItem('auth_token'); // Remover o token de autenticação
-        } catch (e) {
-          console.error("Erro ao limpar storage:", e);
-        }
-      }
-      
-      // Redirecionar para a página de login após o logout
-      window.location.href = '/auth'; 
+      // Redirecionar para a página inicial
+      window.location.href = "/";
     },
     onError: (error: Error) => {
-      console.error("Erro ao fazer logout:", error);
-      
       toast({
         title: "Falha no logout",
         description: error.message,
         variant: "destructive",
       });
-      
-      // Em caso de erro, tentar forçar o logout de qualquer maneira
-      queryClient.setQueryData(["/api-json/user"], null);
-      queryClient.clear();
     },
   });
 

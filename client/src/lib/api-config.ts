@@ -6,21 +6,32 @@
 
 // Determina a base URL para chamadas de API com base no ambiente
 export function getApiBaseUrl(): string {
-  // Ambiente de produção na Vercel
+  // Em produção (Vercel ou qualquer ambiente que não seja localhost),
+  // usamos URLs relativas que serão resolvidas contra o domínio atual
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Em produção, usamos o mesmo domínio
+    // Em produção, usamos caminhos relativos sem domínio
     return '';
   }
   
   // Em desenvolvimento local, apontamos para o servidor local
+  // Isso só deve ser usado durante desenvolvimento
   return 'http://localhost:5000';
 }
 
 // Formata um caminho de API
 export function formatApiPath(path: string): string {
   const baseUrl = getApiBaseUrl();
+  // Garantimos que o caminho comece com '/'
   const apiPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}/api${apiPath}`;
+  
+  // Se estamos em produção (baseUrl vazio), garantimos que o caminho comece com /api
+  if (!baseUrl) {
+    // Se o caminho já começa com /api, não precisamos adicionar novamente
+    return apiPath.startsWith('/api') ? apiPath : `/api${apiPath}`;
+  }
+  
+  // Em desenvolvimento, usamos a URL base completa
+  return `${baseUrl}${apiPath.startsWith('/api') ? apiPath : `/api${apiPath}`}`;
 }
 
 // Configuração padrão para fetch

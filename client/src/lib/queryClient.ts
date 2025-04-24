@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { formatApiPath } from "./api-config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -19,6 +20,9 @@ export async function apiRequest(
   data?: unknown,
   customHeaders?: Record<string, string>
 ): Promise<Response> {
+  // Usar formatApiPath para garantir URL relativa em produção
+  const apiUrl = formatApiPath(url);
+  
   const token = localStorage.getItem("auth_token");
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -43,13 +47,13 @@ export async function apiRequest(
   }
 
   try {
-    console.log(`Realizando requisição ${method} para ${url}`, options);
-    const response = await fetch(url, options);
-    console.log(`Resposta da requisição ${method} para ${url}: ${response.status}`);
+    console.log(`Realizando requisição ${method} para ${apiUrl}`, options);
+    const response = await fetch(apiUrl, options);
+    console.log(`Resposta da requisição ${method} para ${apiUrl}: ${response.status}`);
 
     // Adiciona verificação para debug em caso de erro
     if (!response.ok) {
-      console.warn(`Requisição ${method} para ${url} falhou com status ${response.status}`);
+      console.warn(`Requisição ${method} para ${apiUrl} falhou com status ${response.status}`);
 
       try {
         // Tentar ler o corpo da resposta para debug
@@ -68,7 +72,7 @@ export async function apiRequest(
 
     return response;
   } catch (error) {
-    console.error(`Erro na requisição ${method} para ${url}:`, error);
+    console.error(`Erro na requisição ${method} para ${apiUrl}:`, error);
     throw error;
   }
 }
@@ -79,8 +83,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Formatar URL com formatApiPath para garantir URLs relativas em produção
+    const apiUrl = formatApiPath(queryKey[0] as string);
+    
     // Log para debug
-    console.log(`QueryClient fazendo requisição para: ${queryKey[0]}`);
+    console.log(`QueryClient fazendo requisição para: ${apiUrl}`);
 
     // Adicionar token de autenticação ao header se disponível no localStorage
     const authToken = localStorage.getItem('auth_token');
@@ -92,17 +99,17 @@ export const getQueryFn: <T>(options: {
       console.log('getQueryFn - Authorization Header definido:', `Bearer ${authToken}`);
     }
 
-    const res = await fetch(queryKey[0] as string, {
+    const res = await fetch(apiUrl, {
       method: "GET",
       headers,
       credentials: "omit", // Não usar cookies
     });
 
     // Log para debug
-    console.log(`Resposta da requisição para ${queryKey[0]}: ${res.status}`);
+    console.log(`Resposta da requisição para ${apiUrl}: ${res.status}`);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      console.log(`Retornando null para requisição não autenticada: ${queryKey[0]}`);
+      console.log(`Retornando null para requisição não autenticada: ${apiUrl}`);
       return null;
     }
 
