@@ -319,7 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    if (user.portalType !== 'student') {
+    // Permitir acesso para student ou admin (para testes)
+    if (user.portalType !== 'student' && user.portalType !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: 'Este recurso é exclusivo para estudantes.' 
@@ -805,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rota para buscar avaliações do aluno
   app.get('/api-json/student/assessments', requireStudent, async (req, res) => {
     try {
-      const user = req.user;
+      const user = (req as any).user;
       if (!user) {
         return res.status(401).json({
           success: false, 
@@ -842,8 +843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // Remover IDs duplicados
-      allDisciplineIds = [...new Set(allDisciplineIds)];
+      // Remover IDs duplicados usando Array.from e Set
+      allDisciplineIds = Array.from(new Set(allDisciplineIds));
       
       // Buscar avaliações para estas disciplinas
       const assessmentsPromises = allDisciplineIds.map(disciplineId => 

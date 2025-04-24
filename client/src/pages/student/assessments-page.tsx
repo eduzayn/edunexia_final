@@ -387,7 +387,7 @@ export default function StudentAssessmentsPage() {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            assessmentHistory.map((item) => (
+                            assessmentHistory.map((item: any) => (
                               <TableRow key={item.id}>
                                 <TableCell className="font-medium">{item.title}</TableCell>
                                 <TableCell>{item.disciplineName}</TableCell>
@@ -486,7 +486,16 @@ export default function StudentAssessmentsPage() {
                         </div>
                         {data?.assessments && data.assessments.length > 0 ? (
                           <ul className="space-y-2 text-sm">
-                            {[...new Set(data.assessments.map((a: Assessment) => a.disciplineName))].map((disciplineName, index) => (
+                            {(() => {
+                              // Criar uma lista de disciplinas únicas
+                              const disciplineNames: string[] = [];
+                              data.assessments.forEach((a: Assessment) => {
+                                if (!disciplineNames.includes(a.disciplineName)) {
+                                  disciplineNames.push(a.disciplineName);
+                                }
+                              });
+                              return disciplineNames;
+                            })().map((disciplineName, index) => (
                               <li key={index} className="flex justify-between">
                                 <span>{disciplineName}</span>
                                 <span className="text-gray-500">2</span>
