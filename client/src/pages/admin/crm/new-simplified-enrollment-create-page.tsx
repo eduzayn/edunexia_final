@@ -109,6 +109,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [courseSearchTerm, setCourseSearchTerm] = useState('');
+  const [institutionSearchTerm, setInstitutionSearchTerm] = useState('');
   
   // Estado para guardar cliente do Asaas selecionado
   const [selectedAsaasCustomer, setSelectedAsaasCustomer] = useState<{
@@ -601,40 +603,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                     id="courseSearch"
                                     placeholder="Buscar curso pelo nome..."
                                     className="h-8"
+                                    value={courseSearchTerm}
                                     onChange={(e) => {
-                                      try {
-                                        const searchValue = e.target.value.toLowerCase();
-                                        // Utiliza RequestAnimationFrame para garantir que o DOM esteja estável
-                                        requestAnimationFrame(() => {
-                                          try {
-                                            // Pegamos novamente os elementos para garantir que estamos manipulando elementos atuais
-                                            const courseItems = document.querySelectorAll('[data-course-item]');
-                                            
-                                            // Aplica a filtragem em cada item
-                                            courseItems.forEach((item: Element) => {
-                                              try {
-                                                if (item && item instanceof Element) {
-                                                  const courseName = item.getAttribute('data-course-name')?.toLowerCase() || '';
-                                                  const courseCode = item.getAttribute('data-course-code')?.toLowerCase() || '';
-                                                  
-                                                  // Aplica a visibilidade usando classe em vez de style diretamente
-                                                  if (courseName.includes(searchValue) || courseCode.includes(searchValue)) {
-                                                    item.classList.remove('hidden');
-                                                  } else {
-                                                    item.classList.add('hidden');
-                                                  }
-                                                }
-                                              } catch (itemErr) {
-                                                console.error('Erro ao processar item do curso:', itemErr);
-                                              }
-                                            });
-                                          } catch (innerErr) {
-                                            console.error('Erro ao processar elementos:', innerErr);
-                                          }
-                                        });
-                                      } catch (err) {
-                                        console.error('Erro ao processar busca de cursos:', err);
-                                      }
+                                      // Utiliza estado React para controlar a busca
+                                      setCourseSearchTerm(e.target.value.toLowerCase());
                                     }}
                                   />
                                 </div>
@@ -644,14 +616,19 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                       Nenhum curso disponível
                                     </div>
                                   ) : (
-                                    courses.map((course: any) => (
-                                      <SelectItem 
-                                        key={course.id} 
-                                        value={course.id.toString()}
-                                        data-course-item
-                                        data-course-name={course.name}
-                                        data-course-code={course.code}
-                                      >
+                                    courses
+                                      .filter((course: any) => {
+                                        if (!courseSearchTerm) return true;
+                                        const courseName = course.name?.toLowerCase() || '';
+                                        const courseCode = course.code?.toLowerCase() || '';
+                                        return courseName.includes(courseSearchTerm) || 
+                                              courseCode.includes(courseSearchTerm);
+                                      })
+                                      .map((course: any) => (
+                                        <SelectItem 
+                                          key={course.id} 
+                                          value={course.id.toString()}
+                                        >
                                         <div className="flex flex-col">
                                           <span>{course.name}</span>
                                           <span className="text-xs text-muted-foreground">
