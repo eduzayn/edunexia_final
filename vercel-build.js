@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// Script de build personalizado para Vercel
+// Este script resolve problemas específicos de build no ambiente Vercel
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
@@ -7,6 +9,25 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Função de log que deixa as mensagens mais visíveis
+const log = (message) => {
+  console.log('\x1b[36m%s\x1b[0m', `[VERCEL BUILD] ${message}`);
+};
+
+// Função para executar comandos com logs melhores
+const runCommand = (command) => {
+  log(`Executando: ${command}`);
+  try {
+    execSync(command, { stdio: 'inherit' });
+    log(`Comando executado com sucesso: ${command}`);
+    return true;
+  } catch (error) {
+    console.error('\x1b[31m%s\x1b[0m', `[ERRO] Falha ao executar: ${command}`);
+    console.error('\x1b[31m%s\x1b[0m', `[ERRO] Mensagem: ${error.message}`);
+    return false;
+  }
+};
 
 console.log('Iniciando build personalizado para Vercel...');
 
