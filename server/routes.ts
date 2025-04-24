@@ -14,6 +14,7 @@ import certificationRequestRoutes from './routes/certification-requests';
 import certificationStatsRouter from './routes/certification-stats';
 import asaasWebhookRoutes from './routes/asaas-webhook';
 import studentChargesRoutes from './routes/student-charges-routes';
+import contractRoutes from './routes/contract-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';

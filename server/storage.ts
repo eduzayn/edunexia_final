@@ -182,6 +182,21 @@ export interface IStorage {
   createPaymentForEnrollment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}>;
   getPaymentStatus(externalId: string, gateway: string): Promise<string>;
   
+  // Contratos educacionais
+  getEducationalContract(id: string): Promise<EducationalContract | undefined>;
+  getEducationalContracts(filters?: { 
+    studentId?: number, 
+    courseId?: number, 
+    status?: string,
+    contractType?: string
+  }): Promise<EducationalContract[]>;
+  createEducationalContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract>;
+  updateEducationalContract(id: string, data: Partial<EducationalContract>): Promise<EducationalContract | undefined>;
+  
+  // Templates de contrato
+  getContractTemplates(filters?: { contractType?: string, active?: boolean }): Promise<any[]>;
+  getContractTemplate(id: string): Promise<any | undefined>;
+  
   sessionStore: SessionStore;
 }
 
@@ -1358,6 +1373,91 @@ export class DatabaseStorage implements IStorage {
   async getPaymentStatus(externalId: string, gateway: string): Promise<string> {
     // Esta é uma implementação fictícia. Na prática, você consultaria o gateway.
     return "completed";
+  }
+  
+  // ==================== Contratos Educacionais ====================
+  async getEducationalContract(id: string): Promise<EducationalContract | undefined> {
+    const [contract] = await db
+      .select()
+      .from(educationalContracts)
+      .where(eq(educationalContracts.id, id));
+    return contract || undefined;
+  }
+  
+  async getEducationalContracts(filters?: { 
+    studentId?: number, 
+    courseId?: number, 
+    status?: string,
+    contractType?: string
+  }): Promise<EducationalContract[]> {
+    let query = db.select().from(educationalContracts);
+    
+    if (filters) {
+      if (filters.studentId) {
+        query = query.where(eq(educationalContracts.studentId, filters.studentId));
+      }
+      if (filters.courseId) {
+        query = query.where(eq(educationalContracts.courseId, filters.courseId));
+      }
+      if (filters.status) {
+        query = query.where(eq(educationalContracts.status, filters.status));
+      }
+      if (filters.contractType) {
+        query = query.where(eq(educationalContracts.contractType, filters.contractType));
+      }
+    }
+    
+    return await query.orderBy(desc(educationalContracts.createdAt));
+  }
+  
+  async createEducationalContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract> {
+    const [newContract] = await db
+      .insert(educationalContracts)
+      .values(contract as any)
+      .returning();
+    return newContract;
+  }
+  
+  async updateEducationalContract(id: string, data: Partial<EducationalContract>): Promise<EducationalContract | undefined> {
+    const [updatedContract] = await db
+      .update(educationalContracts)
+      .set(data)
+      .where(eq(educationalContracts.id, id))
+      .returning();
+    return updatedContract;
+  }
+  
+  // ==================== Templates de Contrato ====================
+  async getContractTemplates(filters?: { contractType?: string, active?: boolean }): Promise<any[]> {
+    // Implementação temporária com dados mockados
+    // Em uma implementação real, você consultaria a tabela de templates de contrato
+    return [
+      {
+        id: 'default_template',
+        name: 'Template padrão para PÓS-GRADUAÇÃO',
+        type: 'PÓS-GRADUAÇÃO',
+        content: 'Conteúdo do template...',
+        variables: ['NOME_ALUNO', 'NOME_CURSO', 'VALOR_TOTAL', 'NUMERO_PARCELAS', 'VALOR_PARCELA'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        active: true
+      }
+    ];
+  }
+  
+  async getContractTemplate(id: string): Promise<any | undefined> {
+    // Implementação temporária com dados mockados
+    // Em uma implementação real, você consultaria a tabela de templates de contrato
+    return {
+      id: 'default_template',
+      name: 'Template padrão',
+      type: 'PÓS-GRADUAÇÃO',
+      content: 'Conteúdo do template...',
+      variables: ['NOME_ALUNO', 'NOME_CURSO', 'VALOR_TOTAL', 'NUMERO_PARCELAS', 'VALOR_PARCELA'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      active: true
+    };
   }
 }
 

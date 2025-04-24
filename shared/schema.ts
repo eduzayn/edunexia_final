@@ -500,6 +500,28 @@ export const contracts = pgTable("contracts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Contratos educacionais
+export const educationalContracts = pgTable("educational_contracts", {
+  id: text("id").primaryKey(), // Formato: contract_UUID
+  enrollmentId: text("enrollment_id").notNull(), // ID da matrícula simplificada
+  studentId: integer("student_id").notNull().references(() => users.id),
+  courseId: integer("course_id").notNull().references(() => courses.id),
+  contractNumber: text("contract_number").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  signedAt: timestamp("signed_at"),
+  status: text("status").notNull(), // PENDING, SIGNED, EXPIRED, CANCELED
+  contractType: text("contract_type").notNull(), // GRADUATION, POST_GRADUATION, etc.
+  contractUrl: text("contract_url"),
+  expiresAt: timestamp("expires_at"),
+  totalValue: doublePrecision("total_value").notNull(),
+  installments: integer("installments").notNull(),
+  installmentValue: doublePrecision("installment_value").notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  discount: doublePrecision("discount"),
+  // Metadados adicionais em formato JSON
+  metadata: json("metadata"),
+});
+
 // Exportar tabelas do módulo de certificação (importadas de certificate-schema.ts)
 export { certificates, certificateSigners, certificateTemplates, certificateDisciplines, certificateHistory };
 
@@ -547,6 +569,11 @@ export type Payment = typeof payments.$inferSelect;
 export const insertContractSchema = createInsertSchema(contracts).omit({ id: true });
 export type InsertContract = z.infer<typeof insertContractSchema>;
 export type Contract = typeof contracts.$inferSelect;
+
+// Schema para contratos educacionais
+export const insertEducationalContractSchema = createInsertSchema(educationalContracts);
+export type InsertEducationalContract = z.infer<typeof insertEducationalContractSchema>;
+export type EducationalContract = typeof educationalContracts.$inferSelect;
 
 // Schemas para operações financeiras
 export const insertFinancialTransactionSchema = createInsertSchema(financialTransactions).omit({ id: true });
