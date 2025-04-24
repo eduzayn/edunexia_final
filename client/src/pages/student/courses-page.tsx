@@ -78,17 +78,97 @@ export default function StudentCoursesPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [location] = useLocation();
 
-  // Buscar cursos da API
-  const { data: courses = [], isLoading } = useQuery<StudentCourse[]>({
+  // Cursos de exemplo para visualização da interface
+  const exampleCourses: StudentCourse[] = [
+    {
+      id: 1,
+      name: "Pedagogia - Segunda Licenciatura",
+      code: "PED-2023",
+      description: "Curso de Pedagogia para graduados em outras licenciaturas",
+      status: "active",
+      workload: 1400,
+      progress: 65,
+      enrolledAt: "2023-10-15T10:00:00",
+      updatedAt: "2024-04-10T15:30:00",
+      category: "graduation",
+      instructor: "Dra. Maria Silva",
+      nextDeadline: "30/04/2025"
+    },
+    {
+      id: 2,
+      name: "MBA em Gestão Empresarial",
+      code: "MBA-2023",
+      description: "Pós-graduação em Gestão Empresarial com ênfase em liderança",
+      status: "active",
+      workload: 420,
+      progress: 100,
+      enrolledAt: "2023-08-20T10:00:00",
+      updatedAt: "2024-03-20T14:20:00",
+      category: "postgraduate",
+      instructor: "Dr. Carlos Mendes"
+    },
+    {
+      id: 3,
+      name: "Inovação e Transformação Digital",
+      code: "ITD-2024",
+      description: "Curso sobre tecnologias emergentes e transformação de negócios",
+      status: "active",
+      workload: 80,
+      progress: 0,
+      enrolledAt: "2024-04-02T10:00:00",
+      updatedAt: "2024-04-02T10:00:00",
+      category: "extension",
+      instructor: "Dr. Roberto Alves",
+      nextDeadline: "15/05/2025"
+    },
+    {
+      id: 4,
+      name: "Especialização em Educação Inclusiva",
+      code: "EEI-2023",
+      description: "Curso de especialização para educadores que trabalham com inclusão",
+      status: "active",
+      workload: 360,
+      progress: 42,
+      enrolledAt: "2023-09-05T10:00:00",
+      updatedAt: "2024-04-05T11:15:00",
+      category: "postgraduate",
+      instructor: "Dra. Ana Lucia Costa",
+      nextDeadline: "10/05/2025"
+    },
+    {
+      id: 5,
+      name: "Técnico em Análise de Dados",
+      code: "TAD-2024",
+      description: "Curso técnico para formação de analistas de dados",
+      status: "active",
+      workload: 240,
+      progress: 22,
+      enrolledAt: "2024-02-10T10:00:00",
+      updatedAt: "2024-04-08T09:30:00",
+      category: "technical",
+      instructor: "Me. Paulo Rodrigues"
+    },
+    {
+      id: 6,
+      name: "Design Thinking e Metodologias Ágeis",
+      code: "DTMA-2023",
+      description: "Curso prático sobre metodologias inovadoras para resolução de problemas",
+      status: "active",
+      workload: 60,
+      progress: 100,
+      enrolledAt: "2023-11-10T10:00:00",
+      updatedAt: "2024-01-15T16:45:00",
+      category: "extension",
+      instructor: "Me. Juliana Ferraz"
+    }
+  ];
+
+  // Usar os cursos de exemplo em vez de buscar da API
+  const { data: courses = exampleCourses, isLoading } = useQuery<StudentCourse[]>({
     queryKey: ["/api-json/student/courses"],
     staleTime: 1000 * 60 * 5, // 5 minutos
-    onError: (err) => {
-      toast({
-        title: "Erro ao carregar cursos",
-        description: "Não foi possível carregar seus cursos. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    }
+    initialData: exampleCourses, // Usar os dados de exemplo como dados iniciais
+    gcTime: 1000 * 60 * 60, // 1 hora
   });
 
   // Definir itens da sidebar usando o padrão das outras páginas
@@ -107,36 +187,38 @@ export default function StudentCoursesPage() {
   ];
 
   // Filtrar e ordenar os cursos
-  const filteredCourses = courses
-    .filter((course) => {
-      // Filtrar por texto de busca
-      if (searchTerm && !course.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !course.code.toLowerCase().includes(searchTerm.toLowerCase()) &&
-          !course.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      
-      // Filtrar por status de progresso
-      if (activeTab === "in-progress" && (course.progress >= 100 || course.progress === 0)) return false;
-      if (activeTab === "completed" && course.progress < 100) return false;
-      if (activeTab === "not-started" && course.progress > 0) return false;
-      
-      // Filtrar por categoria se não for "all"
-      if (filterCategory !== "all" && course.category !== filterCategory) return false;
-      
-      // Filtrar por status do curso
-      if (filterStatus !== "all" && course.status !== filterStatus) return false;
-      
-      return true;
-    })
-    .sort((a, b) => {
-      // Aplicar ordenação
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "progress") return b.progress - a.progress;
-      if (sortBy === "recent") return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      if (sortBy === "workload") return b.workload - a.workload;
-      return 0;
-    });
+  const filteredCourses = Array.isArray(courses) 
+    ? courses
+        .filter((course: StudentCourse) => {
+          // Filtrar por texto de busca
+          if (searchTerm && !course.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+              !course.code.toLowerCase().includes(searchTerm.toLowerCase()) &&
+              !course.description?.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return false;
+          }
+          
+          // Filtrar por status de progresso
+          if (activeTab === "in-progress" && (course.progress >= 100 || course.progress === 0)) return false;
+          if (activeTab === "completed" && course.progress < 100) return false;
+          if (activeTab === "not-started" && course.progress > 0) return false;
+          
+          // Filtrar por categoria se não for "all"
+          if (filterCategory !== "all" && course.category !== filterCategory) return false;
+          
+          // Filtrar por status do curso
+          if (filterStatus !== "all" && course.status !== filterStatus) return false;
+          
+          return true;
+        })
+        .sort((a: StudentCourse, b: StudentCourse) => {
+          // Aplicar ordenação
+          if (sortBy === "name") return a.name.localeCompare(b.name);
+          if (sortBy === "progress") return b.progress - a.progress;
+          if (sortBy === "recent") return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          if (sortBy === "workload") return b.workload - a.workload;
+          return 0;
+        })
+    : [];
 
   // Formatar data
   const formatDate = (dateString: string) => {
@@ -323,7 +405,7 @@ export default function StudentCoursesPage() {
               ) : (
                 // Grid de cursos
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCourses.map((course, index) => (
+                  {filteredCourses.map((course: StudentCourse, index: number) => (
                     <Card key={course.id} className="overflow-hidden border border-gray-200 transition-all hover:shadow-md">
                       <div className={`h-36 ${getCardColor(index)} relative flex items-center justify-center p-4`}>
                         {course.imageUrl ? (
