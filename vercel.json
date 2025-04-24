@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "node vercel-build.js",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
@@ -10,8 +10,8 @@
     { "source": "/api/jwt/:path*", "destination": "/server/api/index.js" },
     { "source": "/api/(.*)", "destination": "/server/api/index.js" },
     { "source": "/api-json/(.*)", "destination": "/server/api/index.js" },
-    { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
-    { "source": "/:path*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)", "destination": "/dist/:path*.$1" },
+    { "source": "/assets/(.*)", "destination": "/dist/public/assets/$1" },
+    { "source": "/:path*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)", "destination": "/dist/public/:path*.$1" },
     { "source": "/(.*)", "destination": "/dist/index.html" }
   ],
   "headers": [
