@@ -37,7 +37,9 @@ try {
   log(`NODE_ENV: ${process.env.NODE_ENV}`);
   log(`Versão do Node: ${process.version}`);
   
-  // Verificar estrutura de diretórios
+  // Criar diretórios necessários
+  log('Criando estrutura de diretórios...');
+  
   if (!fs.existsSync('./dist')) {
     fs.mkdirSync('./dist', { recursive: true });
   }
@@ -50,8 +52,40 @@ try {
     fs.mkdirSync('./dist/public', { recursive: true });
   }
   
+  // Depuração - listar arquivos principais
+  log('Listando arquivos importantes para debug:');
+  if (fs.existsSync('./client')) {
+    log('Conteúdo da pasta client:');
+    console.log(fs.readdirSync('./client').join(', '));
+    
+    if (fs.existsSync('./client/src')) {
+      log('Conteúdo da pasta client/src:');
+      console.log(fs.readdirSync('./client/src').join(', '));
+    }
+  }
+  
   // Verificar estrutura do cliente
   log('Verificando estrutura do diretório client...');
+  
+  // Preparar o index.html para uso correto em produção
+  if (fs.existsSync('./client/index.html')) {
+    const indexContent = fs.readFileSync('./client/index.html', 'utf8');
+    log('Conteúdo original do index.html:');
+    console.log(indexContent.substring(0, 300) + '...');
+    
+    // Corrigir caminhos no index.html para funcionar no Vercel
+    let updatedIndexContent = indexContent.replace(/src="\/src\//g, 'src="/assets/');
+    updatedIndexContent = updatedIndexContent.replace(/from "\/src\//g, 'from "/assets/');
+    
+    // Se havia um favicon definido, garantir que ele esteja acessível
+    if (fs.existsSync('./client/favicon.ico')) {
+      fs.copyFileSync('./client/favicon.ico', './dist/public/favicon.ico');
+    }
+    
+    log('Escrevendo index.html atualizado...');
+    fs.writeFileSync('./client/index.html', updatedIndexContent);
+  }
+  
   if (fs.existsSync('./client/src/main.tsx')) {
     log('Arquivo main.tsx encontrado em client/src');
     
@@ -77,9 +111,17 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   root: './client',
+  base: '/',
   build: {
     outDir: '../dist/public',
-    emptyOutDir: true
+    emptyOutDir: true,
+    assetsDir: 'assets',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   },
   resolve: {
     alias: {
@@ -93,15 +135,52 @@ export default defineConfig({
       log('vite.config.js temporário criado');
     }
     
-    // Executar build do frontend
+    // Executar build do frontend com opções avançadas
     log('Iniciando build do frontend com Vite...');
-    const frontendBuildSuccess = runCommand('npx vite build');
+    const frontendBuildSuccess = runCommand('npx vite build --debug --mode production');
     
     if (!frontendBuildSuccess) {
-      throw new Error('Falha no build do frontend');
+      log('Tentando build alternativo com esbuild...');
+      
+      // Tentar criar um bundle manualmente com esbuild como fallback
+      const esbuildSuccess = runCommand(`npx esbuild ./client/src/main.tsx --bundle --minify --sourcemap --platform=browser --target=es2015 --outfile=./dist/public/assets/main.js`);
+      
+      if (esbuildSuccess) {
+        log('Build com esbuild concluído. Criando HTML básico...');
+        const basicHtml = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EdunexIA - Plataforma Educacional</title>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="/assets/main.js"></script>
+</body>
+</html>
+`;
+        fs.writeFileSync('./dist/public/index.html', basicHtml);
+      } else {
+        throw new Error('Falha em todas as tentativas de build do frontend');
+      }
+    } else {
+      log('Build do frontend concluído com sucesso');
+      
+      // Verificar se os arquivos foram gerados
+      if (fs.existsSync('./dist/public')) {
+        log('Arquivos gerados em dist/public:');
+        const files = fs.readdirSync('./dist/public');
+        console.log(files.join(', '));
+        
+        if (fs.existsSync('./dist/public/assets')) {
+          log('Arquivos gerados em dist/public/assets:');
+          const assetFiles = fs.readdirSync('./dist/public/assets');
+          console.log(assetFiles.join(', '));
+        }
+      }
     }
-    
-    log('Build do frontend concluído com sucesso');
   } else {
     log('AVISO: main.tsx não encontrado em client/src. Usando página de fallback temporária.');
     
