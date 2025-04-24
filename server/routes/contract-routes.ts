@@ -1,86 +1,75 @@
-import express from 'express';
-import { Request, Response } from 'express';
-import { 
-  generateContract, 
-  getContractById, 
+import express, { Request, Response } from 'express';
+import {
+  generateContract,
+  getContractById,
   getContractsByStudentId,
-  getContractsByEnrollmentId,
   signContract,
   downloadContract
 } from '../services/contracts-service';
 
 const router = express.Router();
 
-// Middleware para verificar autenticação de estudante
+// Middleware para verificar se é estudante
 const requireStudent = (req: Request, res: Response, next: express.NextFunction) => {
-  // Verificar o token no header de Authorization
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-
-  if (!token) {
-    return res.status(401).json({ 
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
       success: false,
-      message: 'Você precisa estar autenticado para acessar este recurso.' 
+      message: 'Usuário não autenticado'
     });
   }
 
-  const user = (req as any).user;
-
-  if (!user) {
-    return res.status(401).json({ 
+  const user = req.user;
+  
+  if (!user || user.portalType !== 'student') {
+    return res.status(403).json({
       success: false,
-      message: 'Sessão inválida ou expirada. Faça login novamente.' 
+      message: 'Acesso não autorizado. Apenas estudantes podem acessar este recurso.'
     });
   }
-
-  // Permitir acesso para student ou admin (para testes)
-  if (user.portalType !== 'student' && user.portalType !== 'admin') {
-    return res.status(403).json({ 
-      success: false,
-      message: 'Este recurso é exclusivo para estudantes.' 
-    });
-  }
-
+  
   next();
 };
 
-// Rotas para contratos
-
-// Rota para gerar um contrato a partir de uma matrícula
-router.post('/api/contracts/generate/:enrollmentId', async (req, res) => {
+// Obter todos os contratos do estudante
+router.get('/api/student/contracts', requireStudent, async (req: Request, res: Response) => {
   try {
-    const { enrollmentId } = req.params;
+    const studentId = req.user?.id;
     
-    if (!enrollmentId) {
+    if (!studentId) {
       return res.status(400).json({
         success: false,
-        message: 'ID da matrícula é obrigatório'
+        message: 'ID do estudante não encontrado'
       });
     }
     
-    const contract = await generateContract(parseInt(enrollmentId));
+    const contracts = await getContractsByStudentId(studentId);
     
-    return res.status(200).json({
+    return res.json({
       success: true,
-      data: contract
+      data: contracts
     });
   } catch (error) {
-    console.error('Erro ao gerar contrato:', error);
+    console.error('Erro ao buscar contratos do estudante:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao gerar contrato',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+      message: 'Erro ao buscar contratos'
     });
   }
 });
 
-// Rota para obter um contrato específico pelo ID
-router.get('/api/contracts/:contractId', requireStudent, async (req, res) => {
+// Obter um contrato específico
+router.get('/api/contracts/:id', requireStudent, async (req: Request, res: Response) => {
   try {
-    const { contractId } = req.params;
-    const user = (req as any).user;
+    const contractId = parseInt(req.params.id);
     
-    const contract = await getContractById(parseInt(contractId));
+    if (isNaN(contractId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de contrato inválido'
+      });
+    }
+    
+    const contract = await getContractById(contractId);
     
     if (!contract) {
       return res.status(404).json({
@@ -89,15 +78,15 @@ router.get('/api/contracts/:contractId', requireStudent, async (req, res) => {
       });
     }
     
-    // Verificar se o contrato pertence ao estudante (exceto para admin)
-    if (user.portalType === 'student' && contract.studentId !== user.id) {
+    // Verificar se o contrato pertence ao estudante autenticado
+    if (contract.studentId !== req.user?.id) {
       return res.status(403).json({
         success: false,
         message: 'Você não tem permissão para acessar este contrato'
       });
     }
     
-    return res.status(200).json({
+    return res.json({
       success: true,
       data: contract
     });
@@ -105,78 +94,32 @@ router.get('/api/contracts/:contractId', requireStudent, async (req, res) => {
     console.error('Erro ao buscar contrato:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao buscar contrato',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+      message: 'Erro ao buscar contrato'
     });
   }
 });
 
-// Rota para listar contratos de um estudante
-router.get('/api/student/contracts', requireStudent, async (req, res) => {
+// Assinar um contrato
+router.post('/api/contracts/:id/sign', requireStudent, async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
+    const contractId = parseInt(req.params.id);
+    const { signatureData } = req.body;
     
-    const contracts = await getContractsByStudentId(user.id);
-    
-    return res.status(200).json({
-      success: true,
-      data: contracts
-    });
-  } catch (error) {
-    console.error('Erro ao listar contratos do estudante:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao listar contratos',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
-  }
-});
-
-// Rota para listar contratos de uma matrícula específica
-router.get('/api/enrollment/:enrollmentId/contracts', requireStudent, async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const user = (req as any).user;
-    
-    const contracts = await getContractsByEnrollmentId(parseInt(enrollmentId));
-    
-    // Se não for admin, verificar se a matrícula pertence ao estudante
-    // Esta verificação seria melhor feita consultando a matrícula no banco
-    if (user.portalType === 'student') {
-      // Para simplificar, vamos confiar que a função getContractsByEnrollmentId
-      // já filtra corretamente os contratos
+    if (isNaN(contractId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de contrato inválido'
+      });
     }
-    
-    return res.status(200).json({
-      success: true,
-      data: contracts
-    });
-  } catch (error) {
-    console.error('Erro ao listar contratos da matrícula:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao listar contratos da matrícula',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
-  }
-});
-
-// Rota para assinar um contrato
-router.post('/api/contracts/:contractId/sign', requireStudent, async (req, res) => {
-  try {
-    const { contractId } = req.params;
-    const user = (req as any).user;
-    const { signatureData } = req.body; // Dados da assinatura (pode ser uma imagem base64)
     
     if (!signatureData) {
       return res.status(400).json({
         success: false,
-        message: 'Dados da assinatura são obrigatórios'
+        message: 'Dados de assinatura não fornecidos'
       });
     }
     
-    // Obter o contrato para verificar permissões
-    const contract = await getContractById(parseInt(contractId));
+    const contract = await getContractById(contractId);
     
     if (!contract) {
       return res.status(404).json({
@@ -185,39 +128,52 @@ router.post('/api/contracts/:contractId/sign', requireStudent, async (req, res) 
       });
     }
     
-    // Verificar se o contrato pertence ao estudante
-    if (user.portalType === 'student' && contract.studentId !== user.id) {
+    // Verificar se o contrato pertence ao estudante autenticado
+    if (contract.studentId !== req.user?.id) {
       return res.status(403).json({
         success: false,
         message: 'Você não tem permissão para assinar este contrato'
       });
     }
     
-    // Assinar o contrato
-    const signedContract = await signContract(parseInt(contractId), signatureData);
+    // Verificar se o contrato já está assinado
+    if (contract.status === 'signed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Este contrato já foi assinado'
+      });
+    }
     
-    return res.status(200).json({
+    // Assinar o contrato
+    const signedContract = await signContract(contractId, signatureData);
+    
+    return res.json({
       success: true,
-      data: signedContract
+      data: signedContract,
+      message: 'Contrato assinado com sucesso'
     });
   } catch (error) {
     console.error('Erro ao assinar contrato:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao assinar contrato',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+      message: 'Erro ao assinar contrato'
     });
   }
 });
 
-// Rota para baixar um contrato em PDF
-router.get('/api/contracts/:contractId/download', requireStudent, async (req, res) => {
+// Baixar um contrato em PDF
+router.get('/api/contracts/:id/download', requireStudent, async (req: Request, res: Response) => {
   try {
-    const { contractId } = req.params;
-    const user = (req as any).user;
+    const contractId = parseInt(req.params.id);
     
-    // Obter o contrato para verificar permissões
-    const contract = await getContractById(parseInt(contractId));
+    if (isNaN(contractId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de contrato inválido'
+      });
+    }
+    
+    const contract = await getContractById(contractId);
     
     if (!contract) {
       return res.status(404).json({
@@ -226,8 +182,8 @@ router.get('/api/contracts/:contractId/download', requireStudent, async (req, re
       });
     }
     
-    // Verificar se o contrato pertence ao estudante
-    if (user.portalType === 'student' && contract.studentId !== user.id) {
+    // Verificar se o contrato pertence ao estudante autenticado
+    if (contract.studentId !== req.user?.id) {
       return res.status(403).json({
         success: false,
         message: 'Você não tem permissão para baixar este contrato'
@@ -235,20 +191,48 @@ router.get('/api/contracts/:contractId/download', requireStudent, async (req, re
     }
     
     // Gerar o PDF do contrato
-    const pdfBuffer = await downloadContract(parseInt(contractId));
+    const pdfBuffer = await downloadContract(contractId);
     
-    // Configurar headers para download do PDF
+    // Definir cabeçalhos para download do PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="contrato-${contractId}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename=contrato-${contractId}.pdf`);
+    res.setHeader('Content-Length', pdfBuffer.length);
     
-    // Enviar o PDF como resposta
+    // Enviar o buffer do PDF como resposta
     return res.send(pdfBuffer);
   } catch (error) {
     console.error('Erro ao baixar contrato:', error);
     return res.status(500).json({
       success: false,
-      message: 'Erro ao baixar contrato',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+      message: 'Erro ao baixar contrato'
+    });
+  }
+});
+
+// Rota para gerar um contrato a partir de uma matrícula
+router.post('/api/enrollments/:id/generate-contract', async (req: Request, res: Response) => {
+  try {
+    const enrollmentId = parseInt(req.params.id);
+    
+    if (isNaN(enrollmentId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de matrícula inválido'
+      });
+    }
+    
+    const contract = await generateContract(enrollmentId);
+    
+    return res.json({
+      success: true,
+      data: contract,
+      message: 'Contrato gerado com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao gerar contrato:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao gerar contrato'
     });
   }
 });

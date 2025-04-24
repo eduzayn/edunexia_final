@@ -1460,6 +1460,132 @@ export class DatabaseStorage implements IStorage {
       active: true
     };
   }
+  
+  // ==================== Contratos Educacionais ====================
+  async getContract(id: number): Promise<EducationalContract | null> {
+    try {
+      const [contract] = await db
+        .select()
+        .from(educationalContracts)
+        .where(eq(educationalContracts.id, id));
+      
+      return contract || null;
+    } catch (error) {
+      console.error(`Erro ao buscar contrato com ID ${id}:`, error);
+      return null;
+    }
+  }
+  
+  async getContracts(filters?: { 
+    studentId?: number, 
+    courseId?: number,
+    enrollmentId?: number,
+    status?: string,
+    contractType?: string
+  }): Promise<EducationalContract[]> {
+    try {
+      let query = db.select().from(educationalContracts);
+      
+      if (filters) {
+        // Construir filtro dinâmico
+        const conditions: SQL<unknown>[] = [];
+        
+        if (filters.studentId !== undefined) {
+          conditions.push(eq(educationalContracts.studentId, filters.studentId));
+        }
+        
+        if (filters.courseId !== undefined) {
+          conditions.push(eq(educationalContracts.courseId, filters.courseId));
+        }
+        
+        if (filters.enrollmentId !== undefined) {
+          conditions.push(eq(educationalContracts.enrollmentId, filters.enrollmentId));
+        }
+        
+        if (filters.status !== undefined) {
+          conditions.push(eq(educationalContracts.status, filters.status));
+        }
+        
+        if (filters.contractType !== undefined) {
+          conditions.push(eq(educationalContracts.contractType, filters.contractType));
+        }
+        
+        // Aplicar condições se houver alguma
+        if (conditions.length > 0) {
+          // Combinar todas as condições com AND
+          let whereClause = conditions[0];
+          
+          for (let i = 1; i < conditions.length; i++) {
+            whereClause = and(whereClause, conditions[i]);
+          }
+          
+          query = query.where(whereClause);
+        }
+      }
+      
+      // Executar a consulta
+      const contracts = await query.orderBy(desc(educationalContracts.createdAt));
+      
+      return contracts;
+    } catch (error) {
+      console.error("Erro ao buscar contratos:", error);
+      return [];
+    }
+  }
+  
+  async createContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract> {
+    try {
+      const [newContract] = await db
+        .insert(educationalContracts)
+        .values(contract)
+        .returning();
+      
+      return newContract;
+    } catch (error) {
+      console.error("Erro ao criar contrato:", error);
+      throw error;
+    }
+  }
+  
+  async updateContract(id: number, data: Partial<EducationalContract>): Promise<EducationalContract | null> {
+    try {
+      const [updatedContract] = await db
+        .update(educationalContracts)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(educationalContracts.id, id))
+        .returning();
+      
+      return updatedContract || null;
+    } catch (error) {
+      console.error(`Erro ao atualizar contrato com ID ${id}:`, error);
+      return null;
+    }
+  }
+  
+  // Métodos auxiliares para contratos
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.getUser(id);
+  }
+  
+  async getCourseById(id: number): Promise<Course | undefined> {
+    return this.getCourse(id);
+  }
+  
+  async getCourseTypeById(id: number): Promise<any | undefined> {
+    const [courseType] = await db
+      .select()
+      .from(courseTypes)
+      .where(eq(courseTypes.id, id));
+    
+    return courseType || undefined;
+  }
+  
+  async getSimplifiedEnrollmentById(id: number): Promise<SimplifiedEnrollment | undefined> {
+    return this.getSimplifiedEnrollment(id);
+  }
 }
 
 export const storage = new DatabaseStorage();

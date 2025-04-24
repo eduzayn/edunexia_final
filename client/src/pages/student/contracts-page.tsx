@@ -1,840 +1,768 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { apiRequest } from '@/lib/queryClient';
+import { Loader2, FileText, Download, PenLine, AlertTriangle, CheckCircle, Search, Clock, X, Filter } from 'lucide-react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  FileText as FileTextIcon, 
-  Download as DownloadIcon,
-  Eye as EyeIcon,
-  AlertTriangle as AlertTriangleIcon,
-  CheckCircle as CheckCircleIcon,
-  XCircle as XCircleIcon,
-  Search as SearchIcon,
-  LayoutDashboard as DashboardIcon,
-  BookOpen,
-  GraduationCap,
-  FileQuestion as FileQuestionIcon,
-  BriefcaseBusiness,
-  Handshake,
-  Banknote,
-  Calendar,
-  MessagesSquare,
-  User,
-  Printer as PrinterIcon,
-  Copy as CopyIcon
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Spinner } from "@/components/ui/spinner";
-import { Sidebar } from "@/components/layout/sidebar";
-import { useToast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/utils";
-import { Pagination } from "@/components/ui/pagination";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
 
-// Definição do tipo de contrato
+// Tipos para os contratos
 interface Contract {
-  id: string;
-  enrollmentId: string;
+  id: number;
+  enrollmentId: number;
   studentId: number;
-  studentName: string;
   courseId: number;
-  courseName: string;
-  contractNumber: string;
-  createdAt: string;
-  signedAt: string | null;
-  status: 'PENDING' | 'SIGNED' | 'EXPIRED' | 'CANCELED';
   contractType: string;
-  contractUrl: string | null;
-  expiresAt: string | null;
-  paymentInfo: {
-    totalValue: number;
-    installments: number;
-    installmentValue: number;
-    paymentMethod: string;
-    discount?: number;
-  };
-  metadata?: {
-    enrollmentDate?: string;
-    startDate?: string;
-    endDate?: string;
-    campus?: string;
-    modality?: string;
-  };
+  contractNumber: string;
+  status: 'pending' | 'signed' | 'cancelled';
+  totalValue: number;
+  installments: number;
+  installmentValue: number;
+  paymentMethod: string;
+  discount: number;
+  createdAt: string;
+  signatureDate: string | null;
+  signatureData: string | null;
+  additionalTerms: string | null;
+  startDate: string;
+  endDate: string;
+  campus: string;
 }
 
-export default function ContractsPage() {
-  const { user, isAuthenticated } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const { toast } = useToast();
-  
-  // Paginação
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  
-  // Filtro de status
-  const [filterStatus, setFilterStatus] = useState("all");
-  
-  // Itens da barra lateral
-  const sidebarItems = [
-    { name: "Dashboard", icon: <DashboardIcon size={18} />, href: "/student/dashboard" },
-    { name: "Meus Cursos", icon: <BookOpen size={18} />, href: "/student/courses" },
-    { name: "Biblioteca", icon: <GraduationCap size={18} />, href: "/student/library" },
-    { name: "Credencial", icon: <GraduationCap size={18} />, href: "/student/credential" },
-    { name: "Avaliações", icon: <FileQuestionIcon size={18} />, href: "/student/assessments" },
-    { name: "Estágios", icon: <BriefcaseBusiness size={18} />, href: "/student/internships" },
-    { name: "Contratos", icon: <Handshake size={18} />, href: "/student/contracts", active: true },
-    { name: "Financeiro", icon: <Banknote size={18} />, href: "/student/financial" },
-    { name: "Calendário", icon: <Calendar size={18} />, href: "/student/calendar" },
-    { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
-    { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
-  ];
+interface ContractSignatureData {
+  signatureData: string;
+}
 
-  // Consulta os contratos do aluno
-  const {
-    data: contracts,
-    isLoading,
-    isError,
-    error,
-    refetch
-  } = useQuery<Contract[]>({
-    queryKey: ["/api-json/student/contracts"],
-    queryFn: async () => {
-      try {
-        console.log("Tentando carregar contratos do aluno...");
-        
-        // Recuperar o token de autenticação
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          console.warn("Token de autenticação não encontrado");
-          throw new Error('Autenticação necessária');
-        }
-        
-        // Fazer requisição à API com token de autenticação
-        const response = await fetch('/api/student/contracts', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        // Se a resposta não for OK (2xx), lançamos um erro
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            console.warn(`Erro de autenticação: ${response.status}`);
-            throw new Error('Autenticação necessária');
-          } else {
-            throw new Error(`Erro ao carregar contratos: ${response.statusText}`);
-          }
-        }
-        
-        const data = await response.json();
-        console.log("Contratos carregados com sucesso:", data.length || 0);
-        return data;
-      } catch (err) {
-        console.error("Erro ao carregar contratos:", err);
-        
-        // Em ambiente de desenvolvimento, podemos mostrar dados de exemplo
-        if (process.env.NODE_ENV === 'development') {
-          console.log("Usando dados de exemplo para visualização da interface");
-          
-          // Dados de exemplo apenas para desenvolvimento
-          return [
-            {
-              id: "contract_001",
-              enrollmentId: "enr_123",
-              studentId: 18,
-              studentName: "Aluno Exemplo",
-              courseId: 1,
-              courseName: "Pós-Graduação em Educação Especial",
-              contractNumber: "CONT-2025-001",
-              createdAt: new Date().toISOString(),
-              signedAt: null,
-              status: 'PENDING' as const,
-              contractType: "PÓS-GRADUAÇÃO",
-              contractUrl: null,
-              expiresAt: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
-              paymentInfo: {
-                totalValue: 2990.00,
-                installments: 12,
-                installmentValue: 249.17,
-                paymentMethod: "BOLETO",
-                discount: 100
-              },
-              metadata: {
-                enrollmentDate: new Date().toISOString(),
-                startDate: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString(),
-                endDate: new Date(new Date().setMonth(new Date().getMonth() + 18)).toISOString(),
-                campus: "Campus Virtual",
-                modality: "EAD"
-              }
-            }
-          ];
-        }
-        
-        throw err;
-      }
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutos
-  });
-  
-  // Função para filtrar contratos
-  const filteredContracts = contracts?.filter(contract => {
-    // Filtro por status
-    if (filterStatus !== "all") {
-      if (filterStatus === "pending" && contract.status !== "PENDING") return false;
-      if (filterStatus === "signed" && contract.status !== "SIGNED") return false;
-      if (filterStatus === "expired" && contract.status !== "EXPIRED") return false;
-      if (filterStatus === "canceled" && contract.status !== "CANCELED") return false;
-    }
-    
-    // Filtro por termo de busca
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        contract.courseName.toLowerCase().includes(searchLower) ||
-        contract.contractNumber.toLowerCase().includes(searchLower) ||
-        contract.contractType.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    return true;
-  });
-  
-  // Paginação dos contratos filtrados
-  const paginatedContracts = filteredContracts?.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+interface Course {
+  id: number;
+  name: string;
+  code: string;
+}
+
+// Componente para formatação de valor em reais
+const FormatCurrency = ({ value }: { value: number }) => {
+  return (
+    <span>
+      {new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      }).format(value)}
+    </span>
   );
-  
-  // Total de páginas
-  const totalPages = filteredContracts
-    ? Math.ceil(filteredContracts.length / itemsPerPage)
-    : 1;
-  
-  // Função para mudar de página
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+};
+
+// Componente para mostrar o status do contrato
+const ContractStatus = ({ status }: { status: string }) => {
+  switch (status) {
+    case 'pending':
+      return <Badge variant="outline" className="bg-amber-100"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>;
+    case 'signed':
+      return <Badge variant="outline" className="bg-green-100"><CheckCircle className="h-3 w-3 mr-1" />Assinado</Badge>;
+    case 'cancelled':
+      return <Badge variant="outline" className="bg-red-100"><X className="h-3 w-3 mr-1" />Cancelado</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
+
+// Componente para formatação de método de pagamento
+const FormatPaymentMethod = ({ method }: { method: string }) => {
+  const methods: Record<string, string> = {
+    'credit_card': 'Cartão de Crédito',
+    'debit_card': 'Cartão de Débito',
+    'bank_slip': 'Boleto Bancário',
+    'bank_transfer': 'Transferência Bancária',
+    'pix': 'PIX',
+    'cash': 'Dinheiro',
+    'other': 'Outro'
   };
   
-  // Função para visualizar contrato
-  const handleViewContract = (contract: Contract) => {
-    setSelectedContract(contract);
-    
-    // Se tiver URL do contrato, abrir em nova aba
-    if (contract.contractUrl) {
-      window.open(contract.contractUrl, "_blank");
-    } else {
-      generateContractPreview(contract.id);
+  return <span>{methods[method] || method}</span>;
+};
+
+// Componente para formatação de tipo de contrato
+const FormatContractType = ({ type }: { type: string }) => {
+  const types: Record<string, string> = {
+    'default': 'Padrão',
+    'pos-graduacao': 'Pós-Graduação',
+    'mba': 'MBA',
+    'graduacao': 'Graduação',
+  };
+  
+  return <span>{types[type] || type}</span>;
+};
+
+// Componente principal
+const ContractsPage = () => {
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const { user, isAuthenticated } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [filterType, setFilterType] = useState<string>('');
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
+  const [isSignatureLoading, setIsSignatureLoading] = useState(false);
+  const [signatureData, setSignatureData] = useState<string>('');
+  const [courses, setCourses] = useState<Record<number, Course>>({});
+  
+  // Buscar contratos do estudante
+  const { 
+    data: contracts, 
+    isLoading, 
+    error, 
+    refetch
+  } = useQuery({
+    queryKey: ['/api/student/contracts'],
+    enabled: isAuthenticated,
+  });
+  
+  // Função para buscar informações do curso
+  const fetchCourseInfo = async (courseId: number) => {
+    try {
+      const response = await apiRequest('GET', `/api/courses/${courseId}`);
+      const courseData = await response.json();
+      
+      if (courseData && courseData.success) {
+        setCourses(prev => ({
+          ...prev,
+          [courseId]: courseData.data
+        }));
+      }
+    } catch (error) {
+      console.error('Erro ao buscar informações do curso:', error);
     }
   };
+  
+  // Buscar informações dos cursos quando os contratos forem carregados
+  useEffect(() => {
+    if (contracts && contracts.data) {
+      const uniqueCourseIds = [...new Set(contracts.data.map((contract: Contract) => contract.courseId))];
+      
+      uniqueCourseIds.forEach(courseId => {
+        if (!courses[courseId]) {
+          fetchCourseInfo(courseId);
+        }
+      });
+    }
+  }, [contracts]);
   
   // Função para baixar contrato
-  const handleDownloadContract = async (contractId: string) => {
+  const handleDownloadContract = (contractId: number) => {
     try {
-      // Recuperar o token de autenticação
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Você precisa estar autenticado para baixar o contrato",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Fazer requisição para baixar o contrato
-      const response = await fetch(`/api/student/contracts/${contractId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao baixar contrato");
-      }
-      
-      // Obter o blob do arquivo
-      const blob = await response.blob();
-      
-      // Criar URL para download
-      const url = window.URL.createObjectURL(blob);
-      
-      // Criar elemento <a> para download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `contrato-${contractId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Limpar
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Contrato baixado com sucesso",
-        description: "O arquivo PDF do contrato foi baixado para o seu dispositivo",
-      });
+      // Criar um link para download do PDF
+      const link = document.createElement('a');
+      link.href = `/api/contracts/${contractId}/download`;
+      link.target = '_blank';
+      link.download = `contrato-${contractId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
-      console.error("Erro ao baixar contrato:", error);
+      console.error('Erro ao baixar contrato:', error);
       toast({
-        title: "Erro ao baixar contrato",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao baixar o contrato",
-        variant: "destructive",
+        title: 'Erro ao baixar contrato',
+        description: 'Ocorreu um erro ao tentar baixar o contrato. Tente novamente mais tarde.',
+        variant: 'destructive',
       });
     }
   };
   
-  // Função para assinar contrato digitalmente
-  const handleSignContract = async (contractId: string) => {
-    try {
-      // Recuperar o token de autenticação
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Você precisa estar autenticado para assinar o contrato",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Fazer requisição para assinar o contrato
-      const response = await fetch(`/api/student/contracts/${contractId}/sign`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao assinar contrato");
-      }
-      
-      // Atualizar a lista de contratos
-      refetch();
-      
+  // Função para assinar contrato
+  const handleSignContract = async (contractId: number) => {
+    if (!signatureData) {
       toast({
-        title: "Contrato assinado com sucesso",
-        description: "O contrato foi assinado digitalmente e está disponível para download",
+        title: 'Dados de assinatura incompletos',
+        description: 'Por favor, forneça sua assinatura digital para continuar.',
+        variant: 'destructive',
       });
-    } catch (error) {
-      console.error("Erro ao assinar contrato:", error);
-      toast({
-        title: "Erro ao assinar contrato",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao assinar o contrato",
-        variant: "destructive",
-      });
+      return;
     }
-  };
-  
-  // Função para gerar preview do contrato
-  const generateContractPreview = async (contractId: string) => {
-    try {
-      // Recuperar o token de autenticação
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Você precisa estar autenticado para visualizar o contrato",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Fazer requisição para gerar preview do contrato
-      const response = await fetch(`/api/student/contracts/${contractId}/preview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao gerar preview do contrato");
-      }
-      
-      const data = await response.json();
-      
-      // Abrir URL do preview em nova aba
-      if (data.previewUrl) {
-        window.open(data.previewUrl, "_blank");
-      } else {
-        throw new Error("URL de preview não disponível");
-      }
-    } catch (error) {
-      console.error("Erro ao gerar preview do contrato:", error);
-      toast({
-        title: "Erro ao visualizar contrato",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao gerar o preview do contrato",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Função para imprimir contrato
-  const handlePrintContract = async (contractId: string) => {
-    try {
-      // Recuperar o token de autenticação
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast({
-          title: "Erro de autenticação",
-          description: "Você precisa estar autenticado para imprimir o contrato",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Fazer requisição para gerar preview do contrato (para impressão)
-      const response = await fetch(`/api/student/contracts/${contractId}/preview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao gerar preview do contrato para impressão");
-      }
-      
-      const data = await response.json();
-      
-      // Abrir URL do preview em nova aba e imprimir
-      if (data.previewUrl) {
-        const printWindow = window.open(data.previewUrl, "_blank");
-        if (printWindow) {
-          setTimeout(() => {
-            printWindow.print();
-          }, 1000);
-        }
-      } else {
-        throw new Error("URL de preview não disponível para impressão");
-      }
-    } catch (error) {
-      console.error("Erro ao imprimir contrato:", error);
-      toast({
-        title: "Erro ao imprimir contrato",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao preparar o contrato para impressão",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Função para obter o badge de status do contrato
-  const getContractStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: "default" | "outline" | "secondary" | "destructive" | "success" }> = {
-      PENDING: { label: "Pendente", variant: "secondary" },
-      SIGNED: { label: "Assinado", variant: "success" },
-      EXPIRED: { label: "Expirado", variant: "destructive" },
-      CANCELED: { label: "Cancelado", variant: "outline" },
-    };
     
-    return statusMap[status] || { label: status, variant: "default" };
-  };
-  
-  // Função para obter o valor formatado para moeda brasileira
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-  
-  // Função para alterar o filtro de status
-  const handleFilterChange = (status: string) => {
-    setFilterStatus(status);
-    setCurrentPage(1); // Volta para a primeira página ao mudar o filtro
-  };
-  
-  // Função para limpar os filtros
-  const handleClearFilters = () => {
-    setFilterStatus("all");
-    setSearchTerm("");
-    setCurrentPage(1);
-  };
-  
-  // Renderização condicional baseada no estado da consulta
-  let content;
-  
-  if (isLoading) {
-    content = (
-      <div className="flex justify-center items-center p-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  } else if (isError) {
-    content = (
-      <Alert variant="destructive" className="my-4">
-        <AlertTriangleIcon className="h-4 w-4" />
-        <AlertTitle>Erro ao carregar contratos</AlertTitle>
-        <AlertDescription>
-          {(error as Error)?.message || "Não foi possível obter os contratos. Tente novamente mais tarde."}
-        </AlertDescription>
-      </Alert>
-    );
-  } else if (!contracts || contracts.length === 0) {
-    content = (
-      <Alert className="my-4">
-        <AlertTriangleIcon className="h-4 w-4" />
-        <AlertTitle>Nenhum contrato disponível no momento</AlertTitle>
-        <AlertDescription>
-          Esta página está em desenvolvimento. Em breve você poderá acessar seus contratos aqui.
-        </AlertDescription>
-      </Alert>
-    );
-  } else {
-    content = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Meus Contratos</CardTitle>
-          <CardDescription>
-            Visualize e gerencie seus contratos.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Curso</TableHead>
-                  <TableHead>Contrato</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedContracts && paginatedContracts.length > 0 ? (
-                  paginatedContracts.map((contract) => (
-                    <TableRow key={contract.id}>
-                      <TableCell className="font-medium">
-                        {contract.courseName}
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {contract.contractType}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {contract.contractNumber}
-                        {contract.expiresAt && contract.status === 'PENDING' && (
-                          <div className="text-xs text-amber-600 font-medium mt-1">
-                            Expira em: {formatDate(new Date(contract.expiresAt))}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(new Date(contract.createdAt))}
-                        {contract.signedAt && (
-                          <div className="text-xs text-green-600 font-medium mt-1">
-                            Assinado em: {formatDate(new Date(contract.signedAt))}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const status = getContractStatusBadge(contract.status);
-                          return (
-                            <Badge variant={status.variant as any}>{status.label}</Badge>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {/* Botão para visualizar contrato */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewContract(contract)}
-                            title="Visualizar Contrato"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </Button>
-                          
-                          {/* Botão para baixar contrato */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadContract(contract.id)}
-                            title="Baixar Contrato"
-                          >
-                            <DownloadIcon className="h-4 w-4" />
-                          </Button>
-                          
-                          {/* Botão para imprimir contrato */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePrintContract(contract.id)}
-                            title="Imprimir Contrato"
-                          >
-                            <PrinterIcon className="h-4 w-4" />
-                          </Button>
-                          
-                          {/* Botão para assinar contrato (apenas se pendente) */}
-                          {contract.status === 'PENDING' && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleSignContract(contract.id)}
-                              title="Assinar Contrato"
-                            >
-                              <FileTextIcon className="h-4 w-4 mr-1" /> Assinar
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                      Nenhum contrato encontrado com os filtros selecionados
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {/* Informações de paginação e total */}
-          {filteredContracts && filteredContracts.length > 0 && (
-            <div className="mt-4 text-sm text-muted-foreground text-center">
-              Mostrando {paginatedContracts?.length || 0} de {filteredContracts.length} contratos
-              {searchTerm || filterStatus !== "all" ? " (filtrados)" : ""}
-            </div>
-          )}
-        </CardContent>
+    setIsSignatureLoading(true);
+    
+    try {
+      const payload: ContractSignatureData = {
+        signatureData: signatureData
+      };
+      
+      const response = await apiRequest('POST', `/api/contracts/${contractId}/sign`, payload);
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: 'Contrato assinado com sucesso!',
+          description: 'Seu contrato foi assinado e está disponível para download.',
+          variant: 'default',
+        });
         
-        {/* Componente de paginação */}
-        {filteredContracts && filteredContracts.length > itemsPerPage && (
-          <CardFooter>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              className="mx-auto"
-            />
-          </CardFooter>
-        )}
-      </Card>
-    );
+        setIsSignDialogOpen(false);
+        refetch(); // Atualizar a lista de contratos
+      } else {
+        throw new Error(result.message || 'Erro ao assinar contrato');
+      }
+    } catch (error) {
+      console.error('Erro ao assinar contrato:', error);
+      toast({
+        title: 'Erro ao assinar contrato',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao tentar assinar o contrato. Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSignatureLoading(false);
+    }
+  };
+  
+  // Filtrar contratos com base na busca e filtros
+  const filteredContracts = contracts?.data ? contracts.data.filter((contract: Contract) => {
+    const matchesSearch = 
+      searchTerm === '' || 
+      contract.contractNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (courses[contract.courseId]?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterStatus === '' || contract.status === filterStatus;
+    const matchesType = filterType === '' || contract.contractType === filterType;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  }) : [];
+  
+  // Agrupar contratos por status
+  const pendingContracts = filteredContracts.filter((contract: Contract) => contract.status === 'pending');
+  const signedContracts = filteredContracts.filter((contract: Contract) => contract.status === 'signed');
+  const allContracts = filteredContracts;
+  
+  // Função para formatar data
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy', { locale: pt });
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+  
+  // Se o usuário não estiver autenticado, redirecionar para a página de login
+  if (!isAuthenticated) {
+    navigate("/login");
+    return null;
   }
   
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar
-        items={sidebarItems}
-        user={user}
-        portalType="student"
-        portalColor="#0891B2"
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
-
-      <div className="flex-1 overflow-auto">
-        <div className="px-4 py-20 md:py-6 md:px-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Contratos</h1>
-            <p className="text-gray-600">Visualize e gerencie seus contratos</p>
-          </div>
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">Meus Contratos</h1>
+          <p className="text-muted-foreground">
+            Visualize e gerencie seus contratos educacionais
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Buscar contratos..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="signed">Assinados</SelectItem>
+              <SelectItem value="cancelled">Cancelados</SelectItem>
+            </SelectContent>
+          </Select>
           
-          <div className="space-y-6">
-            {/* Filtros e pesquisa */}
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="flex gap-2">
-                <Button 
-                  variant={filterStatus === "all" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("all")}
-                  size="sm"
-                >
-                  Todos
-                </Button>
-                <Button 
-                  variant={filterStatus === "pending" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("pending")}
-                  size="sm"
-                >
-                  Pendentes
-                </Button>
-                <Button 
-                  variant={filterStatus === "signed" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("signed")}
-                  size="sm"
-                >
-                  Assinados
-                </Button>
-                <Button 
-                  variant={filterStatus === "expired" ? "default" : "outline"} 
-                  onClick={() => handleFilterChange("expired")}
-                  size="sm"
-                >
-                  Expirados
-                </Button>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="default">Padrão</SelectItem>
+              <SelectItem value="pos-graduacao">Pós-Graduação</SelectItem>
+              <SelectItem value="mba">MBA</SelectItem>
+              <SelectItem value="graduacao">Graduação</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2">Carregando contratos...</span>
+        </div>
+      ) : error ? (
+        <Card>
+          <CardContent className="flex items-center justify-center p-6">
+            <AlertTriangle className="h-8 w-8 text-amber-500 mr-2" />
+            <div>
+              <h3 className="font-semibold">Erro ao carregar contratos</h3>
+              <p className="text-sm text-muted-foreground">Ocorreu um erro ao buscar seus contratos. Tente novamente.</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>
+                Tentar novamente
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="all">
+              Todos ({allContracts.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending">
+              Pendentes ({pendingContracts.length})
+            </TabsTrigger>
+            <TabsTrigger value="signed">
+              Assinados ({signedContracts.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Tabela de todos os contratos */}
+          <TabsContent value="all">
+            {allContracts.length > 0 ? (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Contrato</TableHead>
+                          <TableHead>Curso</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allContracts.map((contract: Contract) => (
+                          <TableRow key={contract.id}>
+                            <TableCell>{contract.contractNumber}</TableCell>
+                            <TableCell>{courses[contract.courseId]?.name || 'Carregando...'}</TableCell>
+                            <TableCell><FormatContractType type={contract.contractType} /></TableCell>
+                            <TableCell><FormatCurrency value={contract.totalValue} /></TableCell>
+                            <TableCell><ContractStatus status={contract.status} /></TableCell>
+                            <TableCell>{formatDate(contract.createdAt)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Baixar contrato"
+                                  onClick={() => handleDownloadContract(contract.id)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                
+                                {contract.status === 'pending' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    title="Assinar contrato"
+                                    onClick={() => {
+                                      setSelectedContract(contract);
+                                      setIsSignDialogOpen(true);
+                                    }}
+                                  >
+                                    <PenLine className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Ver detalhes"
+                                  onClick={() => setSelectedContract(contract)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-6">
+                  <AlertTriangle className="h-8 w-8 text-amber-500 mb-2" />
+                  <p className="text-center">Nenhum contrato encontrado.</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          
+          {/* Tabela de contratos pendentes */}
+          <TabsContent value="pending">
+            {pendingContracts.length > 0 ? (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Contrato</TableHead>
+                          <TableHead>Curso</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendingContracts.map((contract: Contract) => (
+                          <TableRow key={contract.id}>
+                            <TableCell>{contract.contractNumber}</TableCell>
+                            <TableCell>{courses[contract.courseId]?.name || 'Carregando...'}</TableCell>
+                            <TableCell><FormatContractType type={contract.contractType} /></TableCell>
+                            <TableCell><FormatCurrency value={contract.totalValue} /></TableCell>
+                            <TableCell>{formatDate(contract.createdAt)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Baixar contrato"
+                                  onClick={() => handleDownloadContract(contract.id)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Assinar contrato"
+                                  onClick={() => {
+                                    setSelectedContract(contract);
+                                    setIsSignDialogOpen(true);
+                                  }}
+                                >
+                                  <PenLine className="h-4 w-4" />
+                                </Button>
+                                
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Ver detalhes"
+                                  onClick={() => setSelectedContract(contract)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-6">
+                  <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
+                  <p className="text-center">Você não possui contratos pendentes de assinatura.</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          
+          {/* Tabela de contratos assinados */}
+          <TabsContent value="signed">
+            {signedContracts.length > 0 ? (
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Contrato</TableHead>
+                          <TableHead>Curso</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Data Assinatura</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {signedContracts.map((contract: Contract) => (
+                          <TableRow key={contract.id}>
+                            <TableCell>{contract.contractNumber}</TableCell>
+                            <TableCell>{courses[contract.courseId]?.name || 'Carregando...'}</TableCell>
+                            <TableCell><FormatContractType type={contract.contractType} /></TableCell>
+                            <TableCell><FormatCurrency value={contract.totalValue} /></TableCell>
+                            <TableCell>{contract.signatureDate ? formatDate(contract.signatureDate) : 'N/A'}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-2">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Baixar contrato"
+                                  onClick={() => handleDownloadContract(contract.id)}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  title="Ver detalhes"
+                                  onClick={() => setSelectedContract(contract)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center p-6">
+                  <AlertTriangle className="h-8 w-8 text-amber-500 mb-2" />
+                  <p className="text-center">Você ainda não possui contratos assinados.</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+      
+      {/* Dialog para detalhes do contrato */}
+      {selectedContract && (
+        <Dialog open={!!selectedContract} onOpenChange={() => setSelectedContract(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Detalhes do Contrato</DialogTitle>
+              <DialogDescription>
+                Contrato nº {selectedContract.contractNumber}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <h3 className="font-medium">Informações Gerais</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>
+                    <div className="mt-1"><ContractStatus status={selectedContract.status} /></div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Tipo:</span>
+                    <div className="mt-1"><FormatContractType type={selectedContract.contractType} /></div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Data de Criação:</span>
+                    <div>{formatDate(selectedContract.createdAt)}</div>
+                  </div>
+                  {selectedContract.signatureDate && (
+                    <div>
+                      <span className="text-muted-foreground">Data de Assinatura:</span>
+                      <div>{formatDate(selectedContract.signatureDate)}</div>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <div className="flex gap-2 w-full md:w-auto">
-                <Input
-                  placeholder="Pesquisar contratos..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="max-w-[300px]"
-                />
-                {(searchTerm || filterStatus !== "all") && (
-                  <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                    <XCircleIcon className="h-4 w-4 mr-1" /> Limpar
+              <Separator />
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Curso</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Nome do Curso:</span>
+                    <div>{courses[selectedContract.courseId]?.name || 'Carregando...'}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Código do Curso:</span>
+                    <div>{courses[selectedContract.courseId]?.code || 'Carregando...'}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Campus:</span>
+                    <div>{selectedContract.campus}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Data de Início:</span>
+                    <div>{formatDate(selectedContract.startDate)}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Data de Término:</span>
+                    <div>{formatDate(selectedContract.endDate)}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <h3 className="font-medium">Informações Financeiras</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Valor Total:</span>
+                    <div className="font-semibold"><FormatCurrency value={selectedContract.totalValue} /></div>
+                  </div>
+                  {selectedContract.discount > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">Desconto:</span>
+                      <div className="text-green-600"><FormatCurrency value={selectedContract.discount} /></div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Número de Parcelas:</span>
+                    <div>{selectedContract.installments}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Valor da Parcela:</span>
+                    <div><FormatCurrency value={selectedContract.installmentValue} /></div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Método de Pagamento:</span>
+                    <div><FormatPaymentMethod method={selectedContract.paymentMethod} /></div>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedContract.additionalTerms && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Termos Adicionais</h3>
+                    <div className="text-sm bg-muted p-2 rounded">
+                      {selectedContract.additionalTerms}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <DialogFooter className="flex sm:justify-between">
+              <Button variant="outline" onClick={() => setSelectedContract(null)}>
+                Fechar
+              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownloadContract(selectedContract.id)}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Baixar
+                </Button>
+                
+                {selectedContract.status === 'pending' && (
+                  <Button 
+                    variant="default"
+                    onClick={() => {
+                      setIsSignDialogOpen(true);
+                    }}
+                  >
+                    <PenLine className="h-4 w-4 mr-2" />
+                    Assinar
                   </Button>
                 )}
               </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Dialog para assinar contrato */}
+      <Dialog open={isSignDialogOpen} onOpenChange={setIsSignDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Assinar Contrato</DialogTitle>
+            <DialogDescription>
+              Assine digitalmente seu contrato educacional
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Ao assinar este contrato, você confirma que leu e concorda com todos os termos e condições estabelecidos.
+            </p>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Assinatura Digital</label>
+              <div className="border border-input rounded-md p-2 h-32">
+                {/* Implementação básica de assinatura */}
+                <Input
+                  type="text"
+                  placeholder="Digite seu nome completo para assinatura digital"
+                  className="h-full"
+                  value={signatureData}
+                  onChange={(e) => setSignatureData(e.target.value)}
+                />
+                {/* Em uma implementação real, você poderia usar uma biblioteca de assinatura digital */}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Digite seu nome completo acima para assinar o contrato digitalmente.
+              </p>
             </div>
-            
-            {content}
-            
-            {/* Detalhes do contrato selecionado */}
-            {selectedContract && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Detalhes do Contrato</CardTitle>
-                  <CardDescription>
-                    Informações detalhadas sobre o contrato selecionado
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Número do Contrato</dt>
-                      <dd className="mt-1 text-sm">{selectedContract.contractNumber}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Curso</dt>
-                      <dd className="mt-1 text-sm">{selectedContract.courseName}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Tipo de Contrato</dt>
-                      <dd className="mt-1 text-sm">{selectedContract.contractType}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Data de Criação</dt>
-                      <dd className="mt-1 text-sm">{formatDate(new Date(selectedContract.createdAt))}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Status</dt>
-                      <dd className="mt-1 text-sm">
-                        {(() => {
-                          const status = getContractStatusBadge(selectedContract.status);
-                          return (
-                            <Badge variant={status.variant as any}>{status.label}</Badge>
-                          );
-                        })()}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Data de Assinatura</dt>
-                      <dd className="mt-1 text-sm">
-                        {selectedContract.signedAt 
-                          ? formatDate(new Date(selectedContract.signedAt))
-                          : "Não assinado"}
-                      </dd>
-                    </div>
-                    
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Valor Total</dt>
-                      <dd className="mt-1 text-sm">{formatCurrency(selectedContract.paymentInfo.totalValue)}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Parcelas</dt>
-                      <dd className="mt-1 text-sm">
-                        {selectedContract.paymentInfo.installments}x de {formatCurrency(selectedContract.paymentInfo.installmentValue)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Forma de Pagamento</dt>
-                      <dd className="mt-1 text-sm">{selectedContract.paymentInfo.paymentMethod}</dd>
-                    </div>
-                    {selectedContract.paymentInfo.discount && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Desconto</dt>
-                        <dd className="mt-1 text-sm">{formatCurrency(selectedContract.paymentInfo.discount)}</dd>
-                      </div>
-                    )}
-                    
-                    {selectedContract.metadata?.startDate && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Data de Início</dt>
-                        <dd className="mt-1 text-sm">{formatDate(new Date(selectedContract.metadata.startDate))}</dd>
-                      </div>
-                    )}
-                    {selectedContract.metadata?.endDate && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Data de Término</dt>
-                        <dd className="mt-1 text-sm">{formatDate(new Date(selectedContract.metadata.endDate))}</dd>
-                      </div>
-                    )}
-                    {selectedContract.metadata?.modality && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Modalidade</dt>
-                        <dd className="mt-1 text-sm">{selectedContract.metadata.modality}</dd>
-                      </div>
-                    )}
-                    {selectedContract.metadata?.campus && (
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">Campus</dt>
-                        <dd className="mt-1 text-sm">{selectedContract.metadata.campus}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedContract(null)}
-                  >
-                    Fechar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDownloadContract(selectedContract.id)}
-                  >
-                    <DownloadIcon className="h-4 w-4 mr-2" /> Baixar
-                  </Button>
-                  {selectedContract.status === 'PENDING' && (
-                    <Button
-                      variant="default"
-                      onClick={() => handleSignContract(selectedContract.id)}
-                    >
-                      <FileTextIcon className="h-4 w-4 mr-2" /> Assinar
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            )}
           </div>
-        </div>
-      </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSignDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={() => selectedContract && handleSignContract(selectedContract.id)}
+              disabled={isSignatureLoading || !signatureData}
+            >
+              {isSignatureLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar Assinatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
     </div>
   );
-}
+};
+
+export default ContractsPage;
