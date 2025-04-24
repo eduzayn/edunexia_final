@@ -11,6 +11,7 @@ import {
 import { eq } from 'drizzle-orm';
 import { generateEducationalContract } from './contract-generator-service';
 import { sendStudentCredentialsEmail } from './email-service';
+import { sendStudentCredentialsSMS } from './sms-service';
 import bcrypt from 'bcrypt';
 
 /**
@@ -122,6 +123,25 @@ class EnrollmentIntegrationService {
         // Continuamos com o processo mesmo se o e-mail falhar
       } else {
         console.log(`E-mail de credenciais enviado com sucesso para ${student.email}`);
+      }
+      
+      // 8. Enviar SMS com as credenciais se o telefone estiver disponível
+      if (student.phone) {
+        const smsSent = await sendStudentCredentialsSMS(
+          student.phone,
+          student.cpf || '',
+          student.fullName,
+          student.email
+        );
+        
+        if (!smsSent) {
+          console.warn(`Alerta: Não foi possível enviar SMS de credenciais para ${student.phone}`);
+          // Continuamos com o processo mesmo se o SMS falhar
+        } else {
+          console.log(`SMS de credenciais enviado com sucesso para ${student.phone}`);
+        }
+      } else {
+        console.log(`Aluno ${student.fullName} não possui telefone cadastrado. SMS de credenciais não enviado.`);
       }
       
       // 8. Registrar log da sincronização
