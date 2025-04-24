@@ -15,6 +15,18 @@ import { toast } from "@/hooks/use-toast";
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para armazenar os valores dos campos
+  const [primaryColor, setPrimaryColor] = useState("#5277e2");
+  const [secondaryColor, setSecondaryColor] = useState("#ff6600");
+  const [backgroundColor, setBackgroundColor] = useState("#f0f9ff");
+  const [textColor, setTextColor] = useState("#1e293b");
+  const [primaryColorHSL, setPrimaryColorHSL] = useState("hsl(230, 70%, 55%)");
+  
+  // Estados para os selects
+  const [themeAppearance, setThemeAppearance] = useState("light");
+  const [themeVariant, setThemeVariant] = useState("vibrant");
+  const [themeRadius, setThemeRadius] = useState("0.75");
 
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ["/api/settings"],
@@ -28,36 +40,28 @@ export default function SettingsPage() {
     queryKey: ["/api/integrations"],
     enabled: activeTab === "integrations",
   });
+  
+  // Atualizar estados com os valores iniciais do tema quando disponíveis
+  useEffect(() => {
+    if (themeData?.success && themeData.theme) {
+      const theme = themeData.theme;
+      setPrimaryColorHSL(theme.primary || "hsl(230, 70%, 55%)");
+      setThemeAppearance(theme.appearance || "light");
+      setThemeVariant(theme.variant || "vibrant");
+      setThemeRadius(theme.radius?.toString() || "0.75");
+    }
+  }, [themeData]);
 
   const handleSaveSettings = async () => {
     try {
       setIsSubmitting(true);
       
-      // Pegar valores dos campos
-      const primaryColor = (document.getElementById("primary-color") as HTMLInputElement)?.value || "#5277e2";
-      const secondaryColor = (document.getElementById("secondary-color") as HTMLInputElement)?.value || "#ff6600";
-      const backgroundColor = (document.getElementById("background-color") as HTMLInputElement)?.value || "#f0f9ff";
-      const textColor = (document.getElementById("text-color") as HTMLInputElement)?.value || "#1e293b";
-      
-      // Usar valor HSL ou converter para HSL (para simplificar, mantemos o valor atual)
-      const primaryColorHSL = (document.querySelector('input[type="text"][value^="hsl"]') as HTMLInputElement)?.value || "hsl(230, 70%, 55%)";
-      
-      // Obter valores dos selects
-      const themeSelect = document.getElementById("theme") as HTMLSelectElement;
-      const variantSelect = document.getElementById("variant") as HTMLSelectElement;
-      const radiusSelect = document.getElementById("radius") as HTMLSelectElement;
-      
-      // Obter valores selecionados
-      const theme = themeSelect?.value || "light";
-      const variant = variantSelect?.value || "vibrant";
-      const radius = radiusSelect?.value || "0.75";
-      
-      // Criar objeto de tema
+      // Criar objeto de tema com os estados React
       const themeConfig = {
         primary: primaryColorHSL,
-        appearance: theme,
-        variant: variant,
-        radius: parseFloat(radius)
+        appearance: themeAppearance,
+        variant: themeVariant,
+        radius: parseFloat(themeRadius)
       };
       
       // Enviar para a API
@@ -79,13 +83,15 @@ export default function SettingsPage() {
         throw new Error(result.message || "Erro desconhecido ao salvar tema");
       }
       
-      // Aplicar alterações na interface
+      // Aplicar alterações na interface usando CSS variables
+      // Isso é seguro pois afeta apenas estilos, não a estrutura do DOM
       document.documentElement.style.setProperty('--primary', primaryColor);
       document.documentElement.style.setProperty('--secondary', secondaryColor);
       document.documentElement.style.setProperty('--background', backgroundColor);
       document.documentElement.style.setProperty('--text', textColor);
       
       // Forçar recarregamento da página para aplicar o novo tema
+      // Manter esta abordagem para garantir que o tema seja completamente aplicado
       window.location.reload();
       
       setIsSubmitting(false);
@@ -270,8 +276,18 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="primary-color">Cor Primária</Label>
                   <div className="flex space-x-2">
-                    <Input id="primary-color" type="color" defaultValue="#5277e2" className="w-16 h-10" />
-                    <Input defaultValue={currentTheme.primary} className="flex-1" />
+                    <Input 
+                      id="primary-color" 
+                      type="color" 
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="w-16 h-10" 
+                    />
+                    <Input 
+                      value={primaryColorHSL}
+                      onChange={(e) => setPrimaryColorHSL(e.target.value)}
+                      className="flex-1" 
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Esta cor será aplicada aos botões, links e elementos principais da interface
@@ -280,8 +296,18 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="secondary-color">Cor Secundária</Label>
                   <div className="flex space-x-2">
-                    <Input id="secondary-color" type="color" defaultValue="#ff6600" className="w-16 h-10" />
-                    <Input defaultValue="#ff6600" className="flex-1" />
+                    <Input 
+                      id="secondary-color" 
+                      type="color" 
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="w-16 h-10" 
+                    />
+                    <Input 
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="flex-1" 
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Esta cor será aplicada a elementos de destaque e acentuação na interface
@@ -293,8 +319,18 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="background-color">Cor de Fundo</Label>
                   <div className="flex space-x-2">
-                    <Input id="background-color" type="color" defaultValue="#f0f9ff" className="w-16 h-10" />
-                    <Input defaultValue="#f0f9ff" className="flex-1" />
+                    <Input 
+                      id="background-color" 
+                      type="color" 
+                      value={backgroundColor}
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="w-16 h-10" 
+                    />
+                    <Input 
+                      value={backgroundColor}
+                      onChange={(e) => setBackgroundColor(e.target.value)}
+                      className="flex-1" 
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Cor de fundo para barras laterais e cabeçalhos
@@ -303,8 +339,18 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="text-color">Cor do Texto</Label>
                   <div className="flex space-x-2">
-                    <Input id="text-color" type="color" defaultValue="#1e293b" className="w-16 h-10" />
-                    <Input defaultValue="#1e293b" className="flex-1" />
+                    <Input 
+                      id="text-color" 
+                      type="color" 
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="w-16 h-10" 
+                    />
+                    <Input 
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="flex-1" 
+                    />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Cor principal para textos e conteúdos escritos
@@ -315,7 +361,10 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="theme">Tema</Label>
-                  <Select defaultValue={currentTheme.appearance}>
+                  <Select 
+                    value={themeAppearance} 
+                    onValueChange={setThemeAppearance}
+                  >
                     <SelectTrigger id="theme">
                       <SelectValue placeholder="Selecione um tema" />
                     </SelectTrigger>
@@ -328,7 +377,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="variant">Variante Visual</Label>
-                  <Select defaultValue={currentTheme.variant}>
+                  <Select 
+                    value={themeVariant} 
+                    onValueChange={setThemeVariant}
+                  >
                     <SelectTrigger id="variant">
                       <SelectValue placeholder="Selecione uma variante" />
                     </SelectTrigger>
@@ -358,7 +410,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="radius">Arredondamento de Bordas</Label>
-                  <Select defaultValue={currentTheme.radius.toString()}>
+                  <Select 
+                    value={themeRadius} 
+                    onValueChange={setThemeRadius}
+                  >
                     <SelectTrigger id="radius">
                       <SelectValue placeholder="Selecione um valor" />
                     </SelectTrigger>
@@ -402,15 +457,26 @@ export default function SettingsPage() {
                 <h3 className="font-medium mb-2">Visualização</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex flex-col items-center">
-                    <div className="w-full h-24 bg-[#5277e2] rounded-md mb-2 shadow-sm"></div>
+                    <div 
+                      className="w-full h-24 rounded-md mb-2 shadow-sm" 
+                      style={{ backgroundColor: primaryColor }}
+                    ></div>
                     <span className="text-sm">Cor Primária</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <div className="w-full h-24 bg-[#ff6600] rounded-md mb-2 shadow-sm"></div>
+                    <div 
+                      className="w-full h-24 rounded-md mb-2 shadow-sm"
+                      style={{ backgroundColor: secondaryColor }}
+                    ></div>
                     <span className="text-sm">Cor Secundária</span>
                   </div>
                   <div className="flex flex-col items-center">
-                    <div className="w-full h-24 bg-gradient-to-b from-[#f0f9ff] to-[#e0f2fe] rounded-md mb-2 shadow-sm border border-blue-100"></div>
+                    <div 
+                      className="w-full h-24 rounded-md mb-2 shadow-sm border border-blue-100"
+                      style={{ 
+                        background: `linear-gradient(to bottom, ${backgroundColor}, #e0f2fe)` 
+                      }}
+                    ></div>
                     <span className="text-sm">Gradiente de Fundo</span>
                   </div>
                 </div>
