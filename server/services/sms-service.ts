@@ -6,9 +6,21 @@ if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
 }
 
 // Inicialização do cliente Twilio
-const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN 
-  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  : null;
+let twilioClient: twilio.Twilio | null = null;
+
+try {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    // Verifica se o ACCOUNT_SID começa com 'AC' (formato correto)
+    if (process.env.TWILIO_ACCOUNT_SID.startsWith('AC')) {
+      twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      console.log('Cliente Twilio inicializado com sucesso');
+    } else {
+      console.error('TWILIO_ACCOUNT_SID inválido. Deve começar com "AC"');
+    }
+  }
+} catch (error) {
+  console.error('Erro ao inicializar cliente Twilio:', error);
+}
 
 // Número de telefone da instituição (para ser usado como remetente)
 const DEFAULT_FROM_NUMBER = process.env.TWILIO_PHONE_NUMBER;
