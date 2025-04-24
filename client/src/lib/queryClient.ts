@@ -133,22 +133,32 @@ export const getQueryFn: <T>(options: {
       console.log('getQueryFn - Authorization Header definido:', `Bearer ${authToken}`);
     }
 
-    const res = await fetch(apiUrl, {
-      method: "GET",
-      headers,
-      credentials: "omit", // Não usar cookies
-    });
-
-    // Log para debug
-    console.log(`Resposta da requisição para ${apiUrl}: ${res.status}`);
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      console.log(`Retornando null para requisição não autenticada: ${apiUrl}`);
-      return null;
+    try {
+      console.log(`Iniciando fetch para ${apiUrl}`);
+      const res = await fetch(apiUrl, {
+        method: "GET",
+        headers,
+        credentials: "omit", // Não usar cookies
+      });
+      
+      // Log para debug
+      console.log(`Resposta da requisição para ${apiUrl}: ${res.status}`);
+  
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log(`Retornando null para requisição não autenticada: ${apiUrl}`);
+        return null;
+      }
+  
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      console.error(`[ERRO CRÍTICO] Falha ao realizar fetch para ${apiUrl}:`, error);
+      // Verificar se o erro é de CORS ou de rede
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error(`Erro de rede ao conectar com o servidor. Detalhes: Failed to fetch. Verifique se o servidor está acessível.`);
+      }
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

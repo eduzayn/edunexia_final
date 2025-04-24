@@ -48,6 +48,29 @@ export function normalizeUrl(url: string): string {
     return `${protocol}://${path}`;
   }
   
+  // IMPORTANTE: Corrigir endpoints inconsistentes
+  // Se começar com /api-json/admin mas não estiver nos caminhos que realmente existem com esse prefixo,
+  // converter para /api/admin
+  if (url.startsWith('/api-json/admin/')) {
+    // Sabemos que /api-json/admin/disciplines/:id existe, mas /api-json/admin/disciplines (sem id) não
+    if (url.match(/^\/api-json\/admin\/disciplines\/\d+/)) {
+      // Manter como está se for uma rota de id específica
+      console.log(`normalizeUrl - Mantendo rota específica: ${url}`);
+    } else if (url.startsWith('/api-json/admin/disciplines')) {
+      // Converter para /api/admin/disciplines
+      const correctedUrl = url.replace('/api-json/admin/disciplines', '/api/admin/disciplines');
+      console.log(`normalizeUrl - Corrigindo rota de disciplinas: ${url} -> ${correctedUrl}`);
+      url = correctedUrl;
+    }
+    
+    // Corrigir também para cursos
+    if (url.startsWith('/api-json/admin/courses') && !url.match(/^\/api-json\/admin\/courses\/\d+/)) {
+      const correctedUrl = url.replace('/api-json/admin/courses', '/api/admin/courses');
+      console.log(`normalizeUrl - Corrigindo rota de cursos: ${url} -> ${correctedUrl}`);
+      url = correctedUrl;
+    }
+  }
+  
   // Para URLs relativas, simplesmente substituir barras duplas por barras simples
   // Garantir que a URL comece com uma barra se for absoluta do servidor
   const normalizedUrl = url.startsWith('/')
