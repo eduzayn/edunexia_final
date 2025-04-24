@@ -668,7 +668,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormItem>
                             <FormLabel>Instituição*</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                console.log("Instituição selecionada, id:", value);
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  field.onChange(value);
+                                }, 0);
+                              }}
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
@@ -731,7 +737,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormItem>
                             <FormLabel>Polo (opcional)</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                console.log("Polo selecionado, id:", value);
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  field.onChange(value);
+                                }, 0);
+                              }}
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
@@ -790,7 +802,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormLabel>Forma de Pagamento</FormLabel>
                           <FormControl>
                             <RadioGroup
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                console.log("Forma de pagamento selecionada:", value);
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  field.onChange(value);
+                                }, 0);
+                              }}
                               defaultValue={field.value}
                               className="flex flex-col space-y-1"
                             >
@@ -841,7 +859,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormControl>
                             <Checkbox
                               checked={field.value}
-                              onCheckedChange={field.onChange}
+                              onCheckedChange={(checked) => {
+                                console.log("Checkbox de parcelamento:", checked);
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  field.onChange(checked);
+                                }, 0);
+                              }}
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
@@ -1088,7 +1112,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                           <FormItem className="col-span-1">
                             <FormLabel>Estado</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                console.log("Estado selecionado:", value);
+                                // Usar setTimeout para evitar problemas de manipulação DOM em produção
+                                setTimeout(() => {
+                                  field.onChange(value);
+                                }, 0);
+                              }}
                               defaultValue={field.value || ""}
                             >
                               <FormControl>
