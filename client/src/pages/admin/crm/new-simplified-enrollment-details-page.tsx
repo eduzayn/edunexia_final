@@ -50,14 +50,15 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
   const params = useParams<{ id: string }>();
   const enrollmentId = parseInt(params.id);
   const queryClient = useQueryClient();
-  
+
   // Estado para o modal de cancelamento
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(false);
+
   // Buscar detalhes da matrícula
   const { 
     data: enrollmentResponse, 
-    isLoading, 
+    isLoading: isLoadingEnrollment, 
     isError, 
     error,
     refetch 
@@ -168,7 +169,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
   };
 
   // UI para estado de carregamento
-  if (isLoading) {
+  if (isLoadingEnrollment) {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center mb-6">
@@ -178,7 +179,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
           </Button>
           <h1 className="text-2xl font-bold ml-4">Carregando matrícula...</h1>
         </div>
-        
+
         <Card>
           <CardHeader>
             <Skeleton className="h-8 w-3/4 mb-2" />
@@ -189,20 +190,20 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
               <div>
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
-                
+
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
-                
+
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
               </div>
               <div>
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
-                
+
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
-                
+
                 <Skeleton className="h-4 w-1/4 mb-2" />
                 <Skeleton className="h-6 w-3/4 mb-4" />
               </div>
@@ -224,7 +225,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
           </Button>
           <h1 className="text-2xl font-bold ml-4">Erro ao carregar matrícula</h1>
         </div>
-        
+
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro</AlertTitle>
@@ -232,7 +233,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
             {(error as any)?.message || "Ocorreu um erro ao carregar os detalhes da matrícula. Tente novamente."}
           </AlertDescription>
         </Alert>
-        
+
         <div className="mt-4">
           <Button onClick={() => refetch()}>Tentar novamente</Button>
         </div>
@@ -241,7 +242,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
   }
 
   const enrollmentData = enrollmentResponse?.data;
-  
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center mb-6">
@@ -250,18 +251,18 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
           Voltar
         </Button>
         <h1 className="text-2xl font-bold ml-4">Detalhes da Matrícula</h1>
-        
+
         <div className="ml-auto flex gap-2">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => refetch()}
-            disabled={isLoading}
+            disabled={isLoadingEnrollment}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Atualizar
           </Button>
-          
+
           {enrollmentData?.status === 'waiting_payment' && (
             <Button 
               size="sm" 
@@ -274,7 +275,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
           )}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 space-y-6">
           <Card>
@@ -330,9 +331,9 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
                   </dl>
                 </div>
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground">Dados Técnicos</h3>
                 <dl className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,7 +357,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {enrollmentData?.errorDetails && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -370,7 +371,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
             </Alert>
           )}
         </div>
-        
+
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -396,12 +397,12 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
                       </a>
                     </div>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">ID do Link:</p>
                     <p className="text-sm font-mono">{enrollmentData.paymentLinkId}</p>
                   </div>
-                  
+
                   <div>
                     <Button 
                       className="w-full mt-4" 
@@ -428,7 +429,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
                       Ainda não foi gerado um link de pagamento para esta matrícula.
                     </AlertDescription>
                   </Alert>
-                  
+
                   <Button 
                     className="w-full" 
                     onClick={() => generatePaymentLinkMutation.mutate()}
@@ -444,7 +445,7 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
               )}
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Ações</CardTitle>
@@ -454,26 +455,47 @@ export default function NewSimplifiedEnrollmentDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => refetch()}
-                disabled={isLoading}
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    const response = await fetch(`/api-json/v2/simplified-enrollments/${enrollmentId}/fix-student-account`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      }
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                      toast({
+                        title: "Conta estudante corrigida",
+                        description: `ID do usuário: ${result.userId}, Username: ${result.username}`,
+                      });
+                      refetch();
+                    } else {
+                      toast({
+                        title: "Erro ao corrigir conta",
+                        description: result.message,
+                        variant: "destructive"
+                      });
+                    }
+                  } catch (error) {
+                    toast({
+                      title: "Erro",
+                      description: "Falha ao corrigir a conta de estudante",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                variant="outline"
+                className="w-full mb-2"
+                disabled={isLoading || isLoadingEnrollment}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Atualizar Dados
+                Verificar/Corrigir Conta Estudante
               </Button>
-              
-              {enrollmentData?.status === 'waiting_payment' && (
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => updatePaymentStatusMutation.mutate()}
-                  disabled={updatePaymentStatusMutation.isPending}
-                >
-                  Verificar Status do Pagamento
-                </Button>
-              )}
-              
+
               <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <Button 

@@ -376,55 +376,86 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
           studentCpf.replace(/[^\d]/g, '') : // remover pontos e traços
           Math.random().toString(36).slice(-8); // senha aleatória se não tiver CPF
         
-        // Criar o usuário no sistema
-        const newUser = await storage.createUser({
-          username: studentEmail,
-          password: initialPassword,
-          fullName: studentName,
-          email: studentEmail,
-          cpf: studentCpf,
-          phone: studentPhone,
-          portalType: 'student',
-          status: 'active',
-          asaasId: asaasCustomerId || null
-        });
+        // Formatar o CPF corretamente para persistência
+        const formattedCpf = studentCpf ? studentCpf.replace(/[^\d]/g, '') : null;
         
-        if (newUser) {
-          userId = newUser.id;
-          console.log(`[MATRÍCULA] Perfil de estudante criado com sucesso! ID: ${userId}`);
+        console.log(`[MATRÍCULA] Tentando criar usuário com email: ${studentEmail}, cpf: ${formattedCpf}`);
+        
+        // Criar o usuário no sistema com dados completos
+        try {
+          const newUser = await storage.createUser({
+            username: studentEmail,
+            password: initialPassword,
+            fullName: studentName,
+            email: studentEmail,
+            cpf: formattedCpf,
+            phone: studentPhone || null,
+            portalType: 'student',
+            status: 'active',
+            asaasId: asaasCustomerId || null
+          });
           
-          // Enviar email com as credenciais
-          try {
-            await emailService.sendStudentCredentialsEmail({
-              to: newUser.email,
-              name: newUser.fullName,
-              username: newUser.username,
-              password: initialPassword,
-              courseName: courseName
-            });
-            console.log(`[MATRÍCULA] Email com credenciais enviado para: ${newUser.email}`);
-          } catch (emailError) {
-            console.error(`[MATRÍCULA] Erro ao enviar email com credenciais:`, emailError);
-          }
-          
-          // Enviar SMS com as credenciais
-          try {
-            if (newUser.phone) {
-              await smsService.sendStudentCredentialsSMS(
-                newUser.phone,
-                initialPassword,
-                newUser.fullName,
-                newUser.email
-              );
-              console.log(`[MATRÍCULA] SMS com credenciais enviado para: ${newUser.phone}`);
+          if (newUser) {
+            userId = newUser.id;
+            console.log(`[MATRÍCULA] Perfil de estudante criado com sucesso! ID: ${userId}`);
+            
+            // Enviar email com as credenciais
+            try {
+              await emailService.sendStudentCredentialsEmail({
+                to: newUser.email,
+                name: newUser.fullName,
+                username: newUser.username,
+                password: initialPassword,
+                courseName: courseName
+              });
+              console.log(`[MATRÍCULA] Email com credenciais enviado para: ${newUser.email}`);
+            } catch (emailError) {
+              console.error(`[MATRÍCULA] Erro ao enviar email com credenciais:`, emailError);
             }
-          } catch (smsError) {
-            console.error(`[MATRÍCULA] Erro ao enviar SMS com credenciais:`, smsError);
+            
+            // Enviar SMS com as credenciais
+            try {
+              if (newUser.phone) {
+                await smsService.sendStudentCredentialsSMS(
+                  newUser.phone,
+                  initialPassword,
+                  newUser.fullName,
+                  newUser.email
+                );
+                console.log(`[MATRÍCULA] SMS com credenciais enviado para: ${newUser.phone}`);
+              }
+            } catch (smsError) {
+              console.error(`[MATRÍCULA] Erro ao enviar SMS com credenciais:`, smsError);
+            }
+          } else {
+            console.error(`[MATRÍCULA] Falha ao criar usuário: retorno nulo do storage.createUser`);
+          }
+        } catch (createUserError) {
+          console.error(`[MATRÍCULA] Erro ao criar usuário no sistema:`, createUserError);
+          
+          // Tenta uma abordagem alternativa com menos campos
+          try {
+            console.log(`[MATRÍCULA] Tentando abordagem alternativa para criar usuário`);
+            const simpleUser = await storage.createUser({
+              username: studentEmail,
+              password: initialPassword,
+              fullName: studentName,
+              email: studentEmail,
+              portalType: 'student',
+              status: 'active'
+            });
+            
+            if (simpleUser) {
+              userId = simpleUser.id;
+              console.log(`[MATRÍCULA] Perfil simplificado criado com sucesso! ID: ${userId}`);
+            }
+          } catch (altError) {
+            console.error(`[MATRÍCULA] Falha também na abordagem alternativa:`, altError);
           }
         }
       } else {
         userId = existingUser.id;
-        console.log(`[MATRÍCULA] Estudante já possui perfil no sistema: ${userId}`);
+        console.log(`[MATRÍCULA] Estudante já possui perfil no sistema: ${userId} (${existingUser.username})`);
       }
       
       // Verificar se temos um ID de usuário válido (novo ou existente)
@@ -437,10 +468,11 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
           })
           .where(eq(simplifiedEnrollments.id, newEnrollment.id));
           
+        console.log(`[MATRÍCULA] Matrícula simplificada #${newEnrollment.id} atualizada com studentId: ${userId}`);
+          
         // Gerar contrato educacional usando o serviço existente
         try {
           // O serviço espera um ID de matrícula, mas temos apenas o ID da matrícula simplificada
-          // Vamos criar uma entrada na tabela de matrículas formais ou usar o ID da simplificada diretamente
           const contract = await contractsService.generateContract(newEnrollment.id);
           
           if (contract) {
@@ -449,6 +481,8 @@ export async function createSimplifiedEnrollment(req: Request, res: Response) {
         } catch (contractError) {
           console.error(`[MATRÍCULA] Erro ao gerar contrato:`, contractError);
         }
+      } else {
+        console.error(`[MATRÍCULA] Não foi possível obter um ID de usuário válido para associar à matrícula #${newEnrollment.id}`);
       }
     } catch (profileError) {
       console.error(`[MATRÍCULA] Erro ao criar perfil de estudante:`, profileError);
