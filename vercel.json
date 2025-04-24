@@ -4,9 +4,13 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/api", "destination": "/api/index.js" },
     { "source": "/api-json/(.*)", "destination": "/api/index.js" },
+    { "source": "/api-json/login", "destination": "/api/index.js" },
+    { "source": "/api-json/user", "destination": "/api/index.js" },
+    { "source": "/api-json/logout", "destination": "/api/index.js" },
+    { "source": "/api/dashboard/(.*)", "destination": "/api/index.js" },
     { "source": "/assets/(.*)", "destination": "/public/assets/$1" },
     { "source": "/(.*)", "destination": "/public/index.html" }
   ],
