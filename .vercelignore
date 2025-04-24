@@ -31,7 +31,8 @@ node_modules/
 tsconfig.json
 tailwind.config.ts
 postcss.config.js
-vite.config.ts
+# IMPORTANTE: Não ignorar o vite.config.ts, necessário para o build
+# vite.config.ts
 drizzle.config.ts
 
 # Arquivos temporários e logs

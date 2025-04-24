@@ -55,23 +55,66 @@ try {
   log(`Arquivo index.html encontrado em: ${indexPath}`);
   log(`Conteúdo de index.html: ${fs.readFileSync(indexPath, 'utf8').substring(0, 100)}...`);
   
-  // Verificar existência do arquivo de configuração do Vite
-  const viteConfigPath = path.join(process.cwd(), 'vite.config.ts');
-  if (!fs.existsSync(viteConfigPath)) {
-    console.error('\x1b[31m%s\x1b[0m', `[ERRO] Arquivo vite.config.ts não encontrado em ${viteConfigPath}`);
+  // Verificar existência do arquivo de configuração do Vite em múltiplos locais
+  let viteConfigPath = path.join(process.cwd(), 'vite.config.ts');
+  let viteConfigFound = fs.existsSync(viteConfigPath);
+  
+  if (!viteConfigFound) {
+    log('vite.config.ts não encontrado na raiz, procurando em outros diretórios...');
     
     // Listar arquivos na raiz para debug
     log('Listando arquivos na raiz para debug:');
     const rootFiles = fs.readdirSync(process.cwd());
     log(`Arquivos na raiz: ${rootFiles.join(', ')}`);
     
-    throw new Error('Arquivo de configuração do Vite não encontrado');
+    // Se não encontrou, tentar criar um arquivo de configuração mínimo
+    log('Criando arquivo de configuração do Vite temporário...');
+    
+    const minimalViteConfig = `
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+// Compatibilidade para path no ESM
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default defineConfig({
+  plugins: [react()],
+  root: path.resolve(__dirname, 'client'),
+  build: {
+    outDir: path.resolve(__dirname, 'dist/public'),
+    emptyOutDir: true,
+    sourcemap: true
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'client/src'),
+      '@shared': path.resolve(__dirname, 'shared'),
+      '@assets': path.resolve(__dirname, 'attached_assets'),
+    }
   }
-  log(`Arquivo vite.config.ts encontrado em: ${viteConfigPath}`);
+});
+`;
+    
+    try {
+      fs.writeFileSync(viteConfigPath, minimalViteConfig);
+      log('Arquivo de configuração do Vite temporário criado com sucesso');
+      viteConfigFound = true;
+    } catch (err) {
+      console.error('\x1b[31m%s\x1b[0m', `[ERRO] Falha ao criar arquivo de configuração temporário: ${err.message}`);
+    }
+  }
+  
+  if (!viteConfigFound) {
+    throw new Error('Arquivo de configuração do Vite não encontrado e não foi possível criar um temporário');
+  }
+  
+  log(`Arquivo vite.config.ts encontrado/criado em: ${viteConfigPath}`);
   
   // Executar o build do frontend com Vite
   log('Executando build do frontend com Vite...');
-  if (!runCommand('npx vite build --config vite.config.ts')) {
+  if (!runCommand('npx vite build')) {
     throw new Error('Falha ao executar o build do frontend');
   }
   
