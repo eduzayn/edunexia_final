@@ -4,6 +4,8 @@ import { setupVite, log } from "./vite";
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -88,7 +90,11 @@ app.use((req, res, next) => {
     // Configuramos seletivamente para servir apenas arquivos estáticos
     // em caminhos que NÃO são rotas de API (/api ou /api-json)
     
-    // Caminho para os arquivos estáticos e o index.html
+    // Caminho para os arquivos estáticos e o index.html usando URL para ES modules
+    // Usando import.meta.url que é compatível com ESM em vez de __dirname
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    
     const publicPath = path.resolve(__dirname, "public");
     app.use(express.static(publicPath));
     
