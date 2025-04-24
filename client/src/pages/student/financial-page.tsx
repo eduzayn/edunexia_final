@@ -48,7 +48,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { Pagination } from "@/components/ui/pagination";
 
-// Definição da interface de Cobrança para melhorar a tipagem
+// Interface para os tipos de dados financeiros
 interface Charge {
   id: string;
   dateCreated: string;
@@ -71,6 +71,11 @@ interface Charge {
   pixQrCode?: string;
   fine?: number;
   interest?: number;
+  // Campos adicionais para facilitar a visualização no portal do aluno
+  installment?: number;
+  installmentCount?: number;
+  courseName?: string;
+  discount?: number;
 }
 
 export default function FinancialPage() {
@@ -80,6 +85,8 @@ export default function FinancialPage() {
   const [selectedBilling, setSelectedBilling] = useState<Charge | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Número de itens por página
+  const [filterStatus, setFilterStatus] = useState<string>("all"); // Filtro por status: all, pending, paid, overdue
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   // Definir itens da sidebar igual ao modelo do portal do polo
   const sidebarItems = [
@@ -226,6 +233,40 @@ export default function FinancialPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+  
+  // Função para filtrar as cobranças
+  const filteredCharges = useMemo(() => {
+    if (!charges) return [];
+    
+    return charges.filter(charge => {
+      // Filtro por status
+      if (filterStatus !== "all") {
+        if (filterStatus === "pending" && charge.status !== "PENDING") return false;
+        if (filterStatus === "paid" && !["RECEIVED", "CONFIRMED"].includes(charge.status)) return false;
+        if (filterStatus === "overdue" && charge.status !== "OVERDUE") return false;
+      }
+      
+      // Filtro por termo de busca
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const descriptionMatch = charge.description?.toLowerCase().includes(searchLower) || false;
+        const invoiceMatch = charge.invoiceNumber?.toLowerCase().includes(searchLower) || false;
+        const referenceMatch = charge.externalReference?.toLowerCase().includes(searchLower) || false;
+        const courseMatch = charge.courseName?.toLowerCase().includes(searchLower) || false;
+        
+        return descriptionMatch || invoiceMatch || referenceMatch || courseMatch;
+      }
+      
+      return true;
+    });
+  }, [charges, filterStatus, searchTerm]);
+  
+  // Calcular as cobranças filtradas e paginadas
+  const paginatedFilteredCharges = useMemo(() => {
+    if (!filteredCharges) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredCharges.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredCharges, currentPage, itemsPerPage]);
 
   // Função para baixar o boleto
   const handleDownloadBoleto = (boletoUrl: string | undefined) => {
@@ -291,6 +332,19 @@ export default function FinancialPage() {
   // Função para mostrar detalhes da cobrança
   const handleViewDetails = (billing: Charge) => {
     setSelectedBilling(billing);
+  };
+  
+  // Função para alterar o filtro de status
+  const handleFilterChange = (status: string) => {
+    setFilterStatus(status);
+    setCurrentPage(1); // Volta para a primeira página ao mudar o filtro
+  };
+  
+  // Função para limpar os filtros
+  const handleClearFilters = () => {
+    setFilterStatus("all");
+    setSearchTerm("");
+    setCurrentPage(1);
   };
 
   // Determina o status visual da cobrança
@@ -365,70 +419,97 @@ export default function FinancialPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedCharges.map((charge) => (
-                  <TableRow key={charge.id}>
-                    <TableCell className="font-medium">{charge.description || "Mensalidade"}</TableCell>
-                    <TableCell>{formatDate(new Date(charge.dueDate))}</TableCell>
-                    <TableCell>{formatCurrency(charge.value)}</TableCell>
-                    <TableCell>
-                      {(() => {
-                        const status = getBillingStatusBadge(charge.status);
-                        return (
-                          <Badge variant={status.variant as any}>{status.label}</Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {/* Botão para visualizar detalhes */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(charge)}
-                          title="Ver Detalhes"
-                        >
-                          <InfoIcon className="h-4 w-4" />
-                        </Button>
-                        
-                        {/* Botão para baixar boleto */}
-                        {charge.bankSlipUrl && (
+                {paginatedFilteredCharges.length > 0 ? (
+                  paginatedFilteredCharges.map((charge) => (
+                    <TableRow key={charge.id}>
+                      <TableCell className="font-medium">
+                        {charge.description || "Mensalidade"}
+                        {charge.installment && charge.installmentCount && (
+                          <span className="text-muted-foreground text-xs ml-1">
+                            (Parcela {charge.installment}/{charge.installmentCount})
+                          </span>
+                        )}
+                        {charge.courseName && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {charge.courseName}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatDate(new Date(charge.dueDate))}</TableCell>
+                      <TableCell>
+                        {formatCurrency(charge.value)}
+                        {charge.discount && charge.discount > 0 && (
+                          <div className="text-xs text-green-600 font-medium mt-1">
+                            Desconto: {formatCurrency(charge.discount)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const status = getBillingStatusBadge(charge.status);
+                          return (
+                            <Badge variant={status.variant as any}>{status.label}</Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {/* Botão para visualizar detalhes */}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDownloadBoleto(charge.bankSlipUrl)}
-                            title="Baixar Boleto"
+                            onClick={() => handleViewDetails(charge)}
+                            title="Ver Detalhes"
                           >
-                            <FileTextIcon className="h-4 w-4" />
+                            <InfoIcon className="h-4 w-4" />
                           </Button>
-                        )}
-                        
-                        {/* Botão para imprimir boleto */}
-                        {charge.bankSlipUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handlePrintBoleto(charge.bankSlipUrl)}
-                            title="Imprimir Boleto"
-                          >
-                            <PrinterIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {/* Botão para copiar PIX */}
-                        {charge.pixQrCode && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCopyPix(charge.pixQrCode)}
-                            title="Copiar código PIX"
-                          >
-                            <BanknoteIcon className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
+                          
+                          {/* Botão para baixar boleto */}
+                          {charge.bankSlipUrl && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadBoleto(charge.bankSlipUrl)}
+                              title="Baixar Boleto"
+                            >
+                              <FileTextIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                          
+                          {/* Botão para imprimir boleto */}
+                          {charge.bankSlipUrl && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePrintBoleto(charge.bankSlipUrl)}
+                              title="Imprimir Boleto"
+                            >
+                              <PrinterIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                          
+                          {/* Botão para copiar PIX */}
+                          {charge.pixQrCode && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCopyPix(charge.pixQrCode)}
+                              title="Copiar código PIX"
+                            >
+                              <BanknoteIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      Nenhuma cobrança encontrada com os filtros selecionados
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -479,36 +560,36 @@ export default function FinancialPage() {
               <h2 className="text-lg font-medium text-gray-900">Visão Geral</h2>
             </div>
         
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <Card>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card 
+                className={`cursor-pointer transition-all ${filterStatus === 'pending' ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleFilterChange('pending')}
+              >
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
-                  <CreditCardIcon className="h-5 w-5 text-primary" />
+                  <CircleAlertIcon className="h-5 w-5 text-amber-500" />
                   <div>
-                    <CardTitle className="text-xl">Pagamentos</CardTitle>
-                    <CardDescription>Visão geral dos seus pagamentos</CardDescription>
+                    <CardTitle className="text-xl">Pendentes</CardTitle>
+                    <CardDescription>Aguardando pagamento</CardDescription>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between py-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total de cobranças</p>
-                      <p className="text-2xl font-bold">{charges?.length || 0}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Cobranças pendentes</p>
-                      <p className="text-2xl font-bold">
-                        {charges?.filter((charge: Charge) => 
-                          charge.status === "PENDING" || 
-                          charge.status === "AWAITING_RISK_ANALYSIS" || 
-                          charge.status === "DUNNING_REQUESTED"
-                        ).length || 0}
-                      </p>
-                    </div>
+                  <div className="py-4">
+                    <p className="text-sm text-muted-foreground">Total de cobranças pendentes</p>
+                    <p className="text-2xl font-bold">
+                      {charges?.filter((charge: Charge) => 
+                        charge.status === "PENDING" || 
+                        charge.status === "AWAITING_RISK_ANALYSIS" || 
+                        charge.status === "DUNNING_REQUESTED"
+                      ).length || 0}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all ${filterStatus === 'paid' ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleFilterChange('paid')}
+              >
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <CheckCircleIcon className="h-5 w-5 text-green-500" />
                   <div>
@@ -531,7 +612,10 @@ export default function FinancialPage() {
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all ${filterStatus === 'overdue' ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleFilterChange('overdue')}
+              >
                 <CardHeader className="flex flex-row items-center gap-2 pb-2">
                   <XCircleIcon className="h-5 w-5 text-red-500" />
                   <div>
@@ -550,6 +634,54 @@ export default function FinancialPage() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+            
+            {/* Filtros e pesquisa */}
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+              <div className="flex gap-2">
+                <Button 
+                  variant={filterStatus === "all" ? "default" : "outline"} 
+                  onClick={() => handleFilterChange("all")}
+                  size="sm"
+                >
+                  Todos
+                </Button>
+                <Button 
+                  variant={filterStatus === "pending" ? "default" : "outline"} 
+                  onClick={() => handleFilterChange("pending")}
+                  size="sm"
+                >
+                  Pendentes
+                </Button>
+                <Button 
+                  variant={filterStatus === "paid" ? "default" : "outline"} 
+                  onClick={() => handleFilterChange("paid")}
+                  size="sm"
+                >
+                  Pagos
+                </Button>
+                <Button 
+                  variant={filterStatus === "overdue" ? "default" : "outline"} 
+                  onClick={() => handleFilterChange("overdue")}
+                  size="sm"
+                >
+                  Vencidos
+                </Button>
+              </div>
+              
+              <div className="flex gap-2 w-full md:w-auto">
+                <Input
+                  placeholder="Pesquisar cobranças..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-[300px]"
+                />
+                {(searchTerm || filterStatus !== "all") && (
+                  <Button variant="ghost" size="sm" onClick={handleClearFilters}>
+                    <XIcon className="h-4 w-4 mr-1" /> Limpar
+                  </Button>
+                )}
+              </div>
             </div>
             
             {content}
