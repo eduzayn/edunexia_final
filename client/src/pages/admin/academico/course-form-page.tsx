@@ -380,7 +380,7 @@ export default function CourseFormPage() {
         }
         
         // Verificar se a atualização foi bem-sucedida
-        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const result = await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "GET" });
         const updatedDisciplines = await result.json();
         console.log("Disciplinas atualizadas verificadas:", updatedDisciplines?.length || 0);
         
