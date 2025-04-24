@@ -604,22 +604,32 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                     onChange={(e) => {
                                       try {
                                         const searchValue = e.target.value.toLowerCase();
-                                        const courseItems = document.querySelectorAll('[data-course-item]');
-                                        
-                                        courseItems.forEach((item: any) => {
+                                        // Utiliza RequestAnimationFrame para garantir que o DOM esteja estável
+                                        requestAnimationFrame(() => {
                                           try {
-                                            if (item && item.getAttribute) {
-                                              const courseName = item.getAttribute('data-course-name')?.toLowerCase() || '';
-                                              const courseCode = item.getAttribute('data-course-code')?.toLowerCase() || '';
-                                              
-                                              if (courseName.includes(searchValue) || courseCode.includes(searchValue)) {
-                                                item.style.display = '';
-                                              } else {
-                                                item.style.display = 'none';
+                                            // Pegamos novamente os elementos para garantir que estamos manipulando elementos atuais
+                                            const courseItems = document.querySelectorAll('[data-course-item]');
+                                            
+                                            // Aplica a filtragem em cada item
+                                            courseItems.forEach((item: Element) => {
+                                              try {
+                                                if (item && item instanceof Element) {
+                                                  const courseName = item.getAttribute('data-course-name')?.toLowerCase() || '';
+                                                  const courseCode = item.getAttribute('data-course-code')?.toLowerCase() || '';
+                                                  
+                                                  // Aplica a visibilidade usando classe em vez de style diretamente
+                                                  if (courseName.includes(searchValue) || courseCode.includes(searchValue)) {
+                                                    item.classList.remove('hidden');
+                                                  } else {
+                                                    item.classList.add('hidden');
+                                                  }
+                                                }
+                                              } catch (itemErr) {
+                                                console.error('Erro ao processar item do curso:', itemErr);
                                               }
-                                            }
-                                          } catch (itemErr) {
-                                            console.error('Erro ao processar item do curso:', itemErr);
+                                            });
+                                          } catch (innerErr) {
+                                            console.error('Erro ao processar elementos:', innerErr);
                                           }
                                         });
                                       } catch (err) {
@@ -682,22 +692,30 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                     onChange={(e) => {
                                       try {
                                         const searchValue = e.target.value.toLowerCase();
-                                        const institutionItems = document.querySelectorAll('[data-institution-item]');
-                                        
-                                        institutionItems.forEach((item: any) => {
+                                        // Usar requestAnimationFrame para garantir que o DOM esteja estável
+                                        requestAnimationFrame(() => {
                                           try {
-                                            if (item && item.getAttribute) {
-                                              const institutionName = item.getAttribute('data-institution-name')?.toLowerCase() || '';
-                                              const institutionCode = item.getAttribute('data-institution-code')?.toLowerCase() || '';
-                                              
-                                              if (institutionName.includes(searchValue) || institutionCode.includes(searchValue)) {
-                                                item.style.display = '';
-                                              } else {
-                                                item.style.display = 'none';
+                                            const institutionItems = document.querySelectorAll('[data-institution-item]');
+                                            
+                                            institutionItems.forEach((item: Element) => {
+                                              try {
+                                                if (item && item instanceof Element) {
+                                                  const institutionName = item.getAttribute('data-institution-name')?.toLowerCase() || '';
+                                                  const institutionCode = item.getAttribute('data-institution-code')?.toLowerCase() || '';
+                                                  
+                                                  // Usar classes para controlar visibilidade em vez de style diretamente
+                                                  if (institutionName.includes(searchValue) || institutionCode.includes(searchValue)) {
+                                                    item.classList.remove('hidden');
+                                                  } else {
+                                                    item.classList.add('hidden');
+                                                  }
+                                                }
+                                              } catch (itemErr) {
+                                                console.error('Erro ao processar item da instituição:', itemErr);
                                               }
-                                            }
-                                          } catch (itemErr) {
-                                            console.error('Erro ao processar item da instituição:', itemErr);
+                                            });
+                                          } catch (innerErr) {
+                                            console.error('Erro ao processar elementos:', innerErr);
                                           }
                                         });
                                       } catch (err) {
