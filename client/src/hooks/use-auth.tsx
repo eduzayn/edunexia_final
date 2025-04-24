@@ -24,11 +24,12 @@ import { getNavigationPath } from "../lib/url-utils";
 
 // Definir as rotas da API para padronizar todas as chamadas
 // Note: Todas as rotas devem usar caminhos relativos sem domínio, para funcionar em produção
+// Usamos /api-json/ para garantir que as rotas não sejam interceptadas pelo middleware de frontend
 const API_ROUTES = {
-  LOGIN: "/api/login", 
-  LOGOUT: "/api/logout",
-  USER: "/api/user",
-  REGISTER: "/api/register"
+  LOGIN: "/api-json/login", 
+  LOGOUT: "/api-json/logout",
+  USER: "/api-json/user",
+  REGISTER: "/api-json/register"
 };
 
 type AuthContextType = {
