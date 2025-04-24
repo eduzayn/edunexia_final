@@ -14,79 +14,77 @@ import {
   BookMarked
 } from 'lucide-react';
 
-export type SidebarItem = {
-  label: string;
-  icon: React.ReactNode;
-  href: string;
-  active?: boolean;
-  submenu?: SidebarItem[];
-  onClick?: () => void;
-};
+import { SidebarItem, SidebarCategory, SidebarItemOrCategory, isCategory } from "./admin-sidebar-items";
 
 /**
- * OBSOLETO - NÃO USAR EM NOVOS COMPONENTES
- * @deprecated Defina os itens da sidebar diretamente em cada componente
+ * Retorna os itens padronizados para a barra lateral do portal do aluno
  * @param pathname Caminho atual da rota
  * @returns Array de itens do menu
  */
-export const getStudentSidebarItems = (pathname: string): SidebarItem[] => {
+export const getStudentSidebarItems = (pathname: string): SidebarItemOrCategory[] => {
   return [
     {
-      label: 'Início',
+      name: 'Início',
       icon: <LayoutDashboard size={18} />,
       href: '/student',
       active: pathname === '/student',
     },
     {
-      label: 'Meus cursos',
+      name: 'Meus cursos',
       icon: <BookOpenText size={18} />,
       href: '/student/courses',
       active: pathname === '/student/courses' || pathname.startsWith('/student/courses/'),
     },
     {
-      label: 'Meus certificados',
-      icon: <GraduationCap size={18} />,
-      href: '/student/certificates',
-      active: pathname === '/student/certificates',
+      name: 'Biblioteca',
+      icon: <BookMarked size={18} />,
+      href: '/student/library',
+      active: pathname === '/student/library',
     },
     {
-      label: 'Avaliações',
+      name: 'Credencial',
+      icon: <GraduationCap size={18} />,
+      href: '/student/credencial',
+      active: pathname === '/student/credencial',
+    },
+    {
+      name: 'Avaliações',
       icon: <FileQuestion size={18} />,
       href: '/student/assessments',
       active: pathname === '/student/assessments',
     },
     {
-      label: 'Meus estágios',
+      name: 'Estágios',
       icon: <BriefcaseBusiness size={18} />,
       href: '/student/internships',
       active: pathname === '/student/internships',
     },
     {
-      label: 'Contratos',
+      name: 'Contratos',
       icon: <Handshake size={18} />,
       href: '/student/contracts',
       active: pathname === '/student/contracts',
     },
     {
-      label: 'Financeiro',
+      name: 'Financeiro',
       icon: <Banknote size={18} />,
       href: '/student/financial',
       active: pathname === '/student/financial',
     },
     {
-      label: 'Calendário',
+      name: 'Calendário',
       icon: <Calendar size={18} />,
       href: '/student/calendar',
       active: pathname === '/student/calendar',
     },
     {
-      label: 'Mensagens',
+      name: 'Mensagens',
       icon: <MessagesSquare size={18} />,
       href: '/student/messages',
       active: pathname === '/student/messages',
     },
     {
-      label: 'Minhas informações',
+      name: 'Meu Perfil',
       icon: <User size={18} />,
       href: '/student/profile',
       active: pathname === '/student/profile',

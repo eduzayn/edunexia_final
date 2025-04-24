@@ -1,9 +1,10 @@
 import React, { ReactNode } from 'react';
 import AdminLayout from './admin-layout';
+import StudentLayout from './student-layout';
 import { useAuth } from '@/hooks/use-auth';
 
-// Exportando o AdminLayout para uso em outros arquivos
-export { AdminLayout };
+// Exportando os layouts para uso em outros arquivos
+export { AdminLayout, StudentLayout };
 
 interface LayoutProps {
   children: ReactNode;
@@ -16,9 +17,11 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
 
-  // Se for admin, usa o layout de admin
+  // Direciona para o layout apropriado com base no tipo de usuário
   if (user?.portalType === 'admin') {
     return <AdminLayout>{children}</AdminLayout>;
+  } else if (user?.portalType === 'student') {
+    return <StudentLayout>{children}</StudentLayout>;
   }
 
   // Layout padrão para quando não tiver um layout específico
