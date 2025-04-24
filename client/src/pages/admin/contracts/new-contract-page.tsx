@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import AdminLayout from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
+import BackButton from "@/components/ui/back-button";
 import {
   Form,
   FormControl,
@@ -207,22 +208,19 @@ O presente contrato poderá ser rescindido por ambas as partes, respeitando as c
   return (
     <AdminLayout>
       <div className="container mx-auto py-6">
+        <BackButton 
+          to="/admin/contracts" 
+          label="Voltar para Contratos" 
+          variant="outline"
+          className="mb-4"
+        />
+        
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              className="mr-4" 
-              onClick={() => navigate("/admin/contracts")}
-            >
-              <ArrowLeftIcon className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Novo Contrato</h1>
-              <p className="text-gray-500">
-                Crie um novo contrato para clientes
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Novo Contrato</h1>
+            <p className="text-gray-500">
+              Crie um novo contrato para clientes
+            </p>
           </div>
           <Button
             variant="outline"

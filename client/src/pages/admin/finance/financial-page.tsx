@@ -5,6 +5,7 @@ import { getAdminSidebarItems } from "@/components/layout/admin-sidebar-items";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import BackButton from "@/components/ui/back-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -183,6 +184,13 @@ export default function FinancialPage() {
 
       <div className="flex-1 overflow-auto">
         <div className="px-4 py-20 md:py-6 md:px-8">
+          <BackButton 
+            to="/admin" 
+            label="Voltar para Dashboard" 
+            variant="outline"
+            className="mb-4"
+          />
+
           {/* Header */}
           <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
