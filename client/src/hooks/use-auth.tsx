@@ -24,12 +24,12 @@ import { getNavigationPath } from "../lib/url-utils";
 
 // Definir as rotas da API para padronizar todas as chamadas
 // Note: Todas as rotas devem usar caminhos relativos sem domínio, para funcionar em produção
-// Usamos /api-json/ para garantir que as rotas não sejam interceptadas pelo middleware de frontend
+// Mudamos de volta para /api/ pois agora temos handlers específicos para produção
 const API_ROUTES = {
-  LOGIN: "/api-json/login", 
-  LOGOUT: "/api-json/logout",
-  USER: "/api-json/user",
-  REGISTER: "/api-json/register"
+  LOGIN: "/api/login", 
+  LOGOUT: "/api/logout",
+  USER: "/api/user",
+  REGISTER: "/api/register"
 };
 
 type AuthContextType = {
@@ -132,7 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: [API_ROUTES.USER] });
       
       try {
-        const response = await apiRequest("POST", API_ROUTES.LOGIN, data);
+        const response = await apiRequest(API_ROUTES.LOGIN, {
+          method: "POST",
+          data: data
+        });
         
         // Verificar o tipo de conteúdo antes de tentar parsear como JSON
         const contentType = response.headers.get('content-type');
