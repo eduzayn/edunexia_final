@@ -68,7 +68,7 @@ router.get('/enrollments/:id/validate', requireAuth, async (req, res) => {
 
 /**
  * Rota para sincronizar matrícula simplificada com o sistema central
- * Temporariamente retorna um stub enquanto o serviço está sendo implementado
+ * Cria perfil de estudante, contrato educacional e envia credenciais
  */
 router.post('/simplified-enrollments/:id/sync', requireAuth, async (req, res) => {
   try {
@@ -80,12 +80,32 @@ router.post('/simplified-enrollments/:id/sync', requireAuth, async (req, res) =>
         message: 'ID de matrícula simplificada inválido'
       });
     }
+    
+    // Verificar se o usuário tem permissão
+    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Sem permissão para sincronizar matrículas'
+      });
+    }
 
-    // Resposta temporária enquanto o serviço está sendo implementado
-    res.status(200).json({
-      success: true,
-      message: 'Matrícula sincronizada com sucesso'
-    });
+    // Importar serviço de integração de matrículas
+    const EnrollmentIntegrationService = require('../services/enrollment-integration-service').default;
+    
+    // Sincronizar matrícula
+    const success = await EnrollmentIntegrationService.syncSimplifiedEnrollment(simplifiedId);
+    
+    if (success) {
+      res.status(200).json({
+        success: true,
+        message: 'Matrícula processada com sucesso. Perfil de aluno e contrato educacional criados.'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Erro ao processar matrícula. Verifique os logs para mais informações.'
+      });
+    }
   } catch (error) {
     console.error('Erro ao sincronizar matrícula:', error);
     res.status(500).json({

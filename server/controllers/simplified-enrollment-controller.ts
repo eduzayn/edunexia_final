@@ -291,15 +291,33 @@ export async function processEnrollment(req: Request, res: Response) {
       });
     }
     
-    // TODO: Implementar lógica para criar a matrícula oficial
-    // Isso envolve criar um usuário (se não existir) e uma matrícula
-    
-    // Por enquanto, apenas atualizamos o status
+    // Atualizar o status
     const processedEnrollment = await storage.updateSimplifiedEnrollmentStatus(
       id,
       'completed',
+      'Processado manualmente pelo administrador',
       req.user?.id
     );
+    
+    // Importar e acionar o serviço de integração para criar perfil de aluno e contrato
+    try {
+      const EnrollmentIntegrationService = require('../services/enrollment-integration-service').default;
+      
+      // Iniciar o processo de sincronização em background para não bloquear a resposta
+      setTimeout(async () => {
+        try {
+          const syncResult = await EnrollmentIntegrationService.syncSimplifiedEnrollment(id);
+          console.log(`Resultado da sincronização da matrícula #${id}: ${syncResult ? 'Sucesso' : 'Falha'}`);
+        } catch (syncError) {
+          console.error(`Erro na sincronização em background da matrícula #${id}:`, syncError);
+        }
+      }, 100);
+      
+      console.log(`Sincronização da matrícula #${id} agendada para processamento em background`);
+    } catch (syncError) {
+      console.error(`Erro ao agendar sincronização da matrícula #${id}:`, syncError);
+      // Continuar mesmo se houver erro, pois a operação principal (atualização de status) já foi bem-sucedida
+    }
     
     return res.json({
       success: true,
