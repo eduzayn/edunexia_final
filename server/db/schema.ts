@@ -85,6 +85,7 @@ export const simplifiedEnrollments = pgTable('simplified_enrollments', {
   studentEmail: text('student_email').notNull(),
   studentCpf: text('student_cpf').notNull(),
   studentPhone: text('student_phone'),
+  studentId: integer('student_id'), // ID do aluno no sistema após criação do perfil
   courseId: integer('course_id').notNull(),
   institutionId: integer('institution_id').notNull(),
   poloId: integer('polo_id'),
