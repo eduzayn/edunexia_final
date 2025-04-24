@@ -454,12 +454,13 @@ export default function NewSimplifiedEnrollmentCreatePage() {
     <div className="container mx-auto py-6">
       <div className="mb-6">
         <Button
-          variant="ghost"
+          variant="outline"
+          size="sm"
           onClick={() => navigate('/admin/crm/new-simplified-enrollments')}
           className="flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para lista
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar para Matrículas
         </Button>
       </div>
 
