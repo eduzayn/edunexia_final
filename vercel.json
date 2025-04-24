@@ -4,10 +4,10 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
+    { "source": "/api-json/login", "destination": "/api/login.js" },
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/api", "destination": "/api/index.js" },
     { "source": "/api-json/(.*)", "destination": "/api/index.js" },
-    { "source": "/api-json/login", "destination": "/api/index.js" },
     { "source": "/api-json/user", "destination": "/api/index.js" },
     { "source": "/api-json/logout", "destination": "/api/index.js" },
     { "source": "/api/dashboard/(.*)", "destination": "/api/index.js" },
@@ -29,9 +29,20 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
+    },
+    {
+      "source": "/api-json/login",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "OPTIONS,POST" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
+      ]
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VERCEL": "1"
   }
 } 
