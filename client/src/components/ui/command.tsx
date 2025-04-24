@@ -76,47 +76,59 @@ Command.displayName = CommandPrimitive.displayName
 interface CommandDialogProps extends DialogProps {}
 
 // Função para retornar um componente com um delay de montagem/desmontagem
+// Usando requestAnimationFrame em vez de setTimeout para melhor sincronização com o React
 function withDelayedRender<T extends object>(
   Component: React.ComponentType<T>, 
   mountDelay = 10, 
   unmountDelay = 100
 ) {
   return (props: T & { open?: boolean, children?: React.ReactNode }) => {
-    const [isMounted, setIsMounted] = React.useState(false);
     const [shouldRender, setShouldRender] = React.useState(false);
     const [isClosing, setIsClosing] = React.useState(false);
     
+    // Ref para controlar se o componente ainda está montado
+    const mountedRef = React.useRef(true);
+    
     React.useEffect(() => {
-      let mountTimer: NodeJS.Timeout;
-      let unmountTimer: NodeJS.Timeout;
+      // Retornar função de limpeza para o efeito que marca o componente como desmontado
+      return () => {
+        mountedRef.current = false;
+      };
+    }, []);
+    
+    React.useEffect(() => {
+      let animationFrameId: number;
       
       if (props.open) {
         setIsClosing(false);
         // Primeiro detecta que deve renderizar
         setShouldRender(true);
-        
-        // Depois aguarda um pouco para montar o conteúdo
-        mountTimer = setTimeout(() => {
-          setIsMounted(true);
-        }, mountDelay);
-        
-        return () => clearTimeout(mountTimer);
       } else if (shouldRender) {
         // Ao fechar, primeiro marca como fechando
         setIsClosing(true);
-        setIsMounted(false);
         
-        // Depois de um tempo, remove completamente do DOM
-        unmountTimer = setTimeout(() => {
-          setShouldRender(false);
-          setIsClosing(false);
-        }, unmountDelay);
+        // Usar requestAnimationFrame para se sincronizar com o ciclo de renderização
+        animationFrameId = requestAnimationFrame(() => {
+          // Verificar se o componente ainda está montado
+          if (mountedRef.current) {
+            // Usar um timeout para permitir que as animações terminem
+            setTimeout(() => {
+              // Verificar novamente se o componente ainda está montado
+              if (mountedRef.current) {
+                setShouldRender(false);
+                setIsClosing(false);
+              }
+            }, unmountDelay);
+          }
+        });
         
-        return () => clearTimeout(unmountTimer);
+        return () => {
+          cancelAnimationFrame(animationFrameId);
+        };
       }
       
       return undefined;
-    }, [props.open, shouldRender]);
+    }, [props.open, shouldRender, unmountDelay]);
     
     // Não renderiza nada se não deve renderizar
     if (!shouldRender) {
@@ -130,23 +142,38 @@ function withDelayedRender<T extends object>(
         props.className,
         isClosing ? "safely-closing" : "", // Uma classe que pode ser usada para CSS
       ),
+      // Adicionar um handler seguro para o onOpenChange
+      onOpenChange: (open: boolean) => {
+        // Verificar se o componente ainda está montado
+        if (mountedRef.current && props.onOpenChange) {
+          (props.onOpenChange as Function)(open);
+        }
+      }
     };
     
-    // Renderize com o ErrorBoundary
+    // Renderize com o ErrorBoundary para capturar quaisquer erros de DOM
     return (
       <ChromeErrorBoundary>
-        <Component {...componentProps as any}>
-          {isMounted ? props.children : null}
-        </Component>
+        <Component {...componentProps} />
       </ChromeErrorBoundary>
     );
   };
 }
 
-// Aplica o HOC ao diálogo
+// Aplicar o wrapper de montagem/desmontagem segura ao Dialog
 const SafeDialog = withDelayedRender(Dialog, 20, 150);
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
+  // Referência para verificar se o componente está montado
+  const mountedRef = React.useRef(true);
+  
+  // Efeito para limpar referência quando componente desmontar
+  React.useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
   return (
     <SafeDialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
@@ -163,19 +190,42 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
 const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
-    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-    <CommandPrimitive.Input
-      ref={ref}
-      className={cn(
-        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-      {...props}
-    />
-  </div>
-))
+>(({ className, ...props }, ref) => {
+  // Referência para verificar se o componente está montado
+  const mountedRef = React.useRef(true);
+  
+  // Efeito para limpar referência quando componente desmontar
+  React.useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
+  return (
+    <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+      <CommandPrimitive.Input
+        ref={ref}
+        className={cn(
+          "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
+          className
+        )}
+        onKeyDown={(e) => {
+          // Verificar se o componente ainda está montado antes de processar os eventos de teclado
+          if (!mountedRef.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          
+          // Processar o evento normalmente
+          props.onKeyDown?.(e);
+        }}
+        {...props}
+      />
+    </div>
+  );
+});
 
 CommandInput.displayName = CommandPrimitive.Input.displayName
 
@@ -231,21 +281,41 @@ const CommandSeparator = React.forwardRef<
     {...props}
   />
 ))
+
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName
 
 const CommandItem = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.Item
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Referência para verificar se o componente está montado
+  const mountedRef = React.useRef(true);
+  
+  // Efeito para limpar referência quando componente desmontar
+  React.useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
+  return (
+    <CommandPrimitive.Item
+      ref={ref}
+      className={cn(
+        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected='true']:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50",
+        className
+      )}
+      onSelect={(value) => {
+        // Verificar se o componente ainda está montado antes de processar eventos
+        if (!mountedRef.current) return;
+        
+        // Processar o evento normalmente
+        props.onSelect?.(value);
+      }}
+      {...props}
+    />
+  );
+});
 
 CommandItem.displayName = CommandPrimitive.Item.displayName
 
