@@ -31,10 +31,20 @@ export function getApiBaseUrl(): string {
  * @returns URL completa para a API
  */
 export function buildApiUrl(path: string): string {
+  // IMPORTANTE: Verificar se o path já contém uma URL completa
+  // Este é o principal problema que causa a duplicação de domínios
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('Detectada URL completa no path, retornando diretamente:', path);
+    return path;
+  }
+  
   const base = getApiBaseUrl();
   // Garantir que a URL seja formatada corretamente com barra entre base e path
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${normalizedPath}`;
+  const finalUrl = `${base}${normalizedPath}`;
+  
+  console.log(`buildApiUrl: base=${base}, path=${path}, resultado=${finalUrl}`);
+  return finalUrl;
 }
 
 /**

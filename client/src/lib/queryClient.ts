@@ -62,7 +62,14 @@ export async function apiRequest(
   }
   
   // ✨ Usar a função centralizada buildApiUrl para construir URLs de forma consistente
-  const apiUrl = buildApiUrl(url);
+  // Verificar se a URL já é completa antes de construir
+  let apiUrl: string;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    console.log(`apiRequest: URL já é completa, usando diretamente: ${url}`);
+    apiUrl = url; // Usar a URL diretamente
+  } else {
+    apiUrl = buildApiUrl(url);
+  }
   
   // Log para debug
   console.log(`apiRequest - URL original: ${url}, método: ${requestOptions.method || "GET"}`);
@@ -171,7 +178,15 @@ export const getQueryFn: <T>(options: {
     // ✨ Usar a função centralizada buildApiUrl para URLs consistentes
     // Isso usa nossa função getApiBaseUrl que detecta o ambiente
     // e monta a URL correta para o Replit ou ambiente local
-    const apiUrl = buildApiUrl(urlFromKey);
+    
+    // Verificar se a URL já é completa antes de construir
+    let apiUrl: string;
+    if (urlFromKey.startsWith('http://') || urlFromKey.startsWith('https://')) {
+      console.log(`QueryClient: URL já é completa, usando diretamente: ${urlFromKey}`);
+      apiUrl = urlFromKey; // Usar a URL diretamente
+    } else {
+      apiUrl = buildApiUrl(urlFromKey);
+    }
     
     // Log para debug
     console.log(`QueryClient fazendo requisição para: ${apiUrl} (ambiente: ${window.location.hostname})`);
