@@ -1311,7 +1311,8 @@ export default function DisciplineContentPage() {
                         description: string, 
                         duration: string, 
                         videoSource: string, 
-                        url: string 
+                        url: string,
+                        startTime?: string
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative aspect-video bg-gray-100">
