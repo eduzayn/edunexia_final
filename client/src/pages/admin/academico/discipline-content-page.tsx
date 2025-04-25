@@ -724,6 +724,45 @@ export default function DisciplineContentPage() {
     },
   });
   
+  // Mutation para atualizar questões de uma avaliação
+  const updateAssessmentQuestionsMutation = useMutation({
+    mutationFn: async ({ assessmentId, questionIds }: { assessmentId: number, questionIds: number[] }) => {
+      const response = await apiRequest(
+        "PUT", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions`), 
+        { questionIds }
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Questões atualizadas com sucesso!",
+        description: "As questões da avaliação foram atualizadas.",
+      });
+      refetchAssessments();
+      setIsEditQuestionsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar questões",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Mutation para verificar completude da disciplina
   const checkCompletenesssMutation = useMutation({
     mutationFn: async () => {
@@ -929,6 +968,28 @@ export default function DisciplineContentPage() {
     
     // Enviar dados para o backend
     addAssessmentMutation.mutate({ ...data, disciplineId });
+  };
+  
+  // Função para salvar as questões editadas da avaliação
+  const handleSaveAssessmentQuestions = () => {
+    if (!selectedAssessment) return;
+    
+    updateAssessmentQuestionsMutation.mutate({
+      assessmentId: selectedAssessment.id,
+      questionIds: selectedQuestionIds
+    });
+  };
+  
+  // Função para manipular a seleção/deseleção de questões para avaliação
+  const handleQuestionSelection = (questionId: number) => {
+    setSelectedQuestionIds(prev => {
+      // Se já estiver selecionada, remove; caso contrário, adiciona
+      if (prev.includes(questionId)) {
+        return prev.filter(id => id !== questionId);
+      } else {
+        return [...prev, questionId];
+      }
+    });
   };
   
   // Manipuladores de opções para questões
