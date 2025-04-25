@@ -18,6 +18,7 @@ interface EmbeddedVideoPlayerProps {
   title: string;
   source?: 'youtube' | 'vimeo' | 'onedrive' | 'google_drive' | 'upload';
   poster?: string;
+  startTime?: string; // Tempo de início no formato mm:ss
   onEnded?: () => void;
   className?: string;
 }
@@ -55,11 +56,29 @@ function formatTime(seconds: number): string {
   return `${formattedMinutes}:${formattedSeconds}`;
 }
 
+/**
+ * Converte tempo no formato mm:ss para segundos
+ */
+function timeToSeconds(time?: string): number | null {
+  if (!time) return null;
+  
+  const parts = time.split(':');
+  if (parts.length !== 2) return null;
+  
+  const minutes = parseInt(parts[0], 10);
+  const seconds = parseInt(parts[1], 10);
+  
+  if (isNaN(minutes) || isNaN(seconds)) return null;
+  
+  return minutes * 60 + seconds;
+}
+
 const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
   url,
   title,
   source = 'youtube',
   poster,
+  startTime,
   onEnded,
   className = '',
 }) => {
@@ -206,13 +225,18 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
     // Tenta extrair o ID do vídeo se ainda não extraímos
     const extractedId = youtubeVideoId || extractYouTubeVideoId(url);
     
+    // Converter o tempo de início (mm:ss) para segundos, se fornecido
+    const startSeconds = timeToSeconds(startTime);
+    // Construir a URL com o parâmetro de início, se aplicável
+    const startParam = startSeconds ? `&start=${startSeconds}` : '';
+    
     if (extractedId) {
       return (
         <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
           <iframe
             width="100%"
             height="100%"
-            src={`https://www.youtube.com/embed/${extractedId}?enablejsapi=1&rel=0`}
+            src={`https://www.youtube.com/embed/${extractedId}?enablejsapi=1&rel=0${startParam}`}
             title={title}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

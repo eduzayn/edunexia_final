@@ -117,6 +117,7 @@ const videoFormSchema = z.object({
   videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
   url: z.string().url({ message: "URL inválida" }),
   duration: z.string().regex(/^\d+:\d+$/, { message: "Duração deve estar no formato mm:ss" }),
+  startTime: z.string().regex(/^\d+:\d+$/, { message: "Tempo de início deve estar no formato mm:ss" }).optional(),
 });
 
 const materialFormSchema = z.object({
