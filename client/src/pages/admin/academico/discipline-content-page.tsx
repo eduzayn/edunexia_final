@@ -44,6 +44,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import {
+  Checkbox,
+} from "@/components/ui/checkbox";
+import {
   Form,
   FormControl,
   FormField,
@@ -900,6 +903,18 @@ export default function DisciplineContentPage() {
   };
   
   const onAssessmentSubmit = (data: AssessmentFormValues) => {
+    console.log("Enviando dados de avaliação:", { ...data, disciplineId });
+    // Verificar se há questões selecionadas
+    if (!data.questionIds || data.questionIds.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Selecione pelo menos uma questão para a avaliação.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Enviar dados para o backend
     addAssessmentMutation.mutate({ ...data, disciplineId });
   };
   
@@ -2357,6 +2372,66 @@ export default function DisciplineContentPage() {
                   </FormItem>
                 )}
               />
+              
+              {/* Seleção de questões */}
+              <FormField
+                control={assessmentForm.control}
+                name="questionIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selecione as questões</FormLabel>
+                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
+                      {isQuestionsLoading ? (
+                        <div className="flex justify-center py-4">
+                          <span className="animate-spin mr-2">◌</span> Carregando questões...
+                        </div>
+                      ) : questions && questions.length > 0 ? (
+                        <div className="space-y-2">
+                          {questions.map((question: any) => (
+                            <div key={question.id} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`question-${question.id}`}
+                                checked={field.value?.includes(question.id)}
+                                onCheckedChange={(checked) => {
+                                  const currentIds = [...(field.value || [])];
+                                  if (checked) {
+                                    if (!currentIds.includes(question.id)) {
+                                      field.onChange([...currentIds, question.id]);
+                                    }
+                                  } else {
+                                    field.onChange(currentIds.filter(id => id !== question.id));
+                                  }
+                                }}
+                              />
+                              <div className="grid gap-1.5 leading-none">
+                                <label
+                                  htmlFor={`question-${question.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {question.text.length > 100 
+                                    ? `${question.text.substring(0, 100)}...` 
+                                    : question.text}
+                                </label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500">
+                          <p>Nenhuma questão disponível. Adicione questões primeiro.</p>
+                        </div>
+                      )}
+                    </div>
+                    <FormDescription>
+                      {selectedAssessmentType === "simulado"
+                        ? "Recomendamos selecionar pelo menos 30 questões para o simulado."
+                        : "Recomendamos selecionar pelo menos 10 questões para a avaliação final."}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <DialogFooter>
                 <Button
                   type="button"
@@ -2366,9 +2441,16 @@ export default function DisciplineContentPage() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  {selectedAssessmentType === "simulado"
-                    ? "Criar Simulado"
-                    : "Criar Avaliação"}
+                  {addAssessmentMutation.isPending ? (
+                    <>
+                      <span className="animate-spin mr-2">◌</span>
+                      Salvando...
+                    </>
+                  ) : (
+                    selectedAssessmentType === "simulado"
+                      ? "Criar Simulado"
+                      : "Criar Avaliação"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
