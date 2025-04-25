@@ -227,8 +227,16 @@ export default function DisciplineContentPage() {
         }
         
         // Se chegou aqui, é seguro processar como JSON
-        const data = await response.clone().json();
-        console.log(`Dados da disciplina recebidos:`, data);
+        const response_data = await response.clone().json();
+        console.log(`Dados da disciplina recebidos:`, response_data);
+        
+        // Verifica formato de resposta padrão da API {success: boolean, data: object}
+        let data;
+        if (response_data && typeof response_data === 'object' && 'success' in response_data && 'data' in response_data) {
+          data = response_data.data;
+        } else {
+          data = response_data; // Se não estiver no formato padrão, usa o objeto completo
+        }
         
         // Verifica se a resposta é um objeto vazio ou null
         if (!data) {
@@ -240,11 +248,40 @@ export default function DisciplineContentPage() {
           throw new Error("Disciplina retornou array vazio");
         }
         
+        // Verificação básica - ID é essencial, o resto pode ser null
         if (!data.id) {
           throw new Error(`Dados da disciplina inválidos: ${JSON.stringify(data)}`);
         }
         
-        return data;
+        // Preenche valores padrão para campos que podem ser null
+        // Isso garante que a UI não quebre ao tentar acessar esses campos
+        return {
+          ...data,
+          // Definindo valores padrão para os campos que podem ser null
+          videoAula1Url: data.videoAula1Url || null,
+          videoAula1Source: data.videoAula1Source || null,
+          videoAula2Url: data.videoAula2Url || null,
+          videoAula2Source: data.videoAula2Source || null,
+          videoAula3Url: data.videoAula3Url || null,
+          videoAula3Source: data.videoAula3Source || null,
+          videoAula4Url: data.videoAula4Url || null,
+          videoAula4Source: data.videoAula4Source || null,
+          videoAula5Url: data.videoAula5Url || null,
+          videoAula5Source: data.videoAula5Source || null,
+          videoAula6Url: data.videoAula6Url || null,
+          videoAula6Source: data.videoAula6Source || null,
+          videoAula7Url: data.videoAula7Url || null,
+          videoAula7Source: data.videoAula7Source || null,
+          videoAula8Url: data.videoAula8Url || null,
+          videoAula8Source: data.videoAula8Source || null,
+          videoAula9Url: data.videoAula9Url || null,
+          videoAula9Source: data.videoAula9Source || null,
+          videoAula10Url: data.videoAula10Url || null,
+          videoAula10Source: data.videoAula10Source || null,
+          apostilaPdfUrl: data.apostilaPdfUrl || null,
+          ebookInterativoUrl: data.ebookInterativoUrl || null,
+          contentStatus: data.contentStatus || 'incomplete',
+        };
       } catch (error) {
         console.error(`Erro ao buscar disciplina ${disciplineId}:`, error);
         throw error;
@@ -262,8 +299,15 @@ export default function DisciplineContentPage() {
   } = useQuery({
     queryKey: [buildDisciplineVideosApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await fetchDisciplineVideos(disciplineId);
-      return response.json();
+      try {
+        const response = await fetchDisciplineVideos(disciplineId);
+        const data = await response.json();
+        // Retorna array vazio se não houver dados
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar vídeos da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
@@ -275,8 +319,14 @@ export default function DisciplineContentPage() {
   } = useQuery({
     queryKey: [buildDisciplineMaterialApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await fetchDisciplineMaterial(disciplineId);
-      return response.json();
+      try {
+        const response = await fetchDisciplineMaterial(disciplineId);
+        const data = await response.json();
+        return data || { apostilaPdfUrl: null, id: disciplineId };
+      } catch (error) {
+        console.error("Erro ao buscar material da disciplina:", error);
+        return { apostilaPdfUrl: null, id: disciplineId };
+      }
     },
   });
   
