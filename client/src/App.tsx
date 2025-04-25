@@ -663,10 +663,15 @@ function Router() {
   );
 }
 
+// Importação do tratador de erros de autenticação
+import { AuthErrorHandler } from "@/components/auth/auth-error-handler";
+
 function App() {
   return (
     <AuthProvider>
-      <Router />
+      <AuthErrorHandler>
+        <Router />
+      </AuthErrorHandler>
       <Toaster />
     </AuthProvider>
   );
