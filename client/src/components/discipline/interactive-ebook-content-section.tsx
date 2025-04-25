@@ -148,18 +148,17 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
     refetchOnWindowFocus: false,
     staleTime: 0,
     // Usar uma função de fallback que retorna um objeto vazio quando o endpoint ainda não existe
-    queryFn: async ({ queryKey }) => {
+    queryFn: async () => {
       try {
-        const response = await apiRequest('GET', `/api/disciplines/${disciplineId}/interactive-ebook`);
-        if (!response.ok) {
-          // Se o endpoint não existe, retornar um objeto que indica isso
-          return { 
-            id: disciplineId, 
-            available: false,
-            message: "Endpoint não disponível" 
-          };
-        }
-        return response.json();
+        // Importar dinamicamente o helper da API
+        const { safeApiRequest } = await import('@/lib/api-helpers');
+        
+        // URL do endpoint
+        const url = `/api/disciplines/${disciplineId}/interactive-ebook`;
+        
+        // Usar o helper de API para fazer a requisição segura
+        const data = await safeApiRequest(url);
+        return data;
       } catch (error) {
         console.error("Erro ao buscar ebook interativo:", error);
         // Criar uma estrutura que indica que o recurso não está disponível
@@ -283,44 +282,18 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
   const addEbookMutation = useMutation({
     mutationFn: async (data: FormData) => {
       try {
-        // Para uploads de arquivo, precisamos usar uma abordagem especial
-        // Usar a URL completa com o domínio da API
-        const baseUrl = document.querySelector('meta[name="api-base-url"]')?.getAttribute('content') || '';
-        const url = `${baseUrl}/api/disciplines/${disciplineId}/interactive-ebook`;
+        // Importar dinamicamente o helper da API
+        const { safeApiRequest } = await import('@/lib/api-helpers');
         
-        console.log('Enviando dados para URL completa:', url);
-        
-        // Obter o token de autenticação do localStorage
-        const token = localStorage.getItem('auth_token');
-        
-        const response = await fetch(url, {
+        // URL do endpoint
+        const url = `/api/disciplines/${disciplineId}/interactive-ebook`;
+        console.log('Enviando dados para:', url);
+
+        // Usar o helper de API para fazer a requisição segura
+        return await safeApiRequest(url, {
           method: 'POST',
-          body: data,
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
+          body: data
         });
-        
-        if (!response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            // Se for JSON, tentar ler a mensagem de erro
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro desconhecido ao adicionar e-book interativo');
-          } else {
-            // Se não for JSON, provavelmente é HTML de erro
-            throw new Error('Erro no servidor ao adicionar e-book interativo');
-          }
-        }
-        
-        const text = await response.text();
-        try {
-          // Tentar converter para JSON
-          return JSON.parse(text);
-        } catch (e) {
-          console.error('Erro ao parsear resposta como JSON:', text);
-          throw new Error('A resposta não é um JSON válido');
-        }
       } catch (error) {
         console.error('Erro na mutação:', error);
         throw error;
@@ -356,8 +329,22 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
   // Mutação para excluir ebook interativo
   const deleteEbookMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('DELETE', `/api/disciplines/${disciplineId}/interactive-ebook`);
-      return response.json();
+      try {
+        // Importar dinamicamente o helper da API
+        const { safeApiRequest } = await import('@/lib/api-helpers');
+        
+        // URL do endpoint
+        const url = `/api/disciplines/${disciplineId}/interactive-ebook`;
+        console.log('Enviando solicitação de exclusão para:', url);
+
+        // Usar o helper de API para fazer a requisição segura
+        return await safeApiRequest(url, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        console.error('Erro na mutação de exclusão:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
