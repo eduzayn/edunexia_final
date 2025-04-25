@@ -2410,9 +2410,9 @@ export default function DisciplineContentPage() {
                                   htmlFor={`question-${question.id}`}
                                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                 >
-                                  {question.text.length > 100 
+                                  {question.text && question.text.length > 100 
                                     ? `${question.text.substring(0, 100)}...` 
-                                    : question.text}
+                                    : (question.text || question.statement || "Sem texto")}
                                 </label>
                               </div>
                             </div>
