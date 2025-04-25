@@ -109,6 +109,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import VideoFormFields, { VideoSource } from "@/components/disciplinas/video-form-fields";
 
 // Schema para validação dos formulários
 const videoFormSchema = z.object({
@@ -189,7 +190,7 @@ export default function DisciplineContentPage() {
   
   // Estado para prévia de vídeo
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
-  const [previewVideoSource, setPreviewVideoSource] = useState<"youtube" | "vimeo" | "onedrive" | "google_drive" | "upload">("youtube");
+  const [previewVideoSource, setPreviewVideoSource] = useState<VideoSource>("youtube");
   
   // Estados para formulários de questões
   const [questionOptions, setQuestionOptions] = useState<string[]>(["", "", "", ""]);
@@ -1885,139 +1886,13 @@ export default function DisciplineContentPage() {
           <Form {...videoForm}>
             <form onSubmit={videoForm.handleSubmit(onVideoSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <FormField
-                    control={videoForm.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Título</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Introdução à Disciplina" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Breve descrição do conteúdo do vídeo..."
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="videoSource"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Origem do Vídeo</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              setPreviewVideoSource(value as any);
-                            }}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="youtube" id="youtube" />
-                              <Label htmlFor="youtube" className="flex items-center">
-                                <YoutubeIcon className="mr-2 h-4 w-4 text-red-600" />
-                                YouTube
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="onedrive" id="onedrive" />
-                              <Label htmlFor="onedrive" className="flex items-center">
-                                <OneDriveIcon className="mr-2 h-4 w-4 text-blue-500" />
-                                OneDrive
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="google_drive" id="google_drive" />
-                              <Label htmlFor="google_drive" className="flex items-center">
-                                <GoogleDriveIcon className="mr-2 h-4 w-4 text-green-500" />
-                                Google Drive
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="vimeo" id="vimeo" />
-                              <Label htmlFor="vimeo" className="flex items-center">
-                                <VimeoIcon className="mr-2 h-4 w-4 text-blue-600" />
-                                Vimeo
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="upload" id="upload" />
-                              <Label htmlFor="upload" className="flex items-center">
-                                <UploadIcon className="mr-2 h-4 w-4" />
-                                Upload Direto
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>URL do Vídeo</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://" 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(e);
-                              setPreviewVideoUrl(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {videoForm.watch("videoSource") === "youtube"
-                            ? "Cole a URL completa do vídeo no YouTube."
-                            : videoForm.watch("videoSource") === "onedrive"
-                            ? "Cole a URL de compartilhamento do OneDrive."
-                            : videoForm.watch("videoSource") === "google_drive"
-                            ? "Cole a URL de compartilhamento do Google Drive."
-                            : videoForm.watch("videoSource") === "vimeo"
-                            ? "Cole a URL completa do vídeo no Vimeo."
-                            : "Cole a URL de upload direto do vídeo."}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="duration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Duração (mm:ss)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ex: 45:30"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div>
+                  <VideoFormFields 
+                    control={videoForm.control} 
+                    idSuffix="" 
+                    setPreviewVideoUrl={setPreviewVideoUrl}
+                    setPreviewVideoSource={setPreviewVideoSource}
+                    watch={videoForm.watch}
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -2072,139 +1947,13 @@ export default function DisciplineContentPage() {
           <Form {...videoForm}>
             <form onSubmit={videoForm.handleSubmit(onVideoEditSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <FormField
-                    control={videoForm.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Título</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Introdução à Disciplina" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Breve descrição do conteúdo do vídeo..."
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="videoSource"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Origem do Vídeo</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              setPreviewVideoSource(value as any);
-                            }}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="youtube" id="youtube-edit" />
-                              <Label htmlFor="youtube-edit" className="flex items-center">
-                                <YoutubeIcon className="mr-2 h-4 w-4 text-red-600" />
-                                YouTube
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="onedrive" id="onedrive-edit" />
-                              <Label htmlFor="onedrive-edit" className="flex items-center">
-                                <OneDriveIcon className="mr-2 h-4 w-4 text-blue-500" />
-                                OneDrive
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="google_drive" id="google_drive-edit" />
-                              <Label htmlFor="google_drive-edit" className="flex items-center">
-                                <GoogleDriveIcon className="mr-2 h-4 w-4 text-green-500" />
-                                Google Drive
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="vimeo" id="vimeo-edit" />
-                              <Label htmlFor="vimeo-edit" className="flex items-center">
-                                <VimeoIcon className="mr-2 h-4 w-4 text-blue-600" />
-                                Vimeo
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="upload" id="upload-edit" />
-                              <Label htmlFor="upload-edit" className="flex items-center">
-                                <UploadIcon className="mr-2 h-4 w-4" />
-                                Upload Direto
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="url"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>URL do Vídeo</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://" 
-                            {...field} 
-                            onChange={(e) => {
-                              field.onChange(e);
-                              setPreviewVideoUrl(e.target.value);
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {videoForm.watch("videoSource") === "youtube"
-                            ? "Cole a URL completa do vídeo no YouTube."
-                            : videoForm.watch("videoSource") === "onedrive"
-                            ? "Cole a URL de compartilhamento do OneDrive."
-                            : videoForm.watch("videoSource") === "google_drive"
-                            ? "Cole a URL de compartilhamento do Google Drive."
-                            : videoForm.watch("videoSource") === "vimeo"
-                            ? "Cole a URL completa do vídeo no Vimeo."
-                            : "Cole a URL de upload direto do vídeo."}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={videoForm.control}
-                    name="duration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Duração (mm:ss)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Ex: 45:30"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                <div>
+                  <VideoFormFields 
+                    control={videoForm.control} 
+                    idSuffix="-edit" 
+                    setPreviewVideoUrl={setPreviewVideoUrl}
+                    setPreviewVideoSource={setPreviewVideoSource}
+                    watch={videoForm.watch}
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
