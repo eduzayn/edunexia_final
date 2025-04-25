@@ -3,7 +3,7 @@ import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
 
 interface PdfViewerProps {
-  pdfUrl: string;
+  pdfUrl: string | undefined;
   title?: string;
   className?: string;
   height?: string | number;
@@ -13,6 +13,14 @@ interface PdfViewerProps {
  * Componente para visualizar PDFs integrado à plataforma
  */
 export function PdfViewer({ pdfUrl, title, className, height = 800 }: PdfViewerProps) {
+  // Proteção contra pdfUrl undefined
+  if (!pdfUrl) {
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-slate-100 p-4">
+        <p className="text-slate-500">Arquivo PDF indisponível</p>
+      </div>
+    );
+  }
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

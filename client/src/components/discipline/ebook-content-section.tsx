@@ -37,18 +37,20 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   
   const queryClient = useQueryClient();
   
+  // Definir interface para os dados do ebook
+  interface EbookData {
+    id: number;
+    available: boolean;
+    name: string;
+    description?: string;
+    ebookPdfUrl?: string;
+    message?: string;
+  }
+
   // Consulta para buscar dados do ebook
-  const { data: ebookData, isLoading } = useQuery({
+  const { data: ebookData, isLoading } = useQuery<EbookData>({
     queryKey: ['/api/disciplines', disciplineId, 'ebook'],
-    queryFn: async () => {
-      const response = await fetch(`/api/disciplines/${disciplineId}/ebook`);
-      
-      if (!response.ok) {
-        throw new Error('Erro ao carregar dados do ebook');
-      }
-      
-      return response.json();
-    }
+    // Usar o queryFn padrão que já está configurado para lidar com autenticação
   });
   
   // Formulário para adicionar/editar ebook
@@ -64,9 +66,21 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   // Mutação para adicionar/atualizar ebook
   const addEbookMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await fetch(`/api/disciplines/${disciplineId}/ebook`, {
+      // Para uploads de arquivo, precisamos usar uma abordagem especial
+      // já que apiRequest não suporta FormData diretamente
+      const url = `/api/disciplines/${disciplineId}/ebook`;
+      
+      // Obter o token de autenticação do localStorage
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch(url, {
         method: 'POST',
-        body: data
+        body: data,
+        headers: {
+          // Não podemos definir Content-Type com FormData,
+          // o navegador fará isso automaticamente com o boundary correto
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
       });
       
       if (!response.ok) {
@@ -99,14 +113,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   // Mutação para excluir ebook
   const deleteEbookMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/disciplines/${disciplineId}/ebook`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao excluir ebook');
-      }
-      
+      const response = await apiRequest('DELETE', `/api/disciplines/${disciplineId}/ebook`);
       return response.json();
     },
     onSuccess: () => {
@@ -178,7 +185,14 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : ebookData?.available ? (
+          ) : !ebookData ? (
+            // Caso em que ebookData é null ou undefined
+            <div className="py-8 flex flex-col items-center justify-center">
+              <BookMarked className="h-12 w-12 text-gray-300 mb-2" />
+              <h3 className="text-lg font-medium">Carregando...</h3>
+              <p className="text-sm text-gray-500 mb-4">Aguarde enquanto carregamos os dados do e-book</p>
+            </div>
+          ) : ebookData.available ? (
             <div className="flex flex-col">
               <div className="flex flex-col gap-4 mb-6">
                 <div>
@@ -233,10 +247,12 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
               </div>
               
               <div className="h-64 w-full bg-slate-100 rounded-md overflow-hidden">
-                <PdfViewer 
-                  pdfUrl={ebookData.ebookPdfUrl} 
-                  height={256}
-                />
+                {ebookData.ebookPdfUrl && (
+                  <PdfViewer 
+                    pdfUrl={ebookData.ebookPdfUrl} 
+                    height={256}
+                  />
+                )}
               </div>
             </div>
           ) : (
@@ -365,7 +381,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
       </Dialog>
       
       {/* Dialog para visualizar o PDF */}
-      {ebookData?.available && (
+      {ebookData?.available && ebookData.ebookPdfUrl && (
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
             <DialogHeader>
