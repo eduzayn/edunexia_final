@@ -30,6 +30,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import EbookContentSection from "@/components/discipline/ebook-content-section";
 import EbookContentSectionV2 from "@/components/discipline/ebook-content-section-v2";
+import InteractiveEbookContentSection from "@/components/discipline/interactive-ebook-content-section";
 
 import {
   Card,
@@ -1828,10 +1829,10 @@ export default function DisciplineContentPage() {
 
             {/* E-book Tab */}
             <TabsContent value="ebook">
-              <div className="space-y-4">
+              <div className="space-y-8">
                 <EbookContentSectionV2 disciplineId={Number(disciplineId)} />
                 
-                {/* Depurador do endpoint */}
+                <InteractiveEbookContentSection disciplineId={Number(disciplineId)} />
               </div>
             </TabsContent>
 
