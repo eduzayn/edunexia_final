@@ -526,6 +526,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Rota para atualizar um curso específico pelo ID
+  app.put('/api/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ 
+          success: false,
+          message: "ID do curso inválido" 
+        });
+      }
+      
+      // Verificar se o curso existe
+      const existingCourse = await storage.getCourse(courseId);
+      if (!existingCourse) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Curso não encontrado" 
+        });
+      }
+      
+      // Atualizar o curso
+      console.log(`PUT /api/admin/courses/${courseId} - Atualizando curso:`, req.body);
+      const updatedCourse = await storage.updateCourse(courseId, req.body);
+      
+      console.log(`PUT /api/admin/courses/${courseId} - Curso atualizado com sucesso`);
+      return res.json({ 
+        success: true,
+        message: "Curso atualizado com sucesso",
+        data: updatedCourse
+      });
+    } catch (error) {
+      console.error(`Erro ao atualizar curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao atualizar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Nova rota API JSON para cursos - usada no formulário de matrícula
   app.get('/api-json/courses', async (req, res) => {
@@ -1184,6 +1227,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api-json/admin/courses/:id', requireAuth, (req, res) => {
     console.log(`Redirecionando /api-json/admin/courses/${req.params.id} para /api-json/courses/${req.params.id}`);
     res.redirect(`/api-json/courses/${req.params.id}`);
+  });
+  
+  // Rota para atualizar curso (formato JSON-API)
+  app.put('/api-json/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      console.log(`PUT /api-json/admin/courses/${req.params.id} - Atualizando curso (API JSON)`);
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID do curso inválido"
+        });
+      }
+      
+      const existingCourse = await storage.getCourse(courseId);
+      if (!existingCourse) {
+        return res.status(404).json({
+          success: false,
+          message: "Curso não encontrado"
+        });
+      }
+      
+      // Atualizar o curso
+      console.log(`Dados de atualização:`, req.body);
+      const updatedCourse = await storage.updateCourse(courseId, req.body);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Curso atualizado com sucesso",
+        data: updatedCourse
+      });
+    } catch (error) {
+      console.error(`Erro ao atualizar curso: ${error}`);
+      return res.status(500).json({
+        success: false,
+        message: "Erro ao atualizar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
   });
   
   // Também fornecer suporte para rotas em formato JSON-JSON
