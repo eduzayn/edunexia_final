@@ -1,0 +1,279 @@
+DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+Mt.forEach.n.<computed> @ VM14819 eruda.js:2
+(anonymous) @ VM15286 chunk-STDH3NK4.js:326
+commitHookEffectListMount @ VM14879 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM14879 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM14879 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM14879 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM14879 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM14879 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM14879 chunk-276SZO74.js:19447
+commitRootImpl @ VM14879 chunk-276SZO74.js:19416
+commitRoot @ VM14879 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM14879 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM14879 chunk-276SZO74.js:9119
+(anonymous) @ VM14879 chunk-276SZO74.js:18627Understand this error
+VM14819 eruda.js:2 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ VM14819 eruda.js:2
+(anonymous) @ VM15286 chunk-STDH3NK4.js:340
+commitHookEffectListMount @ VM14879 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM14879 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM14879 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM14879 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM14879 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM14879 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM14879 chunk-276SZO74.js:19447
+commitRootImpl @ VM14879 chunk-276SZO74.js:19416
+commitRoot @ VM14879 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM14879 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM14879 chunk-276SZO74.js:9119
+(anonymous) @ VM14879 chunk-276SZO74.js:18627Understand this warning
+VM14819 eruda.js:2 Executando logout - mutationFn
+VM14819 eruda.js:2 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/logout, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/logout
+VM14819 eruda.js:2 Fazendo requisição de logout para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/logout
+VM14819 eruda.js:2 Logout bem-sucedido - onSuccess
+VM15403 eruda.js:2 [HTML DOM Fix] Proteção global aplicada com sucesso
+VM15403 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15403 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15403 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15403 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15403 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15403 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15403 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15403 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15403 eruda.js:2 `DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.
+
+If you want to hide the `DialogTitle`, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+Mt.forEach.n.<computed> @ VM15403 eruda.js:2
+(anonymous) @ VM15587 chunk-STDH3NK4.js:326
+commitHookEffectListMount @ VM15434 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15434 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15434 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15434 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15434 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15434 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15434 chunk-276SZO74.js:19447
+commitRootImpl @ VM15434 chunk-276SZO74.js:19416
+commitRoot @ VM15434 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM15434 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM15434 chunk-276SZO74.js:9119
+(anonymous) @ VM15434 chunk-276SZO74.js:18627Understand this error
+VM15403 eruda.js:2 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ VM15403 eruda.js:2
+(anonymous) @ VM15587 chunk-STDH3NK4.js:340
+commitHookEffectListMount @ VM15434 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15434 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15434 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15434 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15434 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15434 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15434 chunk-276SZO74.js:19447
+commitRootImpl @ VM15434 chunk-276SZO74.js:19416
+commitRoot @ VM15434 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM15434 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM15434 chunk-276SZO74.js:9119
+(anonymous) @ VM15434 chunk-276SZO74.js:18627Understand this warning
+VM15403 eruda.js:2 Redirecionando para portal: admin
+VM15697 eruda.js:2 [HTML DOM Fix] Proteção global aplicada com sucesso
+VM15697 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15697 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15697 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15697 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15697 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15697 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15697 eruda.js:2 [DOM Fix] Aplicando correção universal para erros DOM...
+VM15697 eruda.js:2 [DOM Fix] Correção aplicada com sucesso!
+VM15697 eruda.js:2 Renderizando rota /admin com usuário: undefined
+VM15697 eruda.js:2 Mostrando página de autenticação admin
+VM15697 eruda.js:2 Tentando login como admin com portalType: admin
+VM15697 eruda.js:2 Tentando login como admin com portalType: admin
+VM15697 eruda.js:2 Enviando requisição de login com portalType: admin
+VM15697 eruda.js:2 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/login, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/login
+VM15697 eruda.js:2 Fazendo requisição de login para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/login
+VM15697 eruda.js:2 Renderizando rota /admin com usuário: undefined
+VM15697 eruda.js:2 Mostrando página de autenticação admin
+VM15697 eruda.js:2 Token salvo no localStorage: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc
+VM15697 eruda.js:2 Login bem-sucedido. Dados do usuário: {id: 18, username: 'admin', fullName: 'Administrador', email: 'admin@edunexa.com', portalType: 'admin', …}
+VM15697 eruda.js:2 Portal type: admin
+VM15697 eruda.js:2 Login bem-sucedido, redirecionando para dashboard administrativo
+VM15697 eruda.js:2 Login bem-sucedido, redirecionando para dashboard administrativo
+VM15697 eruda.js:2 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/user, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user
+VM15697 eruda.js:2 QueryClient fazendo requisição para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user (ambiente: d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev)
+VM15697 eruda.js:2 getQueryFn - Token de autenticação recuperado do localStorage: Sim
+VM15697 eruda.js:2 getQueryFn - Authorization Header definido: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc
+VM15697 eruda.js:2 Iniciando fetch para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user
+VM15697 eruda.js:2 Headers completos da requisição: {"Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc","Content-Type":"application/json"}
+VM15697 eruda.js:2 Resposta da requisição para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user: 200
+VM15697 eruda.js:2 Renderizando rota /admin com usuário: admin
+VM15697 eruda.js:2 Redirecionando admin para dashboard
+VM15697 eruda.js:2 ProtectedRoute - path: /admin/dashboard
+VM15697 eruda.js:2 ProtectedRoute - portalType esperado: admin
+VM15697 eruda.js:2 ProtectedRoute - user: {id: 18, username: 'admin', fullName: 'Administrador', email: 'admin@edunexa.com', portalType: 'admin', …}
+VM15697 eruda.js:2 ProtectedRoute - user.portalType: admin
+VM15697 eruda.js:2 ProtectedRoute - userPortalType: admin
+VM15697 eruda.js:2 ProtectedRoute - expectedPortalType: admin
+VM15697 eruda.js:2 ProtectedRoute - Acesso autorizado, renderizando dashboard
+VM15697 eruda.js:2 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/dashboard/admin, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin
+VM15697 eruda.js:2 QueryClient fazendo requisição para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin (ambiente: d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev)
+VM15697 eruda.js:2 getQueryFn - Token de autenticação recuperado do localStorage: Sim
+VM15697 eruda.js:2 getQueryFn - Authorization Header definido: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc
+VM15697 eruda.js:2 Iniciando fetch para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin
+VM15697 eruda.js:2 Headers completos da requisição: {"Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc","Content-Type":"application/json"}
+VM15697 eruda.js:2 [ERRO CRÍTICO] Falha ao realizar fetch para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin: TypeError: Failed to fetch
+    at window.fetch (VM15697 eruda.js:2:218642)
+    at VM15733 queryClient.ts:147:23
+    at Object.fetchFn [as fn] (VM15725 @tanstack_react-query.js:840:14)
+    at run (VM15725 @tanstack_react-query.js:494:49)
+    at Object.start (VM15725 @tanstack_react-query.js:536:9)
+    at _a4.fetch (VM15725 @tanstack_react-query.js:926:41)
+    at _a9.executeFetch_fn (VM15725 @tanstack_react-query.js:2211:51)
+    at _a9.onSubscribe (VM15725 @tanstack_react-query.js:1898:74)
+    at _a9.subscribe (VM15725 @tanstack_react-query.js:24:10)
+    at VM15725 @tanstack_react-query.js:3022:60
+Mt.forEach.n.<computed> @ VM15697 eruda.js:2
+(anonymous) @ VM15733 queryClient.ts:161
+await in (anonymous)
+fetchFn @ VM15725 @tanstack_react-query.js:840
+run @ VM15725 @tanstack_react-query.js:494
+start @ VM15725 @tanstack_react-query.js:536
+fetch @ VM15725 @tanstack_react-query.js:926
+executeFetch_fn @ VM15725 @tanstack_react-query.js:2211
+onSubscribe @ VM15725 @tanstack_react-query.js:1898
+subscribe @ VM15725 @tanstack_react-query.js:24
+(anonymous) @ VM15725 @tanstack_react-query.js:3022
+subscribeToStore @ VM15726 chunk-276SZO74.js:11984
+commitHookEffectListMount @ VM15726 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15726 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15726 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15726 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15726 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15726 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15726 chunk-276SZO74.js:19447
+commitRootImpl @ VM15726 chunk-276SZO74.js:19416
+commitRoot @ VM15726 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM15726 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM15726 chunk-276SZO74.js:9119
+(anonymous) @ VM15726 chunk-276SZO74.js:18627
+setTimeout
+scheduleFn @ VM15725 @tanstack_react-query.js:555
+flush @ VM15725 @tanstack_react-query.js:569
+batch @ VM15725 @tanstack_react-query.js:587
+dispatch_fn @ VM15725 @tanstack_react-query.js:996
+setData @ VM15725 @tanstack_react-query.js:696
+onSuccess @ VM15725 @tanstack_react-query.js:897
+resolve @ VM15725 @tanstack_react-query.js:456
+Promise.then
+run @ VM15725 @tanstack_react-query.js:498
+start @ VM15725 @tanstack_react-query.js:536
+fetch @ VM15725 @tanstack_react-query.js:926
+executeFetch_fn @ VM15725 @tanstack_react-query.js:2211
+setOptions @ VM15725 @tanstack_react-query.js:1955
+(anonymous) @ VM15725 @tanstack_react-query.js:3032
+commitHookEffectListMount @ VM15726 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15726 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15726 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15726 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15726 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15726 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15726 chunk-276SZO74.js:19447
+performSyncWorkOnRoot @ VM15726 chunk-276SZO74.js:18868
+flushSyncCallbacks @ VM15726 chunk-276SZO74.js:9119
+commitRootImpl @ VM15726 chunk-276SZO74.js:19432
+commitRoot @ VM15726 chunk-276SZO74.js:19277
+finishConcurrentRender @ VM15726 chunk-276SZO74.js:18805
+performConcurrentWorkOnRoot @ VM15726 chunk-276SZO74.js:18718
+workLoop @ VM15726 chunk-276SZO74.js:197
+flushWork @ VM15726 chunk-276SZO74.js:176
+performWorkUntilDeadline @ VM15726 chunk-276SZO74.js:384Understand this error
+VM15697 eruda.js:2 Erro de rede - tentando abordagem alternativa para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin
+Mt.forEach.n.<computed> @ VM15697 eruda.js:2
+(anonymous) @ VM15733 queryClient.ts:163
+await in (anonymous)
+fetchFn @ VM15725 @tanstack_react-query.js:840
+run @ VM15725 @tanstack_react-query.js:494
+start @ VM15725 @tanstack_react-query.js:536
+fetch @ VM15725 @tanstack_react-query.js:926
+executeFetch_fn @ VM15725 @tanstack_react-query.js:2211
+onSubscribe @ VM15725 @tanstack_react-query.js:1898
+subscribe @ VM15725 @tanstack_react-query.js:24
+(anonymous) @ VM15725 @tanstack_react-query.js:3022
+subscribeToStore @ VM15726 chunk-276SZO74.js:11984
+commitHookEffectListMount @ VM15726 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15726 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15726 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15726 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15726 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15726 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15726 chunk-276SZO74.js:19447
+commitRootImpl @ VM15726 chunk-276SZO74.js:19416
+commitRoot @ VM15726 chunk-276SZO74.js:19277
+performSyncWorkOnRoot @ VM15726 chunk-276SZO74.js:18895
+flushSyncCallbacks @ VM15726 chunk-276SZO74.js:9119
+(anonymous) @ VM15726 chunk-276SZO74.js:18627
+setTimeout
+scheduleFn @ VM15725 @tanstack_react-query.js:555
+flush @ VM15725 @tanstack_react-query.js:569
+batch @ VM15725 @tanstack_react-query.js:587
+dispatch_fn @ VM15725 @tanstack_react-query.js:996
+setData @ VM15725 @tanstack_react-query.js:696
+onSuccess @ VM15725 @tanstack_react-query.js:897
+resolve @ VM15725 @tanstack_react-query.js:456
+Promise.then
+run @ VM15725 @tanstack_react-query.js:498
+start @ VM15725 @tanstack_react-query.js:536
+fetch @ VM15725 @tanstack_react-query.js:926
+executeFetch_fn @ VM15725 @tanstack_react-query.js:2211
+setOptions @ VM15725 @tanstack_react-query.js:1955
+(anonymous) @ VM15725 @tanstack_react-query.js:3032
+commitHookEffectListMount @ VM15726 chunk-276SZO74.js:16915
+commitPassiveMountOnFiber @ VM15726 chunk-276SZO74.js:18156
+commitPassiveMountEffects_complete @ VM15726 chunk-276SZO74.js:18129
+commitPassiveMountEffects_begin @ VM15726 chunk-276SZO74.js:18119
+commitPassiveMountEffects @ VM15726 chunk-276SZO74.js:18109
+flushPassiveEffectsImpl @ VM15726 chunk-276SZO74.js:19490
+flushPassiveEffects @ VM15726 chunk-276SZO74.js:19447
+performSyncWorkOnRoot @ VM15726 chunk-276SZO74.js:18868
+flushSyncCallbacks @ VM15726 chunk-276SZO74.js:9119
+commitRootImpl @ VM15726 chunk-276SZO74.js:19432
+commitRoot @ VM15726 chunk-276SZO74.js:19277
+finishConcurrentRender @ VM15726 chunk-276SZO74.js:18805
+performConcurrentWorkOnRoot @ VM15726 chunk-276SZO74.js:18718
+workLoop @ VM15726 chunk-276SZO74.js:197
+flushWork @ VM15726 chunk-276SZO74.js:176
+performWorkUntilDeadline @ VM15726 chunk-276SZO74.js:384Understand this warning
+Console.js:61 [HTML DOM Fix] Proteção global aplicada com sucesso
+Console.js:61 [DOM Fix] Aplicando correção universal para erros DOM...
+Console.js:61 [DOM Fix] Correção aplicada com sucesso!
+Console.js:61 [DOM Fix] Aplicando correção universal para erros DOM...
+Console.js:61 [DOM Fix] Correção aplicada com sucesso!
+Console.js:61 [DOM Fix] Aplicando correção universal para erros DOM...
+Console.js:61 [DOM Fix] Correção aplicada com sucesso!
+Console.js:61 [DOM Fix] Aplicando correção universal para erros DOM...
+Console.js:61 [DOM Fix] Correção aplicada com sucesso!
+Console.js:61 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/user, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user
+Console.js:61 QueryClient fazendo requisição para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user (ambiente: d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev)
+Console.js:61 getQueryFn - Token de autenticação recuperado do localStorage: Sim
+Console.js:61 getQueryFn - Authorization Header definido: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc
+Console.js:61 Iniciando fetch para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user
+Console.js:61 Headers completos da requisição: {"Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc","Content-Type":"application/json"}
+Console.js:61 Resposta da requisição para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/user: 200
+Console.js:61 ProtectedRoute - path: /admin/dashboard
+Console.js:61 ProtectedRoute - portalType esperado: admin
+Console.js:61 ProtectedRoute - user: {id: 18, username: 'admin', fullName: 'Administrador', email: 'admin@edunexa.com', portalType: 'admin', …}
+Console.js:61 ProtectedRoute - user.portalType: admin
+Console.js:61 ProtectedRoute - userPortalType: admin
+Console.js:61 ProtectedRoute - expectedPortalType: admin
+Console.js:61 ProtectedRoute - Acesso autorizado, renderizando dashboard
+Console.js:61 buildApiUrl: base=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev, path=/api/dashboard/admin, resultado=https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin
+Console.js:61 QueryClient fazendo requisição para: https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin (ambiente: d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev)
+Console.js:61 getQueryFn - Token de autenticação recuperado do localStorage: Sim
+Console.js:61 getQueryFn - Authorization Header definido: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc
+Console.js:61 Iniciando fetch para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin
+Console.js:61 Headers completos da requisição: {"Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTgsInVzZXJuYW1lIjoiYWRtaW4iLCJmdWxsTmFtZSI6IkFkbWluaXN0cmFkb3IiLCJlbWFpbCI6ImFkbWluQGVkdW5leGEuY29tIiwicG9ydGFsVHlwZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzQ1NTQ5MTA1Njk0LCJleHAiOjE3NDU2MzU1MDV9.jaeQefHS8zPvVOyRPvJTTE9R8mBXSt3_y0hsDKICvyc","Content-Type":"application/json"}
+Console.js:61 Resposta da requisição para https://d7775755-86d6-46c0-9e80-55092b836808-00-1wokokcfxh045.worf.replit.dev/api/dashboard/admin: 200
