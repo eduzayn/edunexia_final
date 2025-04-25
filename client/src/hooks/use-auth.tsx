@@ -18,6 +18,7 @@ interface LoginResponse {
   [key: string]: any; // Permite campos adicionais
 }
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { buildApiUrl } from "../lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { getNavigationPath } from "../lib/url-utils";
@@ -135,8 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Simplificamos a chamada para evitar erros de tipo
         let response;
         
-        // API em ambiente de produção
-        const loginUrl = API_ROUTES.LOGIN;
+        // API em ambiente de produção - Usando buildApiUrl para obter a URL completa
+        const loginUrl = buildApiUrl(API_ROUTES.LOGIN);
         console.log("Fazendo requisição de login para:", loginUrl);
         
         // Usando o método fetch diretamente para evitar problemas de tipo
@@ -226,8 +227,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
+      // Usando buildApiUrl para construir a URL correta
+      const registerUrl = buildApiUrl(API_ROUTES.REGISTER);
+      console.log("Fazendo requisição de registro para:", registerUrl);
+      
       // Usando fetch diretamente
-      const response = await fetch(API_ROUTES.REGISTER, {
+      const response = await fetch(registerUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -260,8 +265,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Executando logout - mutationFn");
+      // Usando buildApiUrl para construir a URL correta
+      const logoutUrl = buildApiUrl(API_ROUTES.LOGOUT);
+      console.log("Fazendo requisição de logout para:", logoutUrl);
+      
       // Usando fetch diretamente
-      const response = await fetch(API_ROUTES.LOGOUT, {
+      const response = await fetch(logoutUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

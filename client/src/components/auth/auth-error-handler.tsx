@@ -14,13 +14,15 @@ export function AuthErrorHandler({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Se estamos na página de autenticação, não precisamos fazer verificações adicionais
+  // Se estamos em uma página pública ou de autenticação, não precisamos fazer verificações adicionais
   const isAuthPage = location === "/auth" || location.startsWith("/auth/");
+  const isAdminPage = location === "/admin"; // Adicionando /admin como página pública
+  const isPortalSelectionPage = location === "/portal-selection"; // Adicionando seletor de portais como página pública
   const isHomePage = location === "/" || location === "";
 
   useEffect(() => {
-    // Se houve um erro de autenticação e não estamos na página de auth ou home
-    if (error && !isAuthPage && !isHomePage) {
+    // Se houve um erro de autenticação e não estamos em uma página pública
+    if (error && !isAuthPage && !isHomePage && !isAdminPage && !isPortalSelectionPage) {
       toast({
         title: "Sessão expirada",
         description: "Por favor, faça login novamente para continuar.",
@@ -30,11 +32,11 @@ export function AuthErrorHandler({ children }: { children: ReactNode }) {
       // Redirecionar para página de auth
       setLocation("/auth");
     }
-  }, [error, isAuthPage, isHomePage, setLocation, toast]);
+  }, [error, isAuthPage, isHomePage, isAdminPage, isPortalSelectionPage, setLocation, toast]);
 
   // Caso o usuário esteja tentando acessar uma página protegida sem estar autenticado
-  // e não seja a página inicial ou de autenticação
-  if (!isLoading && !user && !isAuthPage && !isHomePage) {
+  // e não seja uma página pública ou de autenticação
+  if (!isLoading && !user && !isAuthPage && !isHomePage && !isAdminPage && !isPortalSelectionPage) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <div className="w-full max-w-md p-6 space-y-4 bg-white rounded-lg shadow-md dark:bg-gray-800">
