@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { DialogFooter } from '@/components/ui/dialog';
 import { AccessibleDialog } from '@/components/ui/accessible-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -13,9 +14,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { PlusIcon, Pencil, Trash2, BookMarked, Book, ExternalLink, FileUp } from 'lucide-react';
+import { 
+  PlusIcon, 
+  Pencil, 
+  Trash2, 
+  BookMarked, 
+  Book, 
+  ExternalLink, 
+  FileUp, 
+  Download,
+  Info,
+  RefreshCw,
+  CheckCircle, 
+  FileText,
+  Search
+} from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer/pdf-viewer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Esquema de validação para os formulários
 const ebookFormSchema = z.object({
@@ -30,11 +49,63 @@ interface EbookContentSectionProps {
   disciplineId: number;
 }
 
+// Função utilitária para verificar se a URL é do Google Drive
+function isGoogleDriveUrl(url: string): boolean {
+  return url.includes('drive.google.com');
+}
+
+// Função para converter URL do Google Drive para formato de visualização direta
+function convertGoogleDriveUrl(url: string): string {
+  if (!isGoogleDriveUrl(url)) return url;
+  
+  // Extrair o ID do arquivo
+  let fileId = '';
+  
+  // Padrão para URLs de visualização
+  const viewPattern = /\/file\/d\/([^\/]+)/;
+  const viewMatch = url.match(viewPattern);
+  
+  if (viewMatch && viewMatch[1]) {
+    fileId = viewMatch[1];
+  } else {
+    // Padrão para URLs de compartilhamento
+    const sharePattern = /id=([^&]+)/;
+    const shareMatch = url.match(sharePattern);
+    
+    if (shareMatch && shareMatch[1]) {
+      fileId = shareMatch[1];
+    }
+  }
+  
+  if (fileId) {
+    // Construir URL para visualização direta no Google Drive
+    return `https://drive.google.com/file/d/${fileId}/preview`;
+  }
+  
+  return url;
+}
+
+// Função para detectar o tipo de URL
+function detectUrlType(url: string | undefined): 'google-drive' | 'pdf' | 'unknown' {
+  if (!url) return 'unknown';
+  
+  if (isGoogleDriveUrl(url)) {
+    return 'google-drive';
+  } else if (url.endsWith('.pdf') || url.includes('/uploads/')) {
+    return 'pdf';
+  }
+  
+  return 'unknown';
+}
+
 export default function EbookContentSection({ disciplineId }: EbookContentSectionProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('preview');
   
   const queryClient = useQueryClient();
   
@@ -49,20 +120,46 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   }
 
   // Consulta para buscar dados do ebook
-  const { data: ebookData, isLoading } = useQuery<EbookData>({
+  const { data: ebookData, isLoading, refetch } = useQuery<EbookData>({
     queryKey: ['/api/disciplines', disciplineId, 'ebook'],
+    refetchOnWindowFocus: false,
     // Usar o queryFn padrão que já está configurado para lidar com autenticação
   });
+  
+  // Usado para preparar a URL para visualização
+  useEffect(() => {
+    if (ebookData?.ebookPdfUrl) {
+      const urlType = detectUrlType(ebookData.ebookPdfUrl);
+      if (urlType === 'google-drive') {
+        setViewerUrl(convertGoogleDriveUrl(ebookData.ebookPdfUrl));
+      } else {
+        setViewerUrl(ebookData.ebookPdfUrl);
+      }
+    } else {
+      setViewerUrl(null);
+    }
+  }, [ebookData]);
   
   // Formulário para adicionar/editar ebook
   const form = useForm<EbookFormValues>({
     resolver: zodResolver(ebookFormSchema),
     defaultValues: {
       url: '',
-      title: '',
-      description: ''
+      title: ebookData?.name || '',
+      description: ebookData?.description || ''
     }
   });
+  
+  // Atualizar os valores padrão quando os dados do e-book são carregados
+  useEffect(() => {
+    if (ebookData) {
+      form.reset({
+        url: '',
+        title: ebookData.name || '',
+        description: ebookData.description || ''
+      });
+    }
+  }, [ebookData, form]);
   
   // Mutação para adicionar/atualizar ebook
   const addEbookMutation = useMutation({
@@ -101,6 +198,11 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
       setIsAddDialogOpen(false);
       form.reset();
       setSelectedFile(null);
+      
+      // Refetch para atualizar os dados
+      setTimeout(() => {
+        refetch();
+      }, 500);
     },
     onError: (error) => {
       toast({
@@ -125,6 +227,12 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
         title: 'Sucesso',
         description: 'E-book removido com sucesso',
       });
+      setIsManageDialogOpen(false);
+      
+      // Refetch para atualizar os dados
+      setTimeout(() => {
+        refetch();
+      }, 500);
     },
     onError: (error) => {
       toast({
@@ -165,19 +273,45 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
     }
   };
   
+  // Verificar o tipo de URL do e-book (se disponível)
+  const urlType = ebookData?.ebookPdfUrl ? detectUrlType(ebookData.ebookPdfUrl) : 'unknown';
+  
   return (
     <div className="ebook-content-section">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">E-book Interativo</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setIsAddDialogOpen(true)}
-          className="flex gap-2 items-center"
-        >
-          <PlusIcon className="h-4 w-4" />
-          {ebookData?.available ? "Substituir E-book" : "Adicionar E-book"}
-        </Button>
+        <div className="flex items-center">
+          <h2 className="text-xl font-semibold">E-book Interativo</h2>
+          {ebookData?.available && (
+            <Badge variant="outline" className="ml-2 bg-green-50">
+              <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+              Disponível
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex gap-2">
+          {ebookData?.available && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsManageDialogOpen(true)}
+              className="flex gap-2 items-center"
+            >
+              <Pencil className="h-4 w-4" />
+              Gerenciar
+            </Button>
+          )}
+          
+          <Button 
+            variant={ebookData?.available ? "outline" : "default"}
+            size="sm" 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="flex gap-2 items-center"
+          >
+            <PlusIcon className="h-4 w-4" />
+            {ebookData?.available ? "Substituir" : "Adicionar E-book"}
+          </Button>
+        </div>
       </div>
       
       <Card className="w-full">
@@ -197,8 +331,25 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
             <div className="flex flex-col">
               <div className="flex flex-col gap-4 mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold">{ebookData.name}</h3>
-                  <p className="text-sm text-gray-500">{ebookData.description}</p>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-lg font-semibold">{ebookData.name}</h3>
+                      <p className="text-sm text-gray-500">{ebookData.description}</p>
+                    </div>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="bg-blue-50">
+                            {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Tipo de conteúdo: {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
                 
                 <div className="flex space-x-2">
@@ -208,7 +359,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                     className="flex gap-2 items-center"
                   >
                     <Book className="h-4 w-4" />
-                    Abrir E-book
+                    Visualizar E-book
                   </Button>
                   
                   <Button 
@@ -217,42 +368,40 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                     className="flex gap-2 items-center"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Nova Aba
+                    Abrir em Nova Aba
                   </Button>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="destructive" 
-                        size="icon"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir E-book</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja excluir este e-book? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteEbookMutation.mutate()}>
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
                 </div>
               </div>
               
-              <div className="h-64 w-full bg-slate-100 rounded-md overflow-hidden">
-                {ebookData.ebookPdfUrl && (
-                  <PdfViewer 
-                    pdfUrl={ebookData.ebookPdfUrl} 
-                    height={256}
-                  />
+              <div className="h-64 w-full bg-slate-100 rounded-md overflow-hidden flex items-center justify-center">
+                {viewerUrl ? (
+                  urlType === 'google-drive' ? (
+                    <iframe 
+                      src={viewerUrl} 
+                      className="w-full h-full"
+                      allow="autoplay"
+                      allowFullScreen
+                    ></iframe>
+                  ) : (
+                    <PdfViewer 
+                      pdfUrl={viewerUrl} 
+                      height={256}
+                    />
+                  )
+                ) : (
+                  <div className="text-center p-4">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500">Pré-visualização não disponível</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Abrir para visualizar
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -271,6 +420,25 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
             </div>
           )}
         </CardContent>
+        
+        {ebookData?.available && (
+          <CardFooter className="border-t bg-muted/20 flex justify-between">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Info className="h-3 w-3 mr-1" />
+              Última atualização: {new Date().toLocaleDateString('pt-BR')}
+            </div>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => refetch()}
+              className="text-xs"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Atualizar
+            </Button>
+          </CardFooter>
+        )}
       </Card>
       
       {/* Dialog para adicionar/substituir e-book */}
@@ -347,6 +515,9 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                             {...field} 
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Suporta URLs do Google Drive, OneDrive ou PDFs diretos
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -381,7 +552,152 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
         </Form>
       </AccessibleDialog>
       
-      {/* Dialog para visualizar o PDF */}
+      {/* Dialog de gerenciamento do e-book */}
+      {ebookData?.available && (
+        <AccessibleDialog
+          open={isManageDialogOpen}
+          onOpenChange={setIsManageDialogOpen}
+          title="Gerenciar E-book"
+          description="Gerencie o e-book associado a esta disciplina"
+          showTitle={true}
+        >
+          <Tabs defaultValue="info" className="mt-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="info">Informações</TabsTrigger>
+              <TabsTrigger value="preview">Pré-visualizar</TabsTrigger>
+              <TabsTrigger value="actions">Ações</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="info" className="space-y-4 mt-4">
+              <div className="grid gap-4">
+                <div>
+                  <Label>Título</Label>
+                  <div className="font-medium mt-1">{ebookData.name}</div>
+                </div>
+                
+                <div>
+                  <Label>Descrição</Label>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {ebookData.description || "Sem descrição"}
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Tipo</Label>
+                  <div className="flex items-center mt-1">
+                    <Badge className="bg-blue-50 text-blue-800">
+                      {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>URL</Label>
+                  <div className="text-xs text-gray-500 mt-1 break-all">
+                    {ebookData.ebookPdfUrl || "N/A"}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="preview" className="space-y-4 mt-4">
+              <div className="h-[400px] w-full bg-slate-100 rounded-md overflow-hidden flex items-center justify-center">
+                {viewerUrl ? (
+                  urlType === 'google-drive' ? (
+                    <iframe 
+                      src={viewerUrl} 
+                      className="w-full h-full" 
+                      allow="autoplay"
+                      allowFullScreen
+                    ></iframe>
+                  ) : (
+                    <PdfViewer 
+                      pdfUrl={viewerUrl} 
+                      height="100%"
+                    />
+                  )
+                ) : (
+                  <div className="text-center p-4">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-500">Pré-visualização não disponível</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Abrir para visualizar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="actions" className="space-y-4 mt-4">
+              <div className="grid gap-4">
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsAddDialogOpen(true)}
+                    className="w-full justify-start"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Substituir E-book
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                    className="w-full justify-start"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Abrir em Nova Aba
+                  </Button>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        className="w-full justify-start mt-4"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir E-book
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir E-book</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir este e-book? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteEbookMutation.mutate()}>
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsManageDialogOpen(false)}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </AccessibleDialog>
+      )}
+      
+      {/* Dialog para visualizar o PDF/Google Drive */}
       {ebookData?.available && ebookData.ebookPdfUrl && (
         <AccessibleDialog
           open={isViewDialogOpen}
@@ -391,10 +707,35 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
           showTitle={true}
         >
           <div className="flex-grow overflow-auto h-[calc(90vh-120px)] mt-4">
-            <PdfViewer 
-              pdfUrl={ebookData.ebookPdfUrl} 
-              height="100%"
-            />
+            {viewerUrl ? (
+              urlType === 'google-drive' ? (
+                <iframe 
+                  src={viewerUrl}
+                  className="w-full h-full" 
+                  allow="autoplay"
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <PdfViewer 
+                  pdfUrl={viewerUrl} 
+                  height="100%"
+                />
+              )
+            ) : (
+              <div className="text-center p-4">
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">Visualização não disponível</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Abrir para visualizar
+                </Button>
+              </div>
+            )}
           </div>
           
           <DialogFooter className="mt-4">
