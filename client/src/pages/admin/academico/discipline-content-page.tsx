@@ -200,6 +200,8 @@ export default function DisciplineContentPage() {
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
   const [selectedAssessmentType, setSelectedAssessmentType] = useState<"simulado" | "avaliacao_final">("simulado");
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
+  const [isEditQuestionsDialogOpen, setIsEditQuestionsDialogOpen] = useState(false);
   
   // Estado para prévia de vídeo
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
