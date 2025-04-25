@@ -103,7 +103,7 @@ import {
   CheckIcon,
   EditIcon,
 } from "@/components/ui/icons";
-import { Clock as ClockIcon } from "lucide-react";
+import { Clock as ClockIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -2665,6 +2665,21 @@ export default function DisciplineContentPage() {
                           {question.options.length} opções | Opção correta: {String.fromCharCode(65 + question.correctOption)}
                         </p>
                       </div>
+                      {selectedQuestionIds.includes(question.id) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleQuestionSelection(question.id);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Remover questão</span>
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
