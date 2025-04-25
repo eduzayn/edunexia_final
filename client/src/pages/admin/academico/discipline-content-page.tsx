@@ -29,6 +29,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import EbookContentSection from "@/components/discipline/ebook-content-section";
+import EbookContentSectionV2 from "@/components/discipline/ebook-content-section-v2";
 import {
   Card,
   CardContent,
@@ -1826,7 +1827,7 @@ export default function DisciplineContentPage() {
 
             {/* E-book Tab */}
             <TabsContent value="ebook">
-              <EbookContentSection disciplineId={Number(disciplineId)} />
+              <EbookContentSectionV2 disciplineId={Number(disciplineId)} />
             </TabsContent>
 
             {/* Assessments Tab */}
