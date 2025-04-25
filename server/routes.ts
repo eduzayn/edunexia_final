@@ -1088,6 +1088,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
   app.use(disciplineDetailRoute); // Route for accessing discipline by ID
+  
+  // Rota para listar todas as disciplinas (adicionado para resolver erro 404)
+  app.get('/api/disciplines', requireAuth, async (req, res) => {
+    try {
+      console.log('GET /api/disciplines - Listando todas as disciplinas');
+      // Importando disciplinas do schema compartilhado
+      const { disciplines } = await import('@shared/schema');
+      const allDisciplines = await db.select().from(disciplines);
+      return res.status(200).json(allDisciplines);
+    } catch (error) {
+      console.error('Erro ao listar disciplinas:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro interno do servidor ao listar disciplinas' 
+      });
+    }
+  });
+  
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação

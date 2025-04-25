@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DialogFooter } from '@/components/ui/dialog';
+import { AccessibleDialog } from '@/components/ui/accessible-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -273,146 +274,146 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
       </Card>
       
       {/* Dialog para adicionar/substituir e-book */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{ebookData?.available ? "Substituir E-book" : "Adicionar E-book"}</DialogTitle>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título do E-book</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Inserir título" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição (opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Inserir uma breve descrição do conteúdo" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid gap-4 py-2">
-                <Label>Arquivo ou URL</Label>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label>Upload de Arquivo</Label>
-                    <div className="flex flex-col gap-2 w-full">
-                      <Input 
-                        type="file" 
-                        accept=".pdf" 
-                        onChange={handleFileChange}
-                      />
-                      {selectedFile && (
-                        <p className="text-xs text-green-600">
-                          {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col gap-2">
-                    <Label>OU Link Externo</Label>
-                    <FormField
-                      control={form.control}
-                      name="url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <Input 
-                              placeholder="https://exemplo.com/ebook.pdf" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+      <AccessibleDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        title={ebookData?.available ? "Substituir E-book" : "Adicionar E-book"}
+        description="Preencha o formulário para adicionar ou substituir o e-book"
+        showTitle={true}
+      >
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Título do E-book</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Inserir título" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição (opcional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Inserir uma breve descrição do conteúdo" 
+                      {...field} 
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid gap-4 py-2">
+              <Label>Arquivo ou URL</Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label>Upload de Arquivo</Label>
+                  <div className="flex flex-col gap-2 w-full">
+                    <Input 
+                      type="file" 
+                      accept=".pdf" 
+                      onChange={handleFileChange}
+                    />
+                    {selectedFile && (
+                      <p className="text-xs text-green-600">
+                        {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                      </p>
+                    )}
                   </div>
                 </div>
+                
+                <div className="flex flex-col gap-2">
+                  <Label>OU Link Externo</Label>
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input 
+                            placeholder="https://exemplo.com/ebook.pdf" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={addEbookMutation.isPending}
-                  className="flex gap-2 items-center"
-                >
-                  {addEbookMutation.isPending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <FileUp className="h-4 w-4" />
-                      {ebookData?.available ? "Substituir" : "Adicionar"}
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog para visualizar o PDF */}
-      {ebookData?.available && ebookData.ebookPdfUrl && (
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader>
-              <DialogTitle>{ebookData.name}</DialogTitle>
-            </DialogHeader>
-            
-            <div className="flex-grow overflow-auto h-[calc(90vh-120px)]">
-              <PdfViewer 
-                pdfUrl={ebookData.ebookPdfUrl} 
-                height="100%"
-              />
             </div>
             
             <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsViewDialogOpen(false)}
-              >
-                Fechar
+              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                Cancelar
               </Button>
               <Button 
-                variant="default" 
-                onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                type="submit" 
+                disabled={addEbookMutation.isPending}
                 className="flex gap-2 items-center"
               >
-                <ExternalLink className="h-4 w-4" />
-                Nova Aba
+                {addEbookMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="h-4 w-4" />
+                    {ebookData?.available ? "Substituir" : "Adicionar"}
+                  </>
+                )}
               </Button>
             </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </form>
+        </Form>
+      </AccessibleDialog>
+      
+      {/* Dialog para visualizar o PDF */}
+      {ebookData?.available && ebookData.ebookPdfUrl && (
+        <AccessibleDialog
+          open={isViewDialogOpen}
+          onOpenChange={setIsViewDialogOpen}
+          title={ebookData.name || "Visualizador de E-book"}
+          description="Visualização do conteúdo do e-book"
+          showTitle={true}
+        >
+          <div className="flex-grow overflow-auto h-[calc(90vh-120px)] mt-4">
+            <PdfViewer 
+              pdfUrl={ebookData.ebookPdfUrl} 
+              height="100%"
+            />
+          </div>
+          
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsViewDialogOpen(false)}
+            >
+              Fechar
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+              className="flex gap-2 items-center"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Nova Aba
+            </Button>
+          </DialogFooter>
+        </AccessibleDialog>
       )}
     </div>
   );
