@@ -282,27 +282,49 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
   // Mutação para adicionar/atualizar ebook interativo
   const addEbookMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      // Para uploads de arquivo, precisamos usar uma abordagem especial
-      const url = `/api/disciplines/${disciplineId}/interactive-ebook`;
-      
-      console.log('Enviando dados para:', url);
-      
-      // Obter o token de autenticação do localStorage
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        body: data,
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
+      try {
+        // Para uploads de arquivo, precisamos usar uma abordagem especial
+        // Usar a URL completa com o domínio da API
+        const baseUrl = document.querySelector('meta[name="api-base-url"]')?.getAttribute('content') || '';
+        const url = `${baseUrl}/api/disciplines/${disciplineId}/interactive-ebook`;
+        
+        console.log('Enviando dados para URL completa:', url);
+        
+        // Obter o token de autenticação do localStorage
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          body: data,
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        });
+        
+        if (!response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            // Se for JSON, tentar ler a mensagem de erro
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro desconhecido ao adicionar e-book interativo');
+          } else {
+            // Se não for JSON, provavelmente é HTML de erro
+            throw new Error('Erro no servidor ao adicionar e-book interativo');
+          }
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao adicionar e-book interativo');
+        
+        const text = await response.text();
+        try {
+          // Tentar converter para JSON
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Erro ao parsear resposta como JSON:', text);
+          throw new Error('A resposta não é um JSON válido');
+        }
+      } catch (error) {
+        console.error('Erro na mutação:', error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({

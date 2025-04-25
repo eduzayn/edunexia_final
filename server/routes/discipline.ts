@@ -927,8 +927,8 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
       });
     }
     
-    const disciplineIdStr = Array.isArray(disciplineId) ? disciplineId[0] : disciplineId as string;
-    const numDisciplineId = validateDisciplineId(disciplineIdStr);
+    const disciplineIdStr = Array.isArray(disciplineId) ? disciplineId[0] : disciplineId;
+    const numDisciplineId = validateDisciplineId(disciplineIdStr && typeof disciplineIdStr === 'object' ? String(disciplineIdStr) : String(disciplineIdStr));
     
     if (!numDisciplineId) {
       return res.status(400).json({ 
