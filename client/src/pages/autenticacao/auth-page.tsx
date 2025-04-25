@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link, useLocation, useSearch } from "wouter";
 import { SchoolIcon, HandshakeIcon, MapPinIcon, ShieldIcon } from "@/components/ui/icons";
+import { AccessibleDialog } from "@/components/ui/accessible-dialog";
 
 // Form schemas
 const loginSchema = z.object({
@@ -70,6 +71,8 @@ export default function AuthPage({ adminOnly = false }: AuthPageProps) {
   const portalParam = params.get("portal") as PortalType;
   const portalType = adminOnly ? "admin" : (portalParam || "student");
   const [selectedTab, setSelectedTab] = useState<"login" | "register">("login");
+  const [isRecoveryDialogOpen, setIsRecoveryDialogOpen] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   
   // Efeito para verificar e limpar qualquer autenticação existente
   useEffect(() => {
@@ -188,8 +191,86 @@ export default function AuthPage({ adminOnly = false }: AuthPageProps) {
     }
   };
 
+  // Função para lidar com a recuperação de senha
+  const handlePasswordRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!recoveryEmail) {
+      toast({
+        title: "Erro",
+        description: "Por favor, informe seu e-mail",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      // Aqui você enviaria a solicitação para a API
+      // const response = await apiRequest("POST", "/api/recover-password", { email: recoveryEmail });
+      
+      // Como ainda não temos a implementação do backend, simulamos o sucesso
+      toast({
+        title: "Solicitação enviada",
+        description: "Instruções de recuperação foram enviadas para seu e-mail",
+        variant: "default",
+      });
+      
+      // Fechar o diálogo e limpar o e-mail
+      setIsRecoveryDialogOpen(false);
+      setRecoveryEmail("");
+    } catch (error) {
+      console.error("Erro ao solicitar recuperação:", error);
+      toast({
+        title: "Erro na recuperação",
+        description: "Não foi possível processar sua solicitação. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {/* Diálogo de Recuperação de Senha */}
+      <AccessibleDialog
+        open={isRecoveryDialogOpen}
+        onOpenChange={setIsRecoveryDialogOpen}
+        title="Recuperação de Senha"
+        description="Informe seu e-mail para receber instruções de recuperação"
+        showTitle={true}
+        showDescription={true}
+        trigger={null}
+      >
+        <form onSubmit={handlePasswordRecovery} className="space-y-4 py-2">
+          <div className="space-y-2">
+            <label htmlFor="recovery-email" className="text-sm font-medium">
+              E-mail
+            </label>
+            <Input
+              id="recovery-email"
+              type="email"
+              placeholder="seu@email.com"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              required
+            />
+            <p className="text-xs text-gray-500">
+              Você receberá um link de recuperação no e-mail informado.
+            </p>
+          </div>
+          
+          <div className="flex justify-end space-x-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsRecoveryDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit">Enviar</Button>
+          </div>
+        </form>
+      </AccessibleDialog>
+      
       {/* Auth Form Column */}
       <div className="flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:w-1/2 xl:w-2/5">
         <div className="mx-auto w-full max-w-sm lg:w-96">
@@ -305,6 +386,7 @@ export default function AuthPage({ adminOnly = false }: AuthPageProps) {
                       <Button 
                         variant="link" 
                         className="p-0 text-sm text-primary hover:text-primary-dark"
+                        onClick={() => setIsRecoveryDialogOpen(true)}
                       >
                         Esqueceu a senha?
                       </Button>
@@ -533,6 +615,7 @@ export default function AuthPage({ adminOnly = false }: AuthPageProps) {
                   <Button 
                     variant="link" 
                     className="p-0 text-sm text-primary hover:text-primary-dark"
+                    onClick={() => setIsRecoveryDialogOpen(true)}
                   >
                     Esqueceu a senha?
                   </Button>
