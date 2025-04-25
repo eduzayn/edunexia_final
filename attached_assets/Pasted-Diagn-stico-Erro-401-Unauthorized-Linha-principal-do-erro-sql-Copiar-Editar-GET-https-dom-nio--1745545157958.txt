@@ -1,0 +1,73 @@
+Diagnóstico: Erro 401 Unauthorized
+Linha principal do erro:
+sql
+Copiar
+Editar
+GET https://[domínio].replit.dev/api/user → 401 (Unauthorized)
+➡️ Isso significa que você está tentando acessar um endpoint protegido, mas o token de autenticação não está sendo enviado corretamente (ou é inválido/expirado).
+
+✅ Como resolver sem afetar o restante do sistema
+1. Garanta que o token JWT esteja salvo e disponível no momento certo
+No login bem-sucedido, o token deve ser salvo no localStorage (ou sessionStorage):
+
+ts
+Copiar
+Editar
+localStorage.setItem('authToken', token);
+2. Verifique se o token está sendo lido corretamente
+Antes de cada requisição protegida, seu fetch() (ou axios) deve incluir:
+
+ts
+Copiar
+Editar
+const token = localStorage.getItem('authToken');
+
+fetch(apiUrl('/user'), {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});
+➡️ Verifique se token não está vindo como null (o que causaria o erro 401).
+
+3. Crie um helper de autenticação para isolar a lógica
+Para evitar interferir nas outras partes do sistema, crie um helper genérico para chamadas autenticadas:
+
+ts
+Copiar
+Editar
+export const authFetch = async (path: string, options = {}) => {
+  const token = localStorage.getItem('authToken');
+
+  const headers = {
+    ...(options as any).headers,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+
+  return fetch(apiUrl(path), {
+    ...options,
+    headers
+  });
+};
+➡️ Use isso apenas nas rotas protegidas. As rotas públicas continuam usando fetch() normalmente.
+
+4. Evite o erro em usuários não logados
+Se o usuário ainda não estiver logado, redirecione ou bloqueie a chamada ao backend com uma verificação simples:
+
+ts
+Copiar
+Editar
+const token = localStorage.getItem('authToken');
+if (!token) {
+  console.warn("Usuário não autenticado. Redirecionando...");
+  navigate('/login');
+  return;
+}
+✅ Resumo: ações recomendadas
+
+Ação	Impacto no sistema	Benefício
+✅ Criar helper authFetch()	Localizado	Isola a lógica de autenticação
+✅ Verificar se token existe antes do fetch	Localizado	Evita erros 401 desnecessários
+✅ Adicionar fallback para redirecionar se token estiver ausente	Localizado	Melhora UX e segurança
+✅ Usar localStorage com consistência após login	Global (mas seguro)	Garante persistência de login

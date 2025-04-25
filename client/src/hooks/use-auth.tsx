@@ -110,6 +110,10 @@ export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  // Verificar primeiro se há um token disponível antes de fazer a consulta
+  // Isso reduz as chamadas desnecessárias ao servidor
+  const hasToken = !!localStorage.getItem('auth_token');
+  
   const {
     data: user,
     error,
@@ -117,6 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: [API_ROUTES.USER],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    // Não executar a consulta se não houver token disponível
+    enabled: hasToken,
   });
 
   const [, setLocation] = useLocation();
@@ -131,6 +137,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Limpar o cache de usuário antes de tentar o login
       // para evitar conflitos de estado entre logins
       queryClient.removeQueries({ queryKey: [API_ROUTES.USER] });
+      
+      // Limpar token antigo se existir para garantir um login limpo
+      localStorage.removeItem('auth_token');
       
       try {
         // Simplificamos a chamada para evitar erros de tipo
@@ -195,15 +204,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } as unknown as SelectUser;
       
       // Atualizar o cache do usuário com os dados mais recentes
+      // Isso evita uma chamada de rede adicional ao servidor
       queryClient.setQueryData([API_ROUTES.USER], user);
-      
-      // Forçar uma invalidação do cache para garantir que temos os dados mais recentes
-      await queryClient.invalidateQueries({ queryKey: [API_ROUTES.USER] });
       
       // Adicionar logs para debug
       console.log("Login bem-sucedido. Dados do usuário:", user);
       console.log("Portal type:", user.portalType);
       
+      // Mostrar mensagem de sucesso antes de redirecionar
       toast({
         title: "Login bem-sucedido",
         description: `Bem-vindo(a) de volta, ${user.fullName}!`,
@@ -212,8 +220,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Login bem-sucedido, redirecionando para dashboard administrativo");
       // Forçar o redirecionamento para o dashboard
       if (user.portalType) {
-        // Usar o redirecionamento relativo para garantir compatibilidade em produção
-        window.location.href = `/${user.portalType}/dashboard`;
+        // Redirecionar diretamente sem recarregar página completa, mais rápido
+        setTimeout(() => {
+          window.location.replace(`/${user.portalType}/dashboard`);
+        }, 100); // Pequeno timeout para garantir que o toast apareça
       }
     },
     onError: (error: Error) => {

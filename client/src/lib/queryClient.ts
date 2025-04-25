@@ -93,8 +93,8 @@ export async function apiRequest(
   const fetchOptions: RequestInit = {
     method: requestMethod,
     headers,
-    // Adicionar cache: 'no-cache' para evitar problemas de cache
-    cache: 'no-cache',
+    // Usar 'default' para permitir estratégias de cache do navegador
+    cache: 'default',
     // Adicionar credentials: 'same-origin' para lidar com cookies corretamente
     credentials: 'same-origin',
     mode: 'cors' // Certificar que o modo CORS está ativado
@@ -210,7 +210,7 @@ export const getQueryFn: <T>(options: {
       const res = await fetch(apiUrl, {
         method: "GET",
         headers,
-        cache: 'no-cache',
+        cache: 'default',
         credentials: 'same-origin', // Usar 'same-origin' é mais seguro e funciona melhor no Replit
         mode: 'cors' // Certificar que o modo CORS está ativado
       });
