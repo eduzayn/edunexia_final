@@ -12,7 +12,7 @@ import {
   insertCertificationDocumentSchema,
   insertCertificationActivityLogSchema
 } from "@shared/certification-request-schema";
-import { eq, and, desc, inArray, like, isNull, sql } from "drizzle-orm";
+import { eq, and, or, desc, inArray, like, isNull, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { generateUniqueCode } from "../utils";
@@ -111,9 +111,29 @@ router.get("/", async (req, res) => {
     }
     
     // Filtro por tipo de usuário
-    // Parceiros só veem suas próprias solicitações
+    // Parceiros veem suas próprias solicitações e solicitações criadas para suas instituições
     if (req.user?.portalType === "partner") {
-      conditions.push(eq(certificationRequests.partnerId, req.user.id));
+      // Obter instituições vinculadas ao parceiro
+      const partnerInstitutions = await db.query.institutions.findMany({
+        where: eq(institutions.partnerId, req.user.id),
+        columns: { id: true }
+      });
+      
+      // Se o parceiro tem instituições vinculadas
+      if (partnerInstitutions.length > 0) {
+        const institutionIds = partnerInstitutions.map(inst => inst.id);
+        conditions.push(
+          // Permitir acesso a solicitações onde o parceiro é o criador OU
+          // a solicitação está vinculada a uma de suas instituições
+          or(
+            eq(certificationRequests.partnerId, req.user.id),
+            inArray(certificationRequests.institutionId, institutionIds)
+          )
+        );
+      } else {
+        // Se não tem instituições, mostrar apenas suas próprias solicitações
+        conditions.push(eq(certificationRequests.partnerId, req.user.id));
+      }
     }
     
     if (conditions.length > 0) {
@@ -160,16 +180,39 @@ router.get("/:id", async (req, res) => {
     
     const requestId = parseInt(id);
     
-    // Verificar permissão
+    // Verificar permissão para parceiros
     if (req.user?.portalType === "partner") {
-      const ownRequest = await db.query.certificationRequests.findFirst({
-        where: and(
-          eq(certificationRequests.id, requestId),
-          eq(certificationRequests.partnerId, req.user.id)
-        )
+      // Obter instituições vinculadas ao parceiro
+      const partnerInstitutions = await db.query.institutions.findMany({
+        where: eq(institutions.partnerId, req.user.id),
+        columns: { id: true }
       });
       
-      if (!ownRequest) {
+      const institutionIds = partnerInstitutions.map(inst => inst.id);
+      
+      // Verificar se o parceiro tem acesso a esta solicitação
+      let hasAccess = false;
+      
+      // Verificar se o parceiro é o criador da solicitação
+      const ownRequest = await db.query.certificationRequests.findFirst({
+        where: eq(certificationRequests.partnerId, req.user.id)
+      });
+      
+      // Se não for o criador, verificar se está relacionado à instituição do parceiro
+      if (!ownRequest && institutionIds.length > 0) {
+        const institutionRequest = await db.query.certificationRequests.findFirst({
+          where: and(
+            eq(certificationRequests.id, requestId),
+            inArray(certificationRequests.institutionId, institutionIds)
+          )
+        });
+        
+        hasAccess = !!institutionRequest;
+      } else {
+        hasAccess = !!ownRequest;
+      }
+      
+      if (!hasAccess) {
         return res.status(403).json({ message: "Você não tem permissão para acessar esta solicitação" });
       }
     }
