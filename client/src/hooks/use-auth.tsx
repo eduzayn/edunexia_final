@@ -149,13 +149,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const loginUrl = buildApiUrl(API_ROUTES.LOGIN);
         console.log("Fazendo requisição de login para:", loginUrl);
         
-        // Usando o método fetch diretamente para evitar problemas de tipo
+        // Configuração otimizada para requisição de login
         response = await fetch(loginUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(data),
+          // Configurações para melhorar performance
+          cache: 'no-store', // Nunca cachear login
+          credentials: 'same-origin',
+          mode: 'cors',
+          priority: 'high' // Prioridade alta para reduzir tempos de espera
         });
         
         // Verificar o tipo de conteúdo antes de tentar parsear como JSON

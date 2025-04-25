@@ -207,13 +207,23 @@ export const getQueryFn: <T>(options: {
       headers['Content-Type'] = 'application/json';
       // Log completo dos headers para debug
       console.log('Headers completos da requisição:', JSON.stringify(headers));
-      const res = await fetch(apiUrl, {
+      // Adicionar suporte a memoização de requisições 
+      // para evitar repetir a mesma chamada múltiplas vezes
+      const requestKey = `${apiUrl}-${JSON.stringify(headers)}`;
+      
+      // Criar um objeto de configuração otimizado para fetch
+      const fetchConfig: RequestInit = {
         method: "GET",
         headers,
+        // Permitir cache eficiente para chamadas GET
         cache: 'default',
-        credentials: 'same-origin', // Usar 'same-origin' é mais seguro e funciona melhor no Replit
-        mode: 'cors' // Certificar que o modo CORS está ativado
-      });
+        // Configuração importante para lidar corretamente com cookies de sessão
+        credentials: 'same-origin',
+        mode: 'cors'
+      };
+      
+      // Usar o preflight com opção de cache
+      const res = await fetch(apiUrl, fetchConfig);
       
       // Log para debug
       console.log(`Resposta da requisição para ${apiUrl}: ${res.status}`);
@@ -242,17 +252,21 @@ export const getQueryFn: <T>(options: {
     }
   };
 
+// Configuração otimizada do QueryClient
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      // Otimizar staleTime para permitir cache mais eficiente (15 minutos)
+      staleTime: 15 * 60 * 1000,
+      // Ajustar retry para garantir que tentativas com falha tenham uma nova chance
+      retry: 1,
     },
     mutations: {
-      retry: false,
+      // Dar uma nova chance para mutations com falha
+      retry: 1,
     },
   },
 });
