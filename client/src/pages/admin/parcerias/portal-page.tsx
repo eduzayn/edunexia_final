@@ -56,7 +56,7 @@ export default function PortalDoParceiroPage() {
         <div className="flex justify-between items-center mb-6">
           <TabsList className="grid grid-cols-4 w-auto">
             <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-            <TabsTrigger value="instituicoes">Instituições</TabsTrigger>
+            <TabsTrigger value="instituicoes">Instituições Parceiras</TabsTrigger>
             <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
             <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
           </TabsList>
@@ -68,7 +68,7 @@ export default function PortalDoParceiroPage() {
             </Button>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Nova Instituição
+              Nova Instituição Parceira
             </Button>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function PortalDoParceiroPage() {
           </div>
         </TabsContent>
 
-        {/* Conteúdo da aba Instituições */}
+        {/* Conteúdo da aba Instituições Parceiras */}
         <TabsContent value="instituicoes" className="space-y-4">
           <Card>
             <CardHeader>
