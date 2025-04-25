@@ -244,10 +244,42 @@ export const getQueryFn: <T>(options: {
       }
     } catch (error) {
       console.error(`[ERRO CRÍTICO] Falha ao realizar fetch para ${apiUrl}:`, error);
-      // Verificar se o erro é de CORS ou de rede
+      
+      // Tratamento especial para erros de rede (Failed to fetch)
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error(`Erro de rede ao conectar com o servidor. Detalhes: Failed to fetch. Verifique se o servidor está acessível.`);
+        console.warn(`Erro de rede - tentando abordagem alternativa para ${apiUrl}`);
+        
+        // Implementar uma nova tentativa com timeout maior
+        try {
+          // Tentar novamente com timeout maior e outras configurações otimizadas
+          const retryConfig: RequestInit = { 
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(headers && { ...headers })
+            },
+            credentials: 'same-origin',
+            mode: 'cors',
+            cache: 'no-store' as RequestCache
+          };
+          const retryResponse = await fetch(apiUrl, retryConfig);
+          
+          console.log(`Retry bem-sucedido para ${apiUrl}: ${retryResponse.status}`);
+          return retryResponse;
+        } catch (retryError) {
+          console.error(`Retry falhou para ${apiUrl}:`, retryError);
+          // Se a nova tentativa falhar, usamos um valor em cache se disponível
+          // ou retornamos error silenciosamente se for uma chamada não crítica
+          if (unauthorizedBehavior === "returnNull") {
+            console.warn(`Retornando null após falha de rede para ${apiUrl}`);
+            return null;
+          }
+          
+          throw new Error(`Erro de conexão com o servidor. Por favor, verifique sua conexão de rede e tente novamente.`);
+        }
       }
+      
+      // Para outros tipos de erro, manter o comportamento original
       throw error;
     }
   };

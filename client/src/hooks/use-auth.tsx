@@ -150,18 +150,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("Fazendo requisição de login para:", loginUrl);
         
         // Configuração otimizada para requisição de login
-        response = await fetch(loginUrl, {
+        const loginConfig: RequestInit = {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify(data),
           // Configurações para melhorar performance
-          cache: 'no-store', // Nunca cachear login
+          cache: 'no-store' as RequestCache, 
           credentials: 'same-origin',
           mode: 'cors',
-          priority: 'high' // Prioridade alta para reduzir tempos de espera
-        });
+          keepalive: true // Garantir que a requisição seja completada mesmo se a página for fechada
+        };
+        
+        // Implementar mecanismo de retry para login
+        const MAX_RETRIES = 2;
+        let retryCount = 0;
+        let lastError = null;
+        
+        while (retryCount <= MAX_RETRIES) {
+          try {
+            if (retryCount > 0) {
+              console.log(`Tentativa ${retryCount} de login...`);
+            }
+            
+            response = await fetch(loginUrl, loginConfig);
+            break; // Se chegou aqui, o fetch foi bem-sucedido
+          } catch (fetchError) {
+            lastError = fetchError;
+            retryCount++;
+            
+            if (retryCount <= MAX_RETRIES) {
+              // Esperar um pouco antes de tentar novamente (backoff exponencial)
+              const delay = Math.pow(2, retryCount) * 500; // 1s, 2s
+              console.log(`Erro de rede no login, tentando novamente em ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        
+        // Se após todas as tentativas ainda temos erro, lançar a exceção
+        if (!response) {
+          throw lastError || new Error("Não foi possível conectar ao servidor após múltiplas tentativas");
+        }
         
         // Verificar o tipo de conteúdo antes de tentar parsear como JSON
         const contentType = response.headers.get('content-type');
