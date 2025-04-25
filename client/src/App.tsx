@@ -12,6 +12,7 @@ import SobrePage from "@/pages/landing/sobre-page";
 import ContatoPage from "@/pages/landing/contato-page";
 import BlogPage from "@/pages/landing/blog-page";
 import PrivacidadePage from "@/pages/institucional/privacidade-page";
+import ComponentsExamplePage from "@/pages/examples/components-example-page";
 import AdminAuthPage from "@/pages/autenticacao/admin-auth-page";
 import PoloAuthPage from "@/pages/autenticacao/polo-auth-page";
 import DisciplinesPage from "@/pages/admin/academico/disciplines-page";
@@ -178,6 +179,7 @@ function Router() {
       <Route path="/test-page">
         {() => <div className="p-8 text-center">Página de Teste Funcionando!</div>}
       </Route>
+      <Route path="/examples/components" component={ComponentsExamplePage} />
       <Route path="/public-view/charges" component={SimpleChargesPage} />
       <Route path="/create-charge" component={PublicCreateChargePage} />
       
