@@ -113,8 +113,10 @@ export class EnrollmentIntegrationController {
       
       return res.status(200).json({
         success: true,
-        message: `Recuperação concluída. Matrículas recuperadas: ${result.recovered}, falhas: ${result.failed}`,
-        data: result
+        message: `Recuperação concluída. Matrículas recuperadas: ${result.recovered.length}, falhas: ${result.failed}`,
+        processed: result.processed,
+        recovered: result.recovered,
+        failed: result.failed
       });
     } catch (error) {
       console.error('Erro ao recuperar matrículas incompletas:', error);

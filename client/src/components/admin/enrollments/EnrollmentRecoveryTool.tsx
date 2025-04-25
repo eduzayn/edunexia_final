@@ -1,10 +1,32 @@
 import { useState } from 'react';
+import axios from 'axios';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription, 
+  CardContent, 
+  CardFooter 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { RefreshCcw, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2Icon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+
+interface RecoveryStatus {
+  running: boolean;
+  completed: boolean;
+  error: string | null;
+  totalProcessed: number;
+  totalRecovered: number;
+  recoveredEnrollments: Array<{
+    id: number;
+    studentName: string;
+    courseName: string;
+    enrollmentId?: number;
+  }>;
+}
 
 /**
  * Ferramenta para recuperação de matrículas com problemas de conversão
@@ -12,130 +34,182 @@ import { apiRequest } from '@/lib/queryClient';
  */
 export function EnrollmentRecoveryTool() {
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingResult, setProcessingResult] = useState<{
-    recovered: number;
-    failed: number;
-  } | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<RecoveryStatus>({
+    running: false,
+    completed: false,
+    error: null,
+    totalProcessed: 0,
+    totalRecovered: 0,
+    recoveredEnrollments: []
+  });
 
-  // Função para recuperar matrículas com problemas
-  const handleRecoverEnrollments = async () => {
+  // Função para iniciar o processo de recuperação
+  const startRecovery = async () => {
     try {
-      setIsProcessing(true);
-      setErrorMessage(null);
-      setProcessingResult(null);
+      setStatus({
+        running: true,
+        completed: false,
+        error: null,
+        totalProcessed: 0,
+        totalRecovered: 0,
+        recoveredEnrollments: []
+      });
 
-      const response = await apiRequest(
-        'POST',
-        '/api/enrollment-integration/recover-incomplete'
-      );
+      const response = await axios.post('/api/enrollment-integration/recover-incomplete');
+      
+      if (response.data.success) {
+        setStatus({
+          running: false,
+          completed: true,
+          error: null,
+          totalProcessed: response.data.processed || 0,
+          totalRecovered: response.data.recovered.length || 0,
+          recoveredEnrollments: response.data.recovered || []
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao recuperar matrículas');
-      }
-
-      const result = await response.json();
-      setProcessingResult(result.data);
-
-      if (result.data.recovered > 0 || result.data.failed > 0) {
         toast({
-          title: 'Processo de recuperação concluído',
-          description: `${result.data.recovered} matrículas recuperadas, ${result.data.failed} falhas`,
-          variant: 'default'
+          title: "Recuperação concluída",
+          description: `${response.data.recovered.length} matrículas foram recuperadas com sucesso.`,
+          variant: "default"
         });
       } else {
-        toast({
-          title: 'Nenhuma matrícula para recuperar',
-          description: 'Não foram encontradas matrículas com problemas de conversão',
-          variant: 'default'
-        });
+        throw new Error(response.data.message || 'Erro desconhecido');
       }
     } catch (error) {
       console.error('Erro ao recuperar matrículas:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Erro desconhecido');
-      toast({
-        title: 'Erro no processo de recuperação',
-        description: 'Não foi possível completar o processo de recuperação de matrículas',
-        variant: 'destructive'
+      setStatus({
+        ...status,
+        running: false,
+        error: error instanceof Error ? error.message : 'Erro desconhecido ao processar a recuperação',
       });
-    } finally {
-      setIsProcessing(false);
+
+      toast({
+        title: "Erro na recuperação",
+        description: "Ocorreu um erro ao tentar recuperar matrículas.",
+        variant: "destructive"
+      });
     }
   };
 
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <CardTitle>Recuperação de Matrículas</CardTitle>
+        <CardTitle className="flex items-center">
+          <RefreshCcw className="h-5 w-5 mr-2 text-primary" />
+          Recuperação de Matrículas
+        </CardTitle>
         <CardDescription>
-          Esta ferramenta identifica e recupera matrículas que deveriam ter sido convertidas
-          mas apresentaram problemas durante o processo
+          Esta ferramenta identifica e corrige matrículas que não foram convertidas corretamente
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        {errorMessage && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangleIcon className="h-4 w-4" />
+      
+      <CardContent className="space-y-4">
+        {status.error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erro no processo</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-
-        {processingResult && (
-          <Alert variant={processingResult.recovered > 0 ? 'default' : 'warning'} className="mb-4">
-            <CheckCircleIcon className="h-4 w-4" />
-            <AlertTitle>Processo concluído</AlertTitle>
             <AlertDescription>
-              {processingResult.recovered > 0 ? (
-                <span>
-                  <strong>{processingResult.recovered}</strong> matrícula(s) recuperada(s) com sucesso.
-                  {processingResult.failed > 0 && (
-                    <span> <strong>{processingResult.failed}</strong> matrícula(s) com falha na recuperação.</span>
-                  )}
-                </span>
-              ) : (
-                <span>
-                  Nenhuma matrícula foi recuperada.
-                  {processingResult.failed > 0 && (
-                    <span> <strong>{processingResult.failed}</strong> matrícula(s) com falha na recuperação.</span>
-                  )}
-                </span>
-              )}
+              {status.error}
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Esta operação busca matrículas simplificadas antigas (mais de 1 dia) que estão com status de pagamento 
-            confirmado ou aguardando pagamento, mas que ainda não foram convertidas para matrículas formais.
-          </p>
-          
-          <div className="bg-muted rounded-md p-3">
-            <p className="text-sm font-medium">Quando usar esta ferramenta?</p>
-            <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 mt-2">
-              <li>Após identificar alunos que não conseguem acessar seus cursos</li>
-              <li>Quando houver falhas no processo automático de conversão</li>
-              <li>Como parte da manutenção periódica do sistema</li>
-            </ul>
+        {status.completed && status.totalRecovered > 0 && (
+          <Alert variant="default" className="bg-green-50 border-green-200">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle>Recuperação concluída</AlertTitle>
+            <AlertDescription>
+              {status.totalRecovered} matrículas foram recuperadas com sucesso.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {status.completed && status.totalRecovered === 0 && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Nenhuma matrícula para recuperar</AlertTitle>
+            <AlertDescription>
+              Não foram encontradas matrículas que necessitem de recuperação.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {status.running && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">Processando recuperação...</p>
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+            <Progress value={50} className="h-2" />
           </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-sm">
+            Esta ferramenta verifica matrículas simplificadas que deveriam ter sido convertidas em matrículas formais
+            mas que, por algum motivo, não completaram esse processo. O sistema irá:
+          </p>
+          <ul className="text-sm list-disc pl-5 space-y-1">
+            <li>Identificar matrículas com pagamento confirmado mas sem conversão</li>
+            <li>Verificar dados necessários para conversão</li>
+            <li>Criar matrículas formais automaticamente</li>
+            <li>Atualizar os registros de matrículas simplificadas</li>
+          </ul>
         </div>
+
+        {status.completed && status.recoveredEnrollments.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Matrículas recuperadas:</h3>
+            <div className="bg-muted p-3 rounded-md max-h-40 overflow-y-auto">
+              <ul className="text-sm space-y-1">
+                {status.recoveredEnrollments.map((enrollment) => (
+                  <li key={enrollment.id} className="flex items-center">
+                    <CheckCircle className="h-3 w-3 text-green-600 mr-2" />
+                    <span>
+                      {enrollment.studentName} - {enrollment.courseName} 
+                      {enrollment.enrollmentId && <span className="text-muted-foreground ml-1">
+                        (ID: {enrollment.enrollmentId})
+                      </span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="flex justify-end">
-        <Button 
-          onClick={handleRecoverEnrollments} 
-          disabled={isProcessing}
-          variant="default"
+      
+      <CardFooter className="flex justify-between">
+        <Button
+          variant="outline"
+          onClick={() => {
+            setStatus({
+              running: false,
+              completed: false,
+              error: null,
+              totalProcessed: 0,
+              totalRecovered: 0,
+              recoveredEnrollments: []
+            });
+          }}
+          disabled={status.running}
         >
-          {isProcessing ? (
+          Limpar resultados
+        </Button>
+        <Button 
+          onClick={startRecovery} 
+          disabled={status.running}
+        >
+          {status.running ? (
             <>
-              <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Processando...
             </>
           ) : (
-            'Iniciar Recuperação'
+            <>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Iniciar Recuperação
+            </>
           )}
         </Button>
       </CardFooter>

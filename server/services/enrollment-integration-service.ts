@@ -229,17 +229,32 @@ class EnrollmentIntegrationService {
   /**
    * Verifica e recupera matrículas com problemas de conversão
    * Identifica matrículas que deveriam ter sido convertidas mas não foram
-   * @returns {Promise<{recovered: number, failed: number}>} Estatísticas do processo
+   * @returns {Promise<{processed: number, recovered: Array<Object>, failed: number}>} Estatísticas do processo
    */
-  async recoverIncompleteEnrollments(): Promise<{ recovered: number, failed: number }> {
+  async recoverIncompleteEnrollments(): Promise<{ 
+    processed: number, 
+    recovered: Array<{
+      id: number, 
+      studentName: string, 
+      courseName: string,
+      enrollmentId?: number
+    }>, 
+    failed: number 
+  }> {
     try {
       console.log('Iniciando recuperação de matrículas incompletas...');
       
       // Buscar matrículas simplificadas antigas (com mais de 1 dia) que ainda não foram convertidas
       // mas têm status que já deveriam ter sido processadas (waiting_payment ou payment_confirmed)
       const problematicEnrollments = await db
-        .select()
+        .select({
+          simplified: simplifiedEnrollments,
+          course: {
+            name: courses.name
+          }
+        })
         .from(simplifiedEnrollments)
+        .leftJoin(courses, eq(courses.id, simplifiedEnrollments.courseId))
         .where(
           and(
             or(
@@ -254,12 +269,20 @@ class EnrollmentIntegrationService {
       
       console.log(`Encontradas ${problematicEnrollments.length} matrículas com problemas de conversão`);
       
-      let recovered = 0;
-      let failed = 0;
+      let processed = problematicEnrollments.length;
+      let failedCount = 0;
+      const recoveredEnrollments: Array<{
+        id: number, 
+        studentName: string, 
+        courseName: string,
+        enrollmentId?: number
+      }> = [];
       
       // Tentar recuperar cada matrícula problemática
-      for (const enrollment of problematicEnrollments) {
+      for (const { simplified: enrollment, course } of problematicEnrollments) {
         console.log(`Tentando recuperar matrícula simplificada #${enrollment.id} (${enrollment.studentName})`);
+        
+        let enrollmentId: number | undefined;
         
         // Verificar se já existe um estudante com o mesmo email
         let student = await storage.getUserByEmail(enrollment.studentEmail);
@@ -291,11 +314,19 @@ class EnrollmentIntegrationService {
                 })
                 .where(eq(simplifiedEnrollments.id, enrollment.id));
               
-              recovered++;
+              enrollmentId = existingEnrollments[0].id;
+              
+              recoveredEnrollments.push({
+                id: enrollment.id,
+                studentName: enrollment.studentName,
+                courseName: course?.name || `Curso ID: ${enrollment.courseId}`,
+                enrollmentId
+              });
+              
               continue;
             } catch (updateError) {
               console.error(`Erro ao atualizar matrícula simplificada: ${updateError}`);
-              failed++;
+              failedCount++;
               continue;
             }
           }
@@ -305,14 +336,26 @@ class EnrollmentIntegrationService {
         const success = await this.syncSimplifiedEnrollment(enrollment.id);
         
         if (success) {
-          recovered++;
+          // Buscar a matrícula simplificada atualizada para obter o ID da matrícula formal
+          const updatedEnrollment = await storage.getSimplifiedEnrollment(enrollment.id);
+          
+          recoveredEnrollments.push({
+            id: enrollment.id,
+            studentName: enrollment.studentName,
+            courseName: course?.name || `Curso ID: ${enrollment.courseId}`,
+            enrollmentId: updatedEnrollment?.convertedToEnrollmentId || undefined
+          });
         } else {
-          failed++;
+          failedCount++;
         }
       }
       
-      console.log(`Recuperação concluída: ${recovered} recuperadas, ${failed} falhas`);
-      return { recovered, failed };
+      console.log(`Recuperação concluída: ${recoveredEnrollments.length} recuperadas, ${failedCount} falhas`);
+      return { 
+        processed,
+        recovered: recoveredEnrollments, 
+        failed: failedCount 
+      };
     } catch (error) {
       console.error('Erro ao recuperar matrículas incompletas:', error);
       throw error;
