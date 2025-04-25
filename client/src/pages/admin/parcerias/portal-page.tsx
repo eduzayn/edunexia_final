@@ -53,20 +53,20 @@ export default function PortalDoParceiroPage() {
         value={activeTab} 
         onValueChange={setActiveTab}
       >
-        <div className="flex justify-between items-center mb-6">
-          <TabsList className="grid grid-cols-4 w-auto">
-            <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-            <TabsTrigger value="instituicoes">Instituições Parceiras</TabsTrigger>
-            <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
-            <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex gap-2">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Instituição Parceira
-            </Button>
+        <div className="flex justify-between items-center mb-6 gap-4">
+          <div className="bg-white rounded-md p-1">
+            <TabsList className="grid grid-cols-4 w-auto">
+              <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+              <TabsTrigger value="instituicoes">Instituições Parceiras</TabsTrigger>
+              <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
+              <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
+            </TabsList>
           </div>
+          
+          <Button size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Instituição Parceira
+          </Button>
         </div>
 
         {/* Conteúdo da aba Visão Geral */}
