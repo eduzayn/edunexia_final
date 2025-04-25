@@ -5,10 +5,11 @@ import {
   users, 
   simplifiedEnrollments, 
   educationalContracts,
+  enrollments,
   type User,
   type SimplifiedEnrollment
 } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { sql, eq, and, or, isNull, not, gt, gte, lt } from 'drizzle-orm';
 import { generateEducationalContract } from './contract-generator-service';
 import { sendStudentCredentialsEmail } from './email-service';
 import { sendStudentCredentialsSMS } from './sms-service';
@@ -21,6 +22,7 @@ import bcrypt from 'bcrypt';
  * 2. Criar perfis de estudantes automaticamente
  * 3. Gerar contratos educacionais
  * 4. Enviar credenciais de acesso aos alunos
+ * 5. Recuperar matrículas com problemas de conversão
  */
 class EnrollmentIntegrationService {
   
@@ -67,7 +69,6 @@ class EnrollmentIntegrationService {
           email: enrollment.studentEmail,
           cpf: enrollment.studentCpf,
           phone: enrollment.studentPhone,
-          status: 'active',
           portalType: 'student',
           role: 'student',
           // Usar como base o primeiro nome como username se necessário
@@ -89,7 +90,7 @@ class EnrollmentIntegrationService {
       }
       
       // 5. Gerar a matrícula formal com base na simplificada
-      const formalEnrollment = await storage.convertSimplifiedEnrollment(enrollment.id, student);
+      const formalEnrollment = await storage.convertSimplifiedToFullEnrollment(enrollment.id);
       
       if (!formalEnrollment) {
         console.error(`Erro ao converter matrícula simplificada #${enrollment.id}`);
@@ -97,64 +98,84 @@ class EnrollmentIntegrationService {
       }
       
       // 6. Gerar contrato educacional
-      const contractId = await generateEducationalContract({
-        studentId: student.id,
-        enrollmentId: enrollment.uuid,
-        courseId: enrollment.courseId,
-        course,
-        enrollmentData: enrollment
-      });
-      
-      if (!contractId) {
-        console.error(`Erro ao gerar contrato educacional para matrícula #${enrollment.id}`);
-        return false;
+      try {
+        const contractData = {
+          studentId: student.id,
+          enrollmentId: enrollment.uuid,
+          courseId: enrollment.courseId,
+          course,
+          enrollmentData: enrollment
+        };
+        
+        const contractId = await generateEducationalContract(contractData);
+        
+        if (!contractId) {
+          console.error(`Erro ao gerar contrato educacional para matrícula #${enrollment.id}`);
+          // Continuamos mesmo sem contrato
+        }
+      } catch (contractError) {
+        console.error(`Erro ao gerar contrato: ${contractError}`);
+        // Continuamos mesmo sem contrato
       }
       
       // 7. Enviar e-mail com as credenciais de acesso
-      const emailSent = await sendStudentCredentialsEmail(
-        student.email,
-        student.cpf || '',
-        student.fullName,
-        course.name
-      );
-      
-      if (!emailSent) {
-        console.warn(`Alerta: Não foi possível enviar e-mail de credenciais para ${student.email}`);
-        // Continuamos com o processo mesmo se o e-mail falhar
-      } else {
-        console.log(`E-mail de credenciais enviado com sucesso para ${student.email}`);
+      try {
+        const emailSent = await sendStudentCredentialsEmail(student.email, student.cpf || '', student.fullName, course.name);
+        
+        if (!emailSent) {
+          console.warn(`Alerta: Não foi possível enviar e-mail de credenciais para ${student.email}`);
+        } else {
+          console.log(`E-mail de credenciais enviado com sucesso para ${student.email}`);
+        }
+      } catch (emailError) {
+        console.error(`Erro ao enviar e-mail: ${emailError}`);
       }
       
       // 8. Enviar SMS com as credenciais se o telefone estiver disponível
       if (student.phone) {
-        const smsSent = await sendStudentCredentialsSMS(
-          student.phone,
-          student.cpf || '',
-          student.fullName,
-          student.email
-        );
-        
-        if (!smsSent) {
-          console.warn(`Alerta: Não foi possível enviar SMS de credenciais para ${student.phone}`);
-          // Continuamos com o processo mesmo se o SMS falhar
-        } else {
-          console.log(`SMS de credenciais enviado com sucesso para ${student.phone}`);
+        try {
+          const smsSent = await sendStudentCredentialsSMS(student.phone, student.cpf || '', student.fullName, student.email);
+          
+          if (!smsSent) {
+            console.warn(`Alerta: Não foi possível enviar SMS de credenciais para ${student.phone}`);
+          } else {
+            console.log(`SMS de credenciais enviado com sucesso para ${student.phone}`);
+          }
+        } catch (smsError) {
+          console.error(`Erro ao enviar SMS: ${smsError}`);
         }
       } else {
         console.log(`Aluno ${student.fullName} não possui telefone cadastrado. SMS de credenciais não enviado.`);
       }
       
-      // 8. Registrar log da sincronização
-      await storage.createSimplifiedEnrollmentStatusLog({
-        enrollmentId: enrollment.id,
-        fromStatus: enrollment.status,
-        toStatus: 'converted',
-        reason: 'Matrícula processada com sucesso, criando perfil de estudante e contrato',
-        createdAt: new Date(),
-        userId: enrollment.createdById
-      });
+      // 9. Registrar log da sincronização
+      try {
+        await db
+          .insert(simplifiedEnrollments)
+          .values({
+            id: enrollment.id,
+            status: 'converted',
+            processedAt: new Date(),
+            updatedAt: new Date(),
+            updatedById: enrollment.createdById || null,
+            convertedToEnrollmentId: formalEnrollment.id
+          })
+          .onConflictDoUpdate({
+            target: simplifiedEnrollments.id,
+            set: {
+              status: 'converted',
+              processedAt: new Date(),
+              updatedAt: new Date(),
+              updatedById: enrollment.createdById || null,
+              convertedToEnrollmentId: formalEnrollment.id
+            }
+          });
+        
+        console.log(`Matrícula simplificada #${simplifiedEnrollmentId} sincronizada com sucesso`);
+      } catch (logError) {
+        console.error(`Erro ao registrar log de sincronização: ${logError}`);
+      }
       
-      console.log(`Matrícula simplificada #${simplifiedEnrollmentId} sincronizada com sucesso`);
       return true;
     } catch (error) {
       console.error(`Erro ao sincronizar matrícula simplificada #${simplifiedEnrollmentId}:`, error);
@@ -164,16 +185,22 @@ class EnrollmentIntegrationService {
   
   /**
    * Verifica e processa todas as matrículas simplificadas pendentes
-   * que estão com status 'payment_confirmed' ou 'completed'
+   * que estão com status 'payment_confirmed' ou 'waiting_payment'
    */
   async processPendingEnrollments(): Promise<{ processed: number, failed: number }> {
     try {
-      // Buscar todas as matrículas com status de pagamento confirmado que ainda não foram convertidas
+      // Buscar todas as matrículas com status de pagamento confirmado ou aguardando que ainda não foram convertidas
       const pendingEnrollments = await db
         .select()
         .from(simplifiedEnrollments)
         .where(
-          eq(simplifiedEnrollments.status, 'payment_confirmed')
+          and(
+            or(
+              eq(simplifiedEnrollments.status, 'payment_confirmed'),
+              eq(simplifiedEnrollments.status, 'waiting_payment')
+            ),
+            isNull(simplifiedEnrollments.convertedToEnrollmentId)
+          )
         );
       
       console.log(`Encontradas ${pendingEnrollments.length} matrículas pendentes de processamento`);
@@ -195,6 +222,99 @@ class EnrollmentIntegrationService {
       return { processed, failed };
     } catch (error) {
       console.error('Erro ao processar matrículas pendentes:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Verifica e recupera matrículas com problemas de conversão
+   * Identifica matrículas que deveriam ter sido convertidas mas não foram
+   * @returns {Promise<{recovered: number, failed: number}>} Estatísticas do processo
+   */
+  async recoverIncompleteEnrollments(): Promise<{ recovered: number, failed: number }> {
+    try {
+      console.log('Iniciando recuperação de matrículas incompletas...');
+      
+      // Buscar matrículas simplificadas antigas (com mais de 1 dia) que ainda não foram convertidas
+      // mas têm status que já deveriam ter sido processadas (waiting_payment ou payment_confirmed)
+      const problematicEnrollments = await db
+        .select()
+        .from(simplifiedEnrollments)
+        .where(
+          and(
+            or(
+              eq(simplifiedEnrollments.status, 'waiting_payment'),
+              eq(simplifiedEnrollments.status, 'payment_confirmed')
+            ),
+            isNull(simplifiedEnrollments.convertedToEnrollmentId),
+            // Matrículas com mais de 1 dia (86400000 ms = 1 dia)
+            lt(simplifiedEnrollments.createdAt, new Date(Date.now() - 86400000))
+          )
+        );
+      
+      console.log(`Encontradas ${problematicEnrollments.length} matrículas com problemas de conversão`);
+      
+      let recovered = 0;
+      let failed = 0;
+      
+      // Tentar recuperar cada matrícula problemática
+      for (const enrollment of problematicEnrollments) {
+        console.log(`Tentando recuperar matrícula simplificada #${enrollment.id} (${enrollment.studentName})`);
+        
+        // Verificar se já existe um estudante com o mesmo email
+        let student = await storage.getUserByEmail(enrollment.studentEmail);
+        
+        // Verificar se já existe uma matrícula formal para este estudante e curso
+        if (student) {
+          const existingEnrollments = await db
+            .select()
+            .from(enrollments)
+            .where(
+              and(
+                eq(enrollments.studentId, student.id),
+                eq(enrollments.courseId, enrollment.courseId)
+              )
+            );
+          
+          // Se já existe uma matrícula formal, apenas atualize a simplificada
+          if (existingEnrollments.length > 0) {
+            console.log(`Encontrada matrícula formal existente #${existingEnrollments[0].id} para o estudante ${student.id}`);
+            
+            try {
+              await db
+                .update(simplifiedEnrollments)
+                .set({
+                  status: 'converted',
+                  convertedToEnrollmentId: existingEnrollments[0].id,
+                  processedAt: new Date(),
+                  updatedAt: new Date()
+                })
+                .where(eq(simplifiedEnrollments.id, enrollment.id));
+              
+              recovered++;
+              continue;
+            } catch (updateError) {
+              console.error(`Erro ao atualizar matrícula simplificada: ${updateError}`);
+              failed++;
+              continue;
+            }
+          }
+        }
+        
+        // Caso contrário, tente sincronizar a matrícula
+        const success = await this.syncSimplifiedEnrollment(enrollment.id);
+        
+        if (success) {
+          recovered++;
+        } else {
+          failed++;
+        }
+      }
+      
+      console.log(`Recuperação concluída: ${recovered} recuperadas, ${failed} falhas`);
+      return { recovered, failed };
+    } catch (error) {
+      console.error('Erro ao recuperar matrículas incompletas:', error);
       throw error;
     }
   }
