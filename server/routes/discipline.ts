@@ -595,13 +595,29 @@ router.post('/admin/questions', async (req, res) => {
       });
     }
     
+    // Verificar se options é um array
+    let optionsArray = options;
+    if (!Array.isArray(optionsArray)) {
+      try {
+        // Tentar converter caso não seja um array (pode estar vindo como JSON string)
+        if (typeof options === 'string') {
+          optionsArray = JSON.parse(options);
+        } else {
+          optionsArray = [];
+        }
+      } catch (e) {
+        console.error('Erro ao converter options:', e);
+        optionsArray = [];
+      }
+    }
+
     // Inserir a questão no banco de dados
     const [newQuestion] = await db
       .insert(questions)
       .values({
         disciplineId: numDisciplineId,
         statement,
-        options: JSON.stringify(options),
+        options: optionsArray,
         correctOption,
         explanation: explanation || null,
         questionType: 'multiple_choice',
