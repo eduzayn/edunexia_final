@@ -1177,7 +1177,14 @@ export default function DisciplineContentPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {videos.map((video: any) => (
+                      {videos.map((video: { 
+                        id: number, 
+                        title: string, 
+                        description: string, 
+                        duration: string, 
+                        videoSource: string, 
+                        url: string 
+                      }) => (
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative pb-[56.25%] bg-gray-100">
                             {video.videoSource === "youtube" ? (
@@ -1524,7 +1531,7 @@ export default function DisciplineContentPage() {
                           Configure o simulado com 30 questões para prática dos alunos
                         </CardDescription>
                       </div>
-                      {!assessments?.some(a => a.type === "simulado") && (
+                      {!assessments?.some((a: { type: string }) => a.type === "simulado") && (
                         <Button
                           onClick={() => handleOpenAssessmentDialog("simulado")}
                           className="mt-4 md:mt-0"
@@ -1539,9 +1546,9 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     {isAssessmentsLoading ? (
                       <Skeleton className="h-40 w-full" />
-                    ) : assessments?.some(a => a.type === "simulado") ? (
+                    ) : assessments?.some((a: { type: string }) => a.type === "simulado") ? (
                       (() => {
-                        const simulado = assessments.find(a => a.type === "simulado");
+                        const simulado = assessments.find((a: { type: string }) => a.type === "simulado");
                         if (!simulado) return null;
                         
                         return (
@@ -1632,7 +1639,7 @@ export default function DisciplineContentPage() {
                           Configure a avaliação final com 10 questões para certificação dos alunos
                         </CardDescription>
                       </div>
-                      {!assessments?.some(a => a.type === "avaliacao_final") && (
+                      {!assessments?.some((a: { type: string }) => a.type === "avaliacao_final") && (
                         <Button
                           onClick={() => handleOpenAssessmentDialog("avaliacao_final")}
                           className="mt-4 md:mt-0"
@@ -1647,9 +1654,9 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     {isAssessmentsLoading ? (
                       <Skeleton className="h-40 w-full" />
-                    ) : assessments?.some(a => a.type === "avaliacao_final") ? (
+                    ) : assessments?.some((a: { type: string }) => a.type === "avaliacao_final") ? (
                       (() => {
-                        const avaliacao = assessments.find(a => a.type === "avaliacao_final");
+                        const avaliacao = assessments.find((a: { type: string }) => a.type === "avaliacao_final");
                         if (!avaliacao) return null;
                         
                         return (
