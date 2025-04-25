@@ -457,11 +457,13 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
     // Remover o vídeo da disciplina (definindo os campos como null)
     const urlKey = `videoAula${numVideoId}Url`;
     const sourceKey = `videoAula${numVideoId}Source`;
+    const startTimeKey = `videoAula${numVideoId}StartTime`;
     
     const [updatedDiscipline] = await db.update(disciplines)
       .set({ 
         [urlKey]: null,
         [sourceKey]: null,
+        [startTimeKey]: null,
         updatedAt: new Date()
       })
       .where(eq(disciplines.id, numDisciplineId))
