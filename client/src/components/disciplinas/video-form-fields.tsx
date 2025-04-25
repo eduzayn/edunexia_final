@@ -164,47 +164,53 @@ const VideoFormFields: React.FC<VideoFormFieldsProps> = ({
         )}
       />
       
-      <FormField
-        control={control}
-        name="duration"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Duração (mm:ss)</FormLabel>
-            <FormControl>
-              <Input
-                type="text"
-                placeholder="Ex: 45:30"
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      {/* Campo para tempo de início (apenas para YouTube) */}
-      {watch("videoSource") === "youtube" && (
+      {/* Grade com 2 colunas para campos de duração e tempo de início */}
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={control}
-          name="startTime"
+          name="duration"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tempo de Início (mm:ss)</FormLabel>
+              <FormLabel>Duração (mm:ss)</FormLabel>
               <FormControl>
                 <Input
                   type="text"
-                  placeholder="Ex: 01:30"
+                  placeholder="Ex: 45:30"
                   {...field}
-                  value={field.value || ""}
                 />
               </FormControl>
-              <FormDescription>
-                Defina em qual momento o vídeo deve começar (opcional). Útil para pular introduções ou anúncios.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {watch("videoSource") === "youtube" ? (
+          <FormField
+            control={control}
+            name="startTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tempo de Início (mm:ss)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="text"
+                    placeholder="Ex: 01:30"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : <div></div>}
+      </div>
+      
+      {/* Descrição para o campo de tempo de início */}
+      {watch("videoSource") === "youtube" && (
+        <div className="text-xs text-slate-500 -mt-4">
+          Defina em qual momento o vídeo deve começar (opcional). Útil para pular introduções ou anúncios.
+        </div>
       )}
     </div>
   );
