@@ -64,6 +64,30 @@ const VideoFormFields: React.FC<VideoFormFieldsProps> = ({
   setPreviewVideoSource,
   watch
 }) => {
+  // Cria uma função para detectar a fonte de vídeo
+  const detectAndUpdateSource = (url: string) => {
+    if (!url) return;
+    
+    const detectedSource = detectVideoSource(url);
+    const currentSource = watch("videoSource");
+    
+    // Somente atualiza se detectou uma fonte e é diferente da atual
+    if (detectedSource && detectedSource !== currentSource) {
+      // Atualiza o estado no componente pai para a prévia
+      if (setPreviewVideoSource) {
+        setPreviewVideoSource(detectedSource);
+      }
+      
+      console.log(`Fonte de vídeo detectada automaticamente: ${detectedSource}`);
+    }
+  };
+  
+  // Observa mudanças na URL para atualizar tipo de vídeo
+  useEffect(() => {
+    const url = watch("url");
+    detectAndUpdateSource(url);
+  }, [watch]);
+  
   return (
     <div className="space-y-6">
       <FormField
