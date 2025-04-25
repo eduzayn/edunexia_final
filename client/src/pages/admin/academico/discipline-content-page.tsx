@@ -2671,13 +2671,13 @@ export default function DisciplineContentPage() {
             </div>
             
             <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
-              {isQuestionsLoading ? (
+              {isAvailableQuestionsLoading ? (
                 <div className="flex justify-center py-4">
-                  <span className="animate-spin mr-2">◌</span> Carregando questões...
+                  <span className="animate-spin mr-2">◌</span> Carregando questões disponíveis...
                 </div>
-              ) : questions && questions.length > 0 ? (
+              ) : availableQuestions && availableQuestions.length > 0 ? (
                 <div className="space-y-2">
-                  {questions.map((question: any) => (
+                  {availableQuestions.map((question: any) => (
                     <div key={question.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded-md">
                       <Checkbox 
                         id={`question-${question.id}`}
