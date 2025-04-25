@@ -28,6 +28,7 @@ import { Discipline, videoSourceEnum, contentCompletionStatusEnum } from "@share
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import EbookContentSection from "@/components/discipline/ebook-content-section";
 import {
   Card,
   CardContent,
@@ -1555,96 +1556,7 @@ export default function DisciplineContentPage() {
 
             {/* E-book Tab */}
             <TabsContent value="ebook">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <CardTitle>E-book Interativo</CardTitle>
-                      <CardDescription>
-                        Adicione um e-book interativo para complementar o aprendizado
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2 mt-4 md:mt-0">
-                      <Button
-                        asChild
-                        disabled={ebook !== null && ebook !== undefined}
-                      >
-                        <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                          <EditIcon className="mr-1 h-4 w-4" />
-                          Gerador Avançado
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => setIsEbookLinkDialogOpen(true)}
-                        disabled={ebook !== null && ebook !== undefined}
-                      >
-                        <LinkIcon className="mr-1 h-4 w-4" />
-                        Inserir Link
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isEbookLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-40 w-full" />
-                      <Skeleton className="h-6 w-[250px]" />
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  ) : !ebook ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <BookIcon className="h-16 w-16 text-gray-300" />
-                      <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                        Nenhum e-book interativo adicionado
-                      </h3>
-                      <p className="mt-1 text-gray-500">
-                        Adicione um e-book interativo para proporcionar uma experiência rica de aprendizado.
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                        <Button asChild>
-                          <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                            <EditIcon className="mr-1 h-4 w-4" />
-                            Gerador Avançado
-                          </Link>
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsEbookLinkDialogOpen(true)}>
-                          <LinkIcon className="mr-1 h-4 w-4" />
-                          Inserir Link de E-book
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Card>
-                      <div className="p-6 flex flex-col md:flex-row gap-6">
-                        <div className="flex justify-center items-center p-8 bg-gray-100 rounded-md min-w-[200px]">
-                          <BookIcon className="h-20 w-20 text-gray-500" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold">{ebook.title}</h3>
-                          <p className="mt-2 text-gray-600">{ebook.description}</p>
-                          <div className="mt-6 flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => window.open(ebook.url, "_blank")}
-                            >
-                              <LinkIcon className="mr-1 h-4 w-4" />
-                              Abrir E-book
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => navigate(`/admin/ebooks/${ebook.id}/edit`)}
-                            >
-                              <PencilIcon className="mr-1 h-4 w-4" />
-                              Editar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
+              <EbookContentSection disciplineId={Number(disciplineId)} />
             </TabsContent>
 
             {/* Assessments Tab */}
