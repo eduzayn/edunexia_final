@@ -202,6 +202,7 @@ export default function DisciplineContentPage() {
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
   const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
   const [isEditQuestionsDialogOpen, setIsEditQuestionsDialogOpen] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
   
   // Estado para prévia de vídeo
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
@@ -880,6 +881,14 @@ export default function DisciplineContentPage() {
       passingScore: 6,
     });
     setIsAssessmentDialogOpen(true);
+  };
+  
+  // Função para abrir o diálogo de edição de questões de avaliação
+  const handleEditAssessmentQuestions = (assessment: any) => {
+    setSelectedAssessment(assessment);
+    // Se a avaliação já tem questões selecionadas, carregamos elas
+    setSelectedQuestionIds(assessment.questionIds || []);
+    setIsEditQuestionsDialogOpen(true);
   };
   
   // Funções para envio de formulários
