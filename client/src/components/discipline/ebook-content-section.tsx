@@ -175,7 +175,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
           className="flex gap-2 items-center"
         >
           <PlusIcon className="h-4 w-4" />
-          Adicionar E-book
+          {ebookData?.available ? "Substituir E-book" : "Adicionar E-book"}
         </Button>
       </div>
       
@@ -272,11 +272,11 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
         </CardContent>
       </Card>
       
-      {/* Dialog para adicionar e-book */}
+      {/* Dialog para adicionar/substituir e-book */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Adicionar E-book</DialogTitle>
+            <DialogTitle>{ebookData?.available ? "Substituir E-book" : "Adicionar E-book"}</DialogTitle>
           </DialogHeader>
           
           <Form {...form}>
@@ -370,7 +370,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                   ) : (
                     <>
                       <FileUp className="h-4 w-4" />
-                      Salvar
+                      {ebookData?.available ? "Substituir" : "Adicionar"}
                     </>
                   )}
                 </Button>
