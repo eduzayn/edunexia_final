@@ -360,26 +360,92 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
     }
   }
   
-  // OneDrive e Google Drive (abrem em um iframe de visualização)
-  if (source === 'onedrive' || source === 'google_drive') {
-    // Para Google Drive, urls geralmente precisam ser modificadas para visualização
-    const modifiedUrl = source === 'google_drive' 
-      ? url.replace('/file/d/', '/preview/') 
-      : url;
+  // Google Drive (URLs precisam ser modificadas para visualização)
+  if (source === 'google_drive') {
+    try {
+      let modifiedUrl = url;
       
-    return (
-      <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
-        <iframe
-          width="100%"
-          height="100%"
-          src={modifiedUrl}
-          title={title}
-          frameBorder="0"
-          allow="autoplay; fullscreen"
-          allowFullScreen
-        ></iframe>
-      </div>
-    );
+      // Detecta padrões comuns de URLs do Google Drive
+      // Formato: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+      if (url.includes('/file/d/')) {
+        const fileIdMatch = url.match(/\/file\/d\/([^/]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+          const fileId = fileIdMatch[1];
+          modifiedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        } else {
+          // Se não conseguir extrair o ID, usa o fallback
+          modifiedUrl = url.replace('/view', '/preview');
+        }
+      } 
+      // Formato: https://docs.google.com/document/d/DOC_ID/edit
+      else if (url.includes('docs.google.com')) {
+        modifiedUrl = url.replace('/edit', '/preview');
+      }
+      
+      console.log('Google Drive URL modificada:', modifiedUrl);
+      
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={modifiedUrl}
+            title={title}
+            frameBorder="0"
+            allow="autoplay; fullscreen"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    } catch (error) {
+      console.error('Erro ao processar URL do Google Drive:', error);
+      setError(`Não foi possível processar a URL do Google Drive: ${error.message}`);
+      return null;
+    }
+  }
+  
+  // OneDrive (URLs precisam ser modificadas para visualização)
+  if (source === 'onedrive') {
+    try {
+      let modifiedUrl = url;
+      
+      // Verifica se a URL já está no formato de embed/preview
+      if (!url.includes('embed')) {
+        // Tenta extrair o ID do compartilhamento
+        const shareMatch = url.match(/(?:resid=|1drv\.ms\/.)([^&/]+)/i);
+        if (shareMatch && shareMatch[1]) {
+          const shareId = shareMatch[1];
+          // Cria URL de visualização
+          modifiedUrl = `https://onedrive.live.com/embed?cid=${shareId}&resid=${shareId}`;
+        } else if (url.includes('view.officeapps.live.com')) {
+          // URL já é de visualização, usa como está
+          modifiedUrl = url;
+        } else {
+          // Para outros formatos, tenta usar um formato de incorporação genérico
+          modifiedUrl = url.replace('?', '&').replace('1drv.ms/', 'onedrive.live.com/embed?');
+        }
+      }
+      
+      console.log('OneDrive URL modificada:', modifiedUrl);
+      
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={modifiedUrl}
+            title={title}
+            frameBorder="0"
+            allow="autoplay; fullscreen"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    } catch (error) {
+      console.error('Erro ao processar URL do OneDrive:', error);
+      setError(`Não foi possível processar a URL do OneDrive: ${error.message}`);
+      return null;
+    }
   }
   
   // Player HTML5 para uploads diretos
