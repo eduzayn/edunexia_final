@@ -122,14 +122,60 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
   }
 
   // Consulta para buscar dados do ebook
-  const { data: ebookData, isLoading, refetch } = useQuery<EbookData>({
+  const { data: rawEbookResponse, isLoading, refetch } = useQuery<any>({
     queryKey: ['/api/disciplines', disciplineId, 'ebook'],
     refetchOnWindowFocus: false,
     staleTime: 0,
     // Usar o queryFn padrão que já está configurado para lidar com autenticação
   });
   
-  console.log('Dados do e-book recebidos:', ebookData);
+  // Processamento da resposta para extrair os dados corretos
+  const ebookData = React.useMemo(() => {
+    console.log('Resposta bruta do e-book:', rawEbookResponse);
+    
+    if (!rawEbookResponse) return null;
+    
+    // Verificar se a resposta está no formato esperado
+    if (typeof rawEbookResponse === 'object') {
+      // Caso 1: Formato direto {id, available, ebookPdfUrl, etc}
+      if ('available' in rawEbookResponse && 'id' in rawEbookResponse) {
+        return rawEbookResponse as EbookData;
+      }
+      
+      // Caso 2: Formato {success: true, data: {...}}
+      if ('success' in rawEbookResponse && 'data' in rawEbookResponse) {
+        return rawEbookResponse.data as EbookData;
+      }
+      
+      // Caso 3: Array com objeto (para corrigir o problema atual)
+      if (Array.isArray(rawEbookResponse) && rawEbookResponse.length > 0) {
+        // Encontrar o elemento que corresponde à disciplina atual
+        const disciplineEbook = rawEbookResponse.find((item: any) => 
+          item.id === disciplineId || 
+          (item.discipline_id && item.discipline_id === disciplineId)
+        );
+        
+        if (disciplineEbook) {
+          // Verificar se temos a estrutura esperada
+          if (disciplineEbook.ebookPdfUrl) {
+            return {
+              id: disciplineId,
+              available: true,
+              name: disciplineEbook.name || "E-book da Disciplina",
+              description: disciplineEbook.description || "",
+              ebookPdfUrl: disciplineEbook.ebookPdfUrl
+            } as EbookData;
+          }
+        }
+      }
+    }
+    
+    // Se chegarmos aqui, não conseguimos processar o formato
+    console.error('Formato de resposta de e-book não reconhecido:', rawEbookResponse);
+    return null;
+  }, [rawEbookResponse, disciplineId]);
+  
+  console.log('Dados do e-book processados:', ebookData);
   
   // Usado para preparar a URL para visualização
   useEffect(() => {
