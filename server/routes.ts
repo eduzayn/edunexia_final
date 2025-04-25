@@ -1396,6 +1396,332 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para obter questões de uma avaliação
+  app.get('/api/admin/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Buscar as relações entre avaliação e questões
+      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
+      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
+        return res.json({ 
+          success: true, 
+          questions: [] 
+        });
+      }
+
+      // Buscar as questões completas
+      const questionPromises = assessmentQuestionRelations.map(relation => 
+        storage.getQuestion(relation.questionId)
+      );
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar possíveis questões nulas e associar com ordem e peso
+      const questions = questionsResults
+        .map((question, index) => {
+          if (!question) return null;
+          const relation = assessmentQuestionRelations[index];
+          return {
+            ...question,
+            order: relation.order,
+            weight: relation.weight
+          };
+        })
+        .filter(q => q !== null);
+
+      return res.json({ 
+        success: true, 
+        questions 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao buscar questões da avaliação'
+      });
+    }
+  });
+
+  // Endpoint para adicionar questão a uma avaliação
+  app.post('/api/admin/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionId, order = 1, weight = 1 } = req.body;
+      
+      if (!questionId || isNaN(parseInt(questionId))) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de questão inválido' 
+        });
+      }
+
+      // Verificar se a questão existe
+      const question = await storage.getQuestion(parseInt(questionId));
+      if (!question) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Questão não encontrada' 
+        });
+      }
+
+      // Verificar se a questão já está associada à avaliação
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const alreadyExists = existingQuestions.some(q => q.questionId === parseInt(questionId));
+      
+      if (alreadyExists) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Esta questão já está associada à avaliação' 
+        });
+      }
+
+      // Adicionar a questão à avaliação
+      const assessmentQuestion = await storage.addQuestionToAssessment({
+        assessmentId,
+        questionId: parseInt(questionId),
+        order: order,
+        weight: weight
+      });
+
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Questão adicionada com sucesso à avaliação',
+        assessmentQuestion
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar questão à avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao adicionar questão à avaliação'
+      });
+    }
+  });
+
+  // Endpoint para adicionar múltiplas questões a uma avaliação
+  app.post('/api/admin/assessments/:id/questions/batch', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionIds } = req.body;
+      
+      if (!Array.isArray(questionIds) || questionIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de IDs de questões é obrigatória' 
+        });
+      }
+
+      // Obter as questões já associadas
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const existingQuestionIds = existingQuestions.map(q => q.questionId);
+      
+      // Filtrar apenas os novos IDs
+      const newQuestionIds = questionIds
+        .map(id => parseInt(id))
+        .filter(id => !isNaN(id) && !existingQuestionIds.includes(id));
+
+      if (newQuestionIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Todas as questões já estão associadas ou são inválidas' 
+        });
+      }
+
+      // Verificar se as questões existem
+      const questionPromises = newQuestionIds.map(id => storage.getQuestion(id));
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar apenas questões válidas
+      const validQuestionIds = newQuestionIds.filter((_, index) => questionsResults[index] !== undefined);
+      
+      if (validQuestionIds.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Nenhuma questão válida encontrada' 
+        });
+      }
+
+      // Adicionar as questões à avaliação
+      const nextOrder = existingQuestions.length > 0 
+        ? Math.max(...existingQuestions.map(q => q.order)) + 1 
+        : 1;
+      
+      const results = [];
+      for (let i = 0; i < validQuestionIds.length; i++) {
+        const assessmentQuestion = await storage.addQuestionToAssessment({
+          assessmentId,
+          questionId: validQuestionIds[i],
+          order: nextOrder + i,
+          weight: 1
+        });
+        results.push(assessmentQuestion);
+      }
+
+      return res.status(201).json({ 
+        success: true, 
+        message: `${results.length} questões adicionadas com sucesso à avaliação`,
+        results
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar questões em lote à avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao adicionar questões à avaliação'
+      });
+    }
+  });
+  
+  // Endpoint para remover questão de uma avaliação
+  app.delete('/api/admin/assessments/:assessmentId/questions/:questionId', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.assessmentId);
+      const questionId = parseInt(req.params.questionId);
+      
+      if (isNaN(assessmentId) || isNaN(questionId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+
+      // Verificar se a relação existe
+      const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const exists = assessmentQuestions.some(aq => aq.questionId === questionId);
+      
+      if (!exists) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Questão não está associada a esta avaliação' 
+        });
+      }
+
+      // Remover a questão da avaliação
+      const success = await storage.removeQuestionFromAssessment(assessmentId, questionId);
+      
+      if (!success) {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Falha ao remover questão da avaliação' 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Questão removida com sucesso da avaliação' 
+      });
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao remover questão da avaliação'
+      });
+    }
+  });
+
+  // Endpoint para atualizar ordem das questões
+  app.put('/api/admin/assessments/:id/questions/reorder', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionOrder } = req.body;
+      
+      if (!Array.isArray(questionOrder) || questionOrder.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de ordenação é obrigatória' 
+        });
+      }
+
+      // Validar formato da lista de ordenação
+      const isValidFormat = questionOrder.every(item => 
+        item && typeof item.questionId === 'number' && typeof item.order === 'number'
+      );
+      
+      if (!isValidFormat) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Formato inválido para lista de ordenação' 
+        });
+      }
+
+      // Reordenar as questões
+      const success = await storage.reorderAssessmentQuestions(assessmentId, questionOrder);
+      
+      if (!success) {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Falha ao reordenar questões' 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Questões reordenadas com sucesso' 
+      });
+    } catch (error) {
+      console.error('Erro ao reordenar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao reordenar questões'
+      });
+    }
+  });
+
   // Registre outras rotas conforme necessário
 
   return server;

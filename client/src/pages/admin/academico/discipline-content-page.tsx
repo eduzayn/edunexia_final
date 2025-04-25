@@ -155,6 +155,7 @@ const assessmentFormSchema = z.object({
   description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
   type: z.enum(["simulado", "avaliacao_final"]),
   passingScore: z.coerce.number().min(0, { message: "Nota mínima deve ser maior ou igual a 0" }).max(10, { message: "Nota mínima deve ser menor ou igual a 10" }),
+  questionIds: z.array(z.number()).optional(),
 });
 
 type VideoFormValues = z.infer<typeof videoFormSchema>;
