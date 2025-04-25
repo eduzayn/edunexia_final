@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sidebar } from "@/components/layout/sidebar";
+import { Link } from "wouter";
 import {
   LayoutDashboard as DashboardIcon,
   BookOpen,
@@ -37,11 +38,76 @@ import {
   BookMarked
 } from "lucide-react";
 
+// Interface para os cursos no dashboard
+interface DashboardCourse {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  status: string;
+  workload: number;
+  thumbnail?: string;
+  progress: number;
+  enrolledAt: string;
+  updatedAt: string;
+}
+
+// Interface para o dashboard
+interface StudentDashboardData {
+  studentInfo: {
+    totalCourses: number;
+    coursesInProgress: number;
+    coursesNotStarted: number;
+    pendingActivities: number;
+  };
+  courses: DashboardCourse[];
+  upcomingEvents: {
+    title: string;
+    date: string;
+    time: string;
+  }[];
+  announcements: {
+    title: string;
+    content: string;
+    date: string;
+  }[];
+}
+
+// Função auxiliar para calcular o progresso médio de todos os cursos
+const calculateOverallProgress = (courses: DashboardCourse[]): number => {
+  if (!courses || courses.length === 0) return 0;
+  
+  const totalProgress = courses.reduce((sum: number, course: DashboardCourse) => sum + (course.progress || 0), 0);
+  return Math.round(totalProgress / courses.length);
+};
+
+// Função para gerar cores com base no nome do curso
+const getColorForCourse = (courseName: string): string => {
+  if (!courseName) return "bg-primary-light";
+  
+  // Gerar um código de cor simples baseado no nome do curso
+  const hash = courseName.split('').reduce((acc: number, char: string) => char.charCodeAt(0) + acc, 0);
+  
+  const colors = [
+    "bg-primary-light", // Azul principal
+    "bg-green-200",     // Verde
+    "bg-orange-200",    // Laranja
+    "bg-purple-200",    // Roxo
+    "bg-red-200",       // Vermelho
+    "bg-yellow-200",    // Amarelo
+    "bg-blue-200",      // Azul claro
+    "bg-indigo-200",    // Índigo
+    "bg-pink-200"       // Rosa
+  ];
+  
+  return colors[hash % colors.length];
+};
+
 export function StudentDashboard() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { data: dashboardData, isLoading } = useQuery({
+  const { data: dashboardData, isLoading } = useQuery<StudentDashboardData>({
     queryKey: ["/api-json/dashboard/student"],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -60,6 +126,14 @@ export function StudentDashboard() {
     { name: "Mensagens", icon: <MessagesSquare size={18} />, href: "/student/messages" },
     { name: "Meu Perfil", icon: <User size={18} />, href: "/student/profile" },
   ];
+
+  // Calcular dados derivados
+  const courses: DashboardCourse[] = dashboardData?.courses || [];
+  const courseCount = courses.length;
+  const coursesInProgress = dashboardData?.studentInfo?.coursesInProgress || 0;
+  const coursesNotStarted = dashboardData?.studentInfo?.coursesNotStarted || 0;
+  const pendingActivities = dashboardData?.studentInfo?.pendingActivities || 0;
+  const overallProgress = calculateOverallProgress(courses);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -94,7 +168,9 @@ export function StudentDashboard() {
                     </div>
                   ) : (
                     <div className="text-gray-600">
-                      Você tem 3 atividades pendentes essa semana.
+                      {pendingActivities > 0 
+                        ? `Você tem ${pendingActivities} atividade${pendingActivities > 1 ? 's' : ''} pendente${pendingActivities > 1 ? 's' : ''} essa semana.`
+                        : 'Não há atividades pendentes para essa semana.'}
                     </div>
                   )}
                 </div>
@@ -117,8 +193,8 @@ export function StudentDashboard() {
                   </div>
                 ) : (
                   <div className="loaded-content">
-                    <p className="text-2xl font-bold text-gray-900">78%</p>
-                    <Progress value={78} className="h-2.5 mt-2" />
+                    <p className="text-2xl font-bold text-gray-900">{overallProgress}%</p>
+                    <Progress value={overallProgress} className="h-2.5 mt-2" />
                   </div>
                 )}
               </CardContent>
@@ -137,8 +213,13 @@ export function StudentDashboard() {
                   </div>
                 ) : (
                   <div className="loaded-content">
-                    <p className="text-2xl font-bold text-gray-900">3 cursos</p>
-                    <p className="text-gray-600 text-sm mt-2">2 em andamento, 1 não iniciado</p>
+                    <p className="text-2xl font-bold text-gray-900">{courseCount} curso{courseCount !== 1 ? 's' : ''}</p>
+                    <p className="text-gray-600 text-sm mt-2">
+                      {coursesInProgress > 0 ? `${coursesInProgress} em andamento` : ''} 
+                      {coursesInProgress > 0 && coursesNotStarted > 0 ? ', ' : ''}
+                      {coursesNotStarted > 0 ? `${coursesNotStarted} não iniciado${coursesNotStarted > 1 ? 's' : ''}` : ''}
+                      {coursesInProgress === 0 && coursesNotStarted === 0 ? 'Nenhum curso ativo' : ''}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -157,8 +238,8 @@ export function StudentDashboard() {
                   </div>
                 ) : (
                   <div className="loaded-content">
-                    <p className="text-2xl font-bold text-gray-900">15/07/2023</p>
-                    <p className="text-gray-600 text-sm mt-2">Mensalidade: R$ 197,00</p>
+                    <p className="text-2xl font-bold text-gray-900">-</p>
+                    <p className="text-gray-600 text-sm mt-2">Sem vencimentos próximos</p>
                   </div>
                 )}
               </CardContent>
@@ -169,7 +250,9 @@ export function StudentDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">Meus Cursos</h2>
-              <Button variant="link" className="text-sm text-primary">Ver todos</Button>
+              <Link href="/student/courses">
+                <Button variant="link" className="text-sm text-primary">Ver todos</Button>
+              </Link>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -188,62 +271,43 @@ export function StudentDashboard() {
                     </CardContent>
                   </Card>
                 ))
+              ) : courses.length > 0 ? (
+                courses.map((course) => (
+                  <Card key={course.id} className="overflow-hidden">
+                    <div className={`h-36 ${getColorForCourse(course.name)} flex items-center justify-center`}>
+                      <MenuBookIcon className="h-16 w-16 text-white" />
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium text-gray-900 mb-1">{course.name}</h3>
+                      <div className="flex items-center text-gray-500 text-sm mb-3">
+                        <ClockIcon className="h-4 w-4 mr-1" />
+                        <span>Carga: {course.workload || 0} horas</span>
+                      </div>
+                      <Progress value={course.progress || 0} className="h-2 mb-3" />
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">
+                          {course.progress === 0
+                            ? "Não iniciado"
+                            : course.progress === 100
+                            ? "Concluído"
+                            : `Progresso: ${course.progress}%`}
+                        </span>
+                        <Link href={`/student/courses/${course.id}`}>
+                          <Button variant="link" className="p-0 h-auto text-primary">
+                            {course.progress === 0 ? "Começar" : "Continuar"}
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
               ) : (
-                <>
-                  <Card className="overflow-hidden">
-                    <div className="h-36 bg-primary-light flex items-center justify-center">
-                      <MenuBookIcon className="h-16 w-16 text-white" />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium text-gray-900 mb-1">Administração de Empresas</h3>
-                      <div className="flex items-center text-gray-500 text-sm mb-3">
-                        <ClockIcon className="h-4 w-4 mr-1" />
-                        <span>Duração: 12 meses</span>
-                      </div>
-                      <Progress value={65} className="h-2 mb-3" />
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Progresso: 65%</span>
-                        <Button variant="link" className="p-0 h-auto text-primary">Continuar</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="overflow-hidden">
-                    <div className="h-36 bg-green-200 flex items-center justify-center">
-                      <MenuBookIcon className="h-16 w-16 text-white" />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium text-gray-900 mb-1">Desenvolvimento Web</h3>
-                      <div className="flex items-center text-gray-500 text-sm mb-3">
-                        <ClockIcon className="h-4 w-4 mr-1" />
-                        <span>Duração: 6 meses</span>
-                      </div>
-                      <Progress value={25} className="h-2 mb-3" />
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Progresso: 25%</span>
-                        <Button variant="link" className="p-0 h-auto text-primary">Continuar</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="overflow-hidden">
-                    <div className="h-36 bg-orange-200 flex items-center justify-center">
-                      <MenuBookIcon className="h-16 w-16 text-white" />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium text-gray-900 mb-1">Gestão de Projetos</h3>
-                      <div className="flex items-center text-gray-500 text-sm mb-3">
-                        <ClockIcon className="h-4 w-4 mr-1" />
-                        <span>Duração: 4 meses</span>
-                      </div>
-                      <Progress value={0} className="h-2 mb-3" />
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Não iniciado</span>
-                        <Button variant="link" className="p-0 h-auto text-primary">Começar</Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
+                <div className="col-span-3 text-center py-10">
+                  <p className="text-gray-500">Você ainda não está matriculado em nenhum curso.</p>
+                  <Link href="/cursos">
+                    <Button variant="outline" className="mt-4">Ver cursos disponíveis</Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -254,7 +318,9 @@ export function StudentDashboard() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle>Próximos Eventos</CardTitle>
-                  <Button variant="link" className="text-sm text-primary p-0">Ver calendário</Button>
+                  <Link href="/student/calendar">
+                    <Button variant="link" className="text-sm text-primary p-0">Ver calendário</Button>
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
@@ -268,37 +334,23 @@ export function StudentDashboard() {
                       </div>
                     </div>
                   ))
-                ) : (
+                ) : dashboardData?.upcomingEvents?.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="flex items-start border-l-4 border-primary pl-4 py-1">
-                      <div className="w-10 h-10 rounded bg-primary-light/20 flex items-center justify-center mr-4 flex-shrink-0">
-                        <CalendarIcon className="text-primary h-5 w-5" />
+                    {dashboardData.upcomingEvents.map((event, index) => (
+                      <div key={index} className="flex items-start border-l-4 border-primary pl-4 py-1">
+                        <div className="w-10 h-10 rounded bg-primary-light/20 flex items-center justify-center mr-4 flex-shrink-0">
+                          <CalendarIcon className="text-primary h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">{event.title}</h3>
+                          <p className="text-gray-500 text-sm">{event.date}, {event.time}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">Prova Final - Módulo 3</h3>
-                        <p className="text-gray-500 text-sm">Hoje, 19:00 - 21:00</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start border-l-4 border-green-500 pl-4 py-1">
-                      <div className="w-10 h-10 rounded bg-green-100 flex items-center justify-center mr-4 flex-shrink-0">
-                        <GroupIcon className="text-green-600 h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">Webinar: Tendências de Mercado</h3>
-                        <p className="text-gray-500 text-sm">Amanhã, 15:00 - 16:30</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start border-l-4 border-orange-500 pl-4 py-1">
-                      <div className="w-10 h-10 rounded bg-orange-100 flex items-center justify-center mr-4 flex-shrink-0">
-                        <AssignmentIcon className="text-orange-500 h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">Entrega de Trabalho</h3>
-                        <p className="text-gray-500 text-sm">20/07/2023, 23:59</p>
-                      </div>
-                    </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Não há eventos agendados para os próximos dias.</p>
                   </div>
                 )}
               </CardContent>
@@ -317,29 +369,23 @@ export function StudentDashboard() {
                       <Skeleton className="h-3 w-20" />
                     </div>
                   ))
-                ) : (
+                ) : dashboardData?.announcements?.length > 0 ? (
                   <div className="notification-container">
                     <ScrollArea className="h-[240px] pr-4">
                       <div className="space-y-4">
-                        <div className="pb-4 border-b border-gray-200">
-                          <h3 className="font-medium text-gray-900 mb-1">Manutenção Programada</h3>
-                          <p className="text-gray-600 text-sm mb-1">O sistema ficará indisponível no dia 10/07 das 02:00 às 04:00.</p>
-                          <p className="text-gray-500 text-xs">03/07/2023</p>
-                        </div>
-                        
-                        <div className="pb-4 border-b border-gray-200">
-                          <h3 className="font-medium text-gray-900 mb-1">Novos Cursos Disponíveis</h3>
-                          <p className="text-gray-600 text-sm mb-1">Confira os novos cursos de Marketing Digital e UX/UI.</p>
-                          <p className="text-gray-500 text-xs">28/06/2023</p>
-                        </div>
-                        
-                        <div>
-                          <h3 className="font-medium text-gray-900 mb-1">Atualização da Plataforma</h3>
-                          <p className="text-gray-600 text-sm mb-1">Novos recursos disponíveis!</p>
-                          <p className="text-gray-500 text-xs">15/06/2023</p>
-                        </div>
+                        {dashboardData.announcements.map((announcement, index) => (
+                          <div key={index} className="pb-4 border-b border-gray-200 last:border-0 last:pb-0">
+                            <h3 className="font-medium text-gray-900 mb-1">{announcement.title}</h3>
+                            <p className="text-gray-600 text-sm mb-1">{announcement.content}</p>
+                            <p className="text-gray-500 text-xs">{announcement.date}</p>
+                          </div>
+                        ))}
                       </div>
                     </ScrollArea>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Não há avisos no momento.</p>
                   </div>
                 )}
               </CardContent>

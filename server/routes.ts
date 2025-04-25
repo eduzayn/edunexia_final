@@ -630,6 +630,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Rota JSON para listar cursos do aluno
+  // Rota para o dashboard do estudante
+  app.get('/api-json/dashboard/student', requireStudent, async (req, res) => {
+    console.log('Buscando dados do dashboard do aluno');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const userId = (req as any).user.id;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do usuário não encontrado'
+        });
+      }
+      
+      // Obter matrículas do aluno
+      const enrollments = await storage.getStudentEnrollments(userId);
+      
+      // Mapear para o formato esperado pelo frontend
+      const studentCourses = await Promise.all(enrollments.map(async (enrollment) => {
+        const course = await storage.getCourse(enrollment.courseId);
+        
+        if (!course) {
+          return null;
+        }
+        
+        return {
+          id: course.id,
+          code: course.code,
+          name: course.name,
+          description: course.description || '',
+          status: course.status,
+          workload: course.workload || 0,
+          thumbnail: course.thumbnail || '',
+          progress: enrollment.progress || 0,
+          enrolledAt: enrollment.createdAt,
+          updatedAt: enrollment.updatedAt || enrollment.createdAt
+        };
+      }));
+      
+      // Filtrar valores nulos (cursos não encontrados)
+      const validCourses = studentCourses.filter(course => course !== null);
+      
+      // Contadores para o dashboard
+      const totalCourses = validCourses.length;
+      const coursesInProgress = validCourses.filter(course => (course?.progress || 0) > 0 && (course?.progress || 0) < 100).length;
+      const coursesNotStarted = validCourses.filter(course => (course?.progress || 0) === 0).length;
+      
+      // Poderíamos buscar eventos reais do aluno no futuro
+      const upcomingEvents: { title: string; date: string; time: string }[] = [];
+      
+      // Poderíamos buscar avisos reais do sistema
+      const announcements: { title: string; content: string; date: string }[] = [];
+      
+      // Poderíamos buscar atividades pendentes do aluno
+      const pendingActivities = validCourses.length > 0 ? 2 : 0;
+      
+      // Construir resposta do dashboard
+      const dashboardData = {
+        studentInfo: {
+          totalCourses,
+          coursesInProgress,
+          coursesNotStarted,
+          pendingActivities
+        },
+        courses: validCourses,
+        upcomingEvents,
+        announcements
+      };
+      
+      console.log(`Retornando dashboard para o aluno ${userId} com ${validCourses.length} cursos`);
+      return res.status(200).json(dashboardData);
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard do aluno:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar dados do dashboard',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   app.get('/api-json/student/courses', requireStudent, async (req, res) => {
     console.log('Buscando cursos do aluno (API JSON)');
     res.setHeader('Content-Type', 'application/json');
