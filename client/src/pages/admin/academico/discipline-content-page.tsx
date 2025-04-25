@@ -64,6 +64,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { AccessibleDialog } from "@/components/ui/accessible-dialog";
 import {
   Accordion,
   AccordionContent,
@@ -2725,14 +2726,14 @@ export default function DisciplineContentPage() {
       </Dialog>
 
       {/* Dialog para inserir link de e-book externo */}
-      <Dialog open={isEbookLinkDialogOpen} onOpenChange={setIsEbookLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Inserir Link de E-book</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para adicionar um link para um e-book externo.
-            </DialogDescription>
-          </DialogHeader>
+      <AccessibleDialog 
+        open={isEbookLinkDialogOpen} 
+        onOpenChange={setIsEbookLinkDialogOpen}
+        title="Inserir Link de E-book"
+        description="Preencha os dados abaixo para adicionar um link para um e-book externo."
+        showTitle={true}
+        showDescription={true}
+      >
           <Form {...ebookLinkForm}>
             <form onSubmit={ebookLinkForm.handleSubmit(onEbookLinkSubmit)} className="space-y-6">
               <FormField
@@ -2802,8 +2803,7 @@ export default function DisciplineContentPage() {
               </DialogFooter>
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
+      </AccessibleDialog>
 
       {/* Dialog para editar questões da avaliação */}
       <Dialog open={isEditQuestionsDialogOpen} onOpenChange={setIsEditQuestionsDialogOpen}>
