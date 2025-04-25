@@ -1701,6 +1701,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint PUT para atualizar questões de uma avaliação (compatibilidade com frontend)
+  app.put('/api/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionIds } = req.body;
+      
+      if (!Array.isArray(questionIds)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de IDs de questões é obrigatória' 
+        });
+      }
+
+      // Obter as questões já associadas
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      
+      // Remover todas as questões existentes
+      for (const question of existingQuestions) {
+        await storage.removeQuestionFromAssessment(assessmentId, question.questionId);
+      }
+      
+      // Adicionar as novas questões selecionadas
+      const results = [];
+      for (let i = 0; i < questionIds.length; i++) {
+        const questionId = parseInt(questionIds[i]);
+        if (isNaN(questionId)) continue;
+        
+        // Verificar se a questão existe
+        const question = await storage.getQuestion(questionId);
+        if (!question) continue;
+        
+        const assessmentQuestion = await storage.addQuestionToAssessment({
+          assessmentId,
+          questionId,
+          order: i + 1,
+          weight: 1
+        });
+        results.push(assessmentQuestion);
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: `${results.length} questões atualizadas com sucesso`,
+        data: results
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao atualizar questões da avaliação'
+      });
+    }
+  });
+
   // Endpoint para remover questão de uma avaliação
   app.delete('/api/admin/assessments/:assessmentId/questions/:questionId', requireAuth, async (req, res) => {
     try {
