@@ -993,6 +993,231 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rotas para gerenciamento de disciplinas de cursos
+  app.get('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Buscar disciplinas vinculadas ao curso
+      const courseDisciplines = await storage.getCourseDisciplines(courseId);
+      console.log(`GET /api/admin/courses/${courseId}/disciplines - Encontradas ${courseDisciplines.length} disciplinas`);
+      
+      return res.json(courseDisciplines);
+    } catch (error) {
+      console.error(`Erro ao buscar disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao buscar disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.delete('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Remover todas as disciplinas do curso
+      await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
+      console.log(`DELETE /api/admin/courses/${courseId}/disciplines - Disciplinas removidas`);
+      
+      return res.json({ success: true, message: "Todas as disciplinas foram removidas do curso" });
+    } catch (error) {
+      console.error(`Erro ao remover disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao remover disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api/admin/course-disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const { courseId, disciplineId, order } = req.body;
+      
+      // Validar dados de entrada
+      if (!courseId || !disciplineId || !order) {
+        return res.status(400).json({ 
+          message: "Dados incompletos",
+          required: ["courseId", "disciplineId", "order"]
+        });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Adicionar disciplina ao curso
+      const courseDiscipline = await storage.addDisciplineToCourse({
+        courseId,
+        disciplineId,
+        order,
+        isRequired: true
+      });
+      
+      console.log(`POST /api/admin/course-disciplines - Disciplina ${disciplineId} adicionada ao curso ${courseId} na posição ${order}`);
+      
+      return res.status(201).json(courseDiscipline);
+    } catch (error) {
+      console.error(`Erro ao adicionar disciplina ao curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao adicionar disciplina ao curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Também fornecer suporte para rotas em formato JSON-JSON
+  app.get('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ success: false, message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Buscar disciplinas vinculadas ao curso
+      const courseDisciplines = await storage.getCourseDisciplines(courseId);
+      
+      return res.json({
+        success: true,
+        data: courseDisciplines
+      });
+    } catch (error) {
+      console.error(`Erro ao buscar disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao buscar disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.delete('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ success: false, message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Remover todas as disciplinas do curso
+      await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
+      
+      return res.json({ 
+        success: true, 
+        message: "Todas as disciplinas foram removidas do curso" 
+      });
+    } catch (error) {
+      console.error(`Erro ao remover disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao remover disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api-json/admin/course-disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const { courseId, disciplineId, order } = req.body;
+      
+      // Validar dados de entrada
+      if (!courseId || !disciplineId || !order) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Dados incompletos",
+          required: ["courseId", "disciplineId", "order"]
+        });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ success: false, message: "Disciplina não encontrada" });
+      }
+      
+      // Adicionar disciplina ao curso
+      const courseDiscipline = await storage.addDisciplineToCourse({
+        courseId,
+        disciplineId,
+        order,
+        isRequired: true
+      });
+      
+      return res.status(201).json({
+        success: true,
+        data: courseDiscipline
+      });
+    } catch (error) {
+      console.error(`Erro ao adicionar disciplina ao curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao adicionar disciplina ao curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Registre outras rotas conforme necessário
 
   return server;
