@@ -481,7 +481,7 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
           ) : ebookData.available ? (
             <div className="flex flex-col">
               <div className="flex flex-col gap-4 mb-6">
-                <div>
+                <div className="mb-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-bold">{ebookData.name}</h3>
@@ -501,20 +501,6 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <p className="text-xs text-blue-500 mt-2 mb-3">
-                    URL: <span className="font-mono">{ebookData.ebookPdfUrl}</span>
-                  </p>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="default" 
-                    onClick={() => setIsViewDialogOpen(true)}
-                    className="flex gap-2 items-center bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Book className="h-4 w-4" />
-                    Visualizar E-book
-                  </Button>
                 </div>
               </div>
               

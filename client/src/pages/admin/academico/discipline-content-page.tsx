@@ -30,7 +30,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import EbookContentSection from "@/components/discipline/ebook-content-section";
 import EbookContentSectionV2 from "@/components/discipline/ebook-content-section-v2";
-import EndpointDebug from "@/components/discipline/endpoint-debug";
+
 import {
   Card,
   CardContent,
@@ -1832,10 +1832,6 @@ export default function DisciplineContentPage() {
                 <EbookContentSectionV2 disciplineId={Number(disciplineId)} />
                 
                 {/* Depurador do endpoint */}
-                <h3 className="text-lg font-semibold mt-8">Ferramentas de Depuração</h3>
-                <p className="text-sm text-muted-foreground">Estas ferramentas ajudam a identificar problemas com a API</p>
-                
-                <EndpointDebug url={`/api/disciplines/${disciplineId}/ebook`} />
               </div>
             </TabsContent>
 
