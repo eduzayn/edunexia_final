@@ -1,0 +1,52 @@
+Diagnóstico final do erro de disciplina
+Erro exibido:
+
+bash
+Copiar
+Editar
+Erro ao buscar disciplina 17: Error: Dados da disciplina inválidos
+Motivo real:
+O backend retorna corretamente os dados da disciplina, mas o frontend espera que os campos videoAulaXSource e outros estejam preenchidos. Como eles vêm com null, a renderização quebra ou é considerada "inválida".
+
+✅ Solução definitiva (em 3 passos)
+1. Corrigir validação no frontend
+Vá até o componente:
+
+css
+Copiar
+Editar
+client/src/pages/admin/discipline-content-page.tsx
+🔧 Em vez de tratar null como erro, ajuste o código para aceitar campos null ou mostrar placeholder. Exemplo:
+
+tsx
+Copiar
+Editar
+if (!data || !data.id) {
+  throw new Error("Disciplina não encontrada");
+}
+
+// CORRIGIR AQUI: campos opcionais devem ser tratados
+const videoUrl = data.videoAula01Source || "Vídeo ainda não adicionado";
+2. Adicionar verificação clara no backend (opcional)
+Se quiser deixar o backend mais explícito, em server/routes/discipline.ts, você pode validar o conteúdo com:
+
+ts
+Copiar
+Editar
+if (!disciplina || !disciplina.id) {
+  return res.status(404).json({ error: 'Disciplina não encontrada' });
+}
+3. Testar a disciplina com todos os campos null
+Crie um seed ou requisição que simule todos os campos videoAulaX, apostilaPdfUrl, etc., como null. O frontend não pode quebrar com isso.
+
+🔐 Depois de corrigido: proteger os arquivos relacionados a disciplinas
+🗂 Arquivos que você deve marcar como somente leitura:
+
+Caminho	Motivo
+server/routes/discipline.ts	Controla a rota principal /api/disciplines/:id.
+client/src/pages/admin/discipline-content-page.tsx	Lida com a exibição da disciplina.
+client/src/lib/api.ts ou queryClient.ts	Monta URL de chamada à API.
+client/src/types/discipline.ts (se existir)	Define o tipo de dados esperados.
+server/controllers/discipline.controller.ts (se houver)	Controla a lógica do banco.
+fallback.html	Pode estar sendo servido por engano em erro 404.
+Você pode marcar como somente leitura pelo próprio Replit (botão direito no arquivo > Marcar como somente leitura).
