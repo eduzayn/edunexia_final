@@ -185,11 +185,15 @@ export const getQueryFn: <T>(options: {
 
     try {
       console.log(`Iniciando fetch para ${apiUrl}`);
+      // Garantir que o cabeçalho de conteúdo esteja definido
+      headers['Content-Type'] = 'application/json';
+      // Log completo dos headers para debug
+      console.log('Headers completos da requisição:', JSON.stringify(headers));
       const res = await fetch(apiUrl, {
         method: "GET",
         headers,
         cache: 'no-cache',
-        credentials: 'same-origin'
+        credentials: 'include' // Alterado para 'include' para permitir cookies cross-origin
       });
       
       // Log para debug
