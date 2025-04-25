@@ -1825,10 +1825,10 @@ export default function DisciplineContentPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {}}
+                                  onClick={() => handleEditAssessmentQuestions(simulado)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Adicionar Questões
+                                  Editar Questões
                                 </Button>
                               </div>
                             </div>
@@ -1933,10 +1933,10 @@ export default function DisciplineContentPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {}}
+                                  onClick={() => handleEditAssessmentQuestions(avaliacao)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Adicionar Questões
+                                  Editar Questões
                                 </Button>
                               </div>
                             </div>
