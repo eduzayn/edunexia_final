@@ -1828,7 +1828,7 @@ export default function DisciplineContentPage() {
                                   onClick={() => handleEditAssessmentQuestions(simulado)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Editar Questões
+                                  Incluir Questões
                                 </Button>
                               </div>
                             </div>
@@ -1936,7 +1936,7 @@ export default function DisciplineContentPage() {
                                   onClick={() => handleEditAssessmentQuestions(avaliacao)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Editar Questões
+                                  Incluir Questões
                                 </Button>
                               </div>
                             </div>
@@ -2617,7 +2617,7 @@ export default function DisciplineContentPage() {
       <Dialog open={isEditQuestionsDialogOpen} onOpenChange={setIsEditQuestionsDialogOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <DialogTitle>Editar Questões da Avaliação</DialogTitle>
+            <DialogTitle>Incluir Questões da Avaliação</DialogTitle>
             <DialogDescription>
               Selecione as questões que deseja incluir na avaliação.
             </DialogDescription>
