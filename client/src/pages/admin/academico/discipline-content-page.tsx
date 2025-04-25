@@ -203,6 +203,8 @@ export default function DisciplineContentPage() {
   const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
   const [isEditQuestionsDialogOpen, setIsEditQuestionsDialogOpen] = useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [isAvailableQuestionsLoading, setIsAvailableQuestionsLoading] = useState(false);
   
   // Estado para prévia de vídeo
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
@@ -923,11 +925,40 @@ export default function DisciplineContentPage() {
   };
   
   // Função para abrir o diálogo de edição de questões de avaliação
-  const handleEditAssessmentQuestions = (assessment: any) => {
+  const handleEditAssessmentQuestions = async (assessment: any) => {
     setSelectedAssessment(assessment);
     // Se a avaliação já tem questões selecionadas, carregamos elas
     setSelectedQuestionIds(assessment.questionIds || []);
-    setIsEditQuestionsDialogOpen(true);
+    
+    // Buscar questões disponíveis que ainda não foram adicionadas a essa avaliação
+    setIsAvailableQuestionsLoading(true);
+    try {
+      const response = await apiRequest(
+        "GET", 
+        buildApiUrl(`/api/assessments/${assessment.id}/available-questions`)
+      );
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAvailableQuestions(data.data);
+      } else {
+        // Se não encontrar questões disponíveis via nova API, usa todas as questões como fallback
+        setAvailableQuestions(questions || []);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar questões disponíveis:", error);
+      // Fallback para todas as questões da disciplina
+      setAvailableQuestions(questions || []);
+      
+      toast({
+        title: "Aviso",
+        description: "Não foi possível filtrar questões já utilizadas. Todas as questões serão exibidas.",
+        variant: "default",
+      });
+    } finally {
+      setIsAvailableQuestionsLoading(false);
+      setIsEditQuestionsDialogOpen(true);
+    }
   };
   
   // Funções para envio de formulários

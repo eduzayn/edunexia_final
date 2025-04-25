@@ -1701,6 +1701,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint para obter questões disponíveis (não usadas) para uma avaliação
+  app.get('/api/assessments/:id/available-questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Obter todas as questões da disciplina
+      const disciplineId = assessment.disciplineId;
+      const allQuestions = await storage.getQuestionsByDiscipline(disciplineId);
+      
+      // Obter questões já associadas à avaliação
+      const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const usedQuestionIds = assessmentQuestions.map(q => q.questionId);
+      
+      // Filtrar apenas questões não utilizadas
+      const availableQuestions = allQuestions.filter(q => !usedQuestionIds.includes(q.id));
+      
+      return res.status(200).json({
+        success: true,
+        data: availableQuestions
+      });
+    } catch (error) {
+      console.error('Erro ao obter questões disponíveis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao obter questões disponíveis'
+      });
+    }
+  });
+
   // Endpoint PUT para atualizar questões de uma avaliação (compatibilidade com frontend)
   app.put('/api/assessments/:id/questions', requireAuth, async (req, res) => {
     try {
