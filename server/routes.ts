@@ -1770,8 +1770,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const result = await connection.query(
-          'INSERT INTO assessments (discipline_id, title, description, type, passing_score, question_count) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-          [disciplineId, title, description, type, passingScore || 6, 0]
+          'INSERT INTO assessments (discipline_id, title, description, type, passing_score) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [disciplineId, title, description, type, passingScore || 6]
         );
         assessmentId = result.rows[0].id;
       } finally {
@@ -1796,16 +1796,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         await Promise.all(promises);
         
-        // Atualiza o contador de questões na avaliação
-        const conn = await pool.connect();
-        try {
-          await conn.query(
-            'UPDATE assessments SET question_count = $1 WHERE id = $2',
-            [questionIds.length, assessmentId]
-          );
-        } finally {
-          conn.release();
-        }
+        // Não precisamos atualizar question_count pois a coluna não existe no schema
+        // As questões já estão sendo associadas através da tabela assessment_questions
       }
 
       // Retorna a avaliação criada
