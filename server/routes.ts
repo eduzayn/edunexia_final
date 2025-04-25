@@ -498,6 +498,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
+  
+  // Rota para obter um curso específico pelo ID
+  app.get('/api/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Buscar o curso pelo ID
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      console.log(`GET /api/admin/courses/${courseId} - Curso encontrado`);
+      return res.json(course);
+    } catch (error) {
+      console.error(`Erro ao buscar curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao buscar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Nova rota API JSON para cursos - usada no formulário de matrícula
   app.get('/api-json/courses', async (req, res) => {
@@ -517,6 +545,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ 
         success: false, 
         error: 'Erro ao buscar cursos' 
+      });
+    }
+  });
+  
+  // Rota para obter um curso específico pelo ID (formato JSON-API)
+  app.get('/api-json/courses/:id', async (req, res) => {
+    console.log(`Buscando curso ID ${req.params.id} (API JSON)`);
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID do curso inválido"
+        });
+      }
+      
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: "Curso não encontrado"
+        });
+      }
+      
+      console.log(`GET /api-json/courses/${courseId} - Curso encontrado`);
+      return res.status(200).json({
+        success: true,
+        data: course
+      });
+    } catch (error) {
+      console.error(`Erro ao buscar curso: ${error}`);
+      return res.status(500).json({
+        success: false,
+        message: "Erro ao buscar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
   });
@@ -1113,6 +1178,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
+  });
+  
+  // Adicionar redirecionamento entre a rota admin e a rota JSON comum para curso específico
+  app.get('/api-json/admin/courses/:id', requireAuth, (req, res) => {
+    console.log(`Redirecionando /api-json/admin/courses/${req.params.id} para /api-json/courses/${req.params.id}`);
+    res.redirect(`/api-json/courses/${req.params.id}`);
   });
   
   // Também fornecer suporte para rotas em formato JSON-JSON
