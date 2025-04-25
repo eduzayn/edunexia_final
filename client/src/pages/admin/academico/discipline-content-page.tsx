@@ -466,6 +466,41 @@ export default function DisciplineContentPage() {
     },
   });
   
+  // Mutation para excluir vídeo
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: number) => {
+      const videoUrl = buildApiUrl(`/admin/discipline-videos/${videoId}?disciplineId=${disciplineId}`);
+      const response = await apiRequest("DELETE", videoUrl);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Vídeo excluído com sucesso!",
+        description: "O vídeo foi removido da disciplina.",
+      });
+      refetchVideos();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir vídeo",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Mutation para adicionar apostila
   const addMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormValues) => {
@@ -728,6 +763,14 @@ export default function DisciplineContentPage() {
     setPreviewVideoUrl(video.url);
     setPreviewVideoSource(video.videoSource as any);
     setIsVideoEditDialogOpen(true);
+  };
+  
+  // Função para excluir um vídeo
+  const handleDeleteVideo = (videoId: number) => {
+    // Mostrar um diálogo de confirmação antes de excluir
+    if (confirm('Tem certeza que deseja excluir este vídeo? Esta ação não pode ser desfeita.')) {
+      deleteVideoMutation.mutate(videoId);
+    }
   };
   
   const handleOpenMaterialDialog = () => {
@@ -1273,7 +1316,7 @@ export default function DisciplineContentPage() {
                             <EmbeddedVideoPlayer 
                               url={video.url}
                               title={video.title}
-                              source={video.videoSource}
+                              source={video.videoSource as "youtube" | "vimeo" | "onedrive" | "google_drive" | "upload"}
                               className="w-full"
                             />
                           </div>
