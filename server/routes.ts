@@ -6,7 +6,7 @@ import { Server } from 'http';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { eq, asc } from 'drizzle-orm';
 import { courseDisciplines } from '@shared/schema';
-import { db } from './db'; // Importado para acesso direto ao banco de dados
+import { pool } from './db'; // Importado para acesso direto ao banco de dados
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
@@ -24,7 +24,7 @@ import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
-import { db, executeWithRetry } from './db';
+import { db, executeWithRetry } from './db'; // Importação do db e executeWithRetry
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
 
