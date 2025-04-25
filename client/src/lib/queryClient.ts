@@ -169,10 +169,12 @@ export const getQueryFn: <T>(options: {
     }
     
     // ✨ Usar a função centralizada buildApiUrl para URLs consistentes
+    // Isso usa nossa função getApiBaseUrl que detecta o ambiente
+    // e monta a URL correta para o Replit ou ambiente local
     const apiUrl = buildApiUrl(urlFromKey);
     
     // Log para debug
-    console.log(`QueryClient fazendo requisição para: ${apiUrl}`);
+    console.log(`QueryClient fazendo requisição para: ${apiUrl} (ambiente: ${window.location.hostname})`);
 
     // Adicionar token de autenticação ao header se disponível no localStorage
     const authToken = localStorage.getItem('auth_token');
