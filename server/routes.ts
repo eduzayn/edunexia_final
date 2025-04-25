@@ -1722,6 +1722,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para obter avaliações de uma disciplina
+  app.get('/api/disciplines/:id/assessments', requireAuth, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ success: false, message: 'ID de disciplina inválido' });
+      }
+
+      const connection = await pool.connect();
+      try {
+        const result = await connection.query(
+          'SELECT * FROM assessments WHERE discipline_id = $1 ORDER BY id',
+          [disciplineId]
+        );
+        
+        return res.status(200).json(result.rows);
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      console.error('Erro ao buscar avaliações da disciplina:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar avaliações da disciplina' });
+    }
+  });
+  
+  // Endpoint para criar uma avaliação (simulado ou avaliação final) para uma disciplina
+  app.post('/api/disciplines/:id/assessments', requireAuth, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ success: false, message: 'ID de disciplina inválido' });
+      }
+
+      const { title, description, type, passingScore, questionIds } = req.body;
+      
+      if (!title || !description || !['simulado', 'avaliacao_final'].includes(type)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Dados de avaliação inválidos. Título, descrição e tipo são obrigatórios.' 
+        });
+      }
+
+      // Cria a avaliação
+      const connection = await pool.connect();
+      let assessmentId;
+      
+      try {
+        const result = await connection.query(
+          'INSERT INTO assessments (discipline_id, title, description, type, passing_score, question_count) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+          [disciplineId, title, description, type, passingScore || 6, 0]
+        );
+        assessmentId = result.rows[0].id;
+      } finally {
+        connection.release();
+      }
+
+      // Se há questões selecionadas, vincula-as à avaliação
+      if (Array.isArray(questionIds) && questionIds.length > 0) {
+        // Insere as questões em lote
+        const promises = questionIds.map(async (questionId) => {
+          const conn = await pool.connect();
+          try {
+            const result = await conn.query(
+              'INSERT INTO assessment_questions (assessment_id, question_id) VALUES ($1, $2) RETURNING *',
+              [assessmentId, questionId]
+            );
+            return result.rows[0];
+          } finally {
+            conn.release();
+          }
+        });
+
+        await Promise.all(promises);
+        
+        // Atualiza o contador de questões na avaliação
+        const conn = await pool.connect();
+        try {
+          await conn.query(
+            'UPDATE assessments SET question_count = $1 WHERE id = $2',
+            [questionIds.length, assessmentId]
+          );
+        } finally {
+          conn.release();
+        }
+      }
+
+      // Retorna a avaliação criada
+      return res.status(201).json({ 
+        success: true, 
+        data: { 
+          id: assessmentId, 
+          disciplineId, 
+          title, 
+          description, 
+          type, 
+          passingScore: passingScore || 6,
+          questionCount: questionIds?.length || 0
+        } 
+      });
+    } catch (error) {
+      console.error('Erro ao criar avaliação:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao criar avaliação' });
+    }
+  });
+  
   // Registre outras rotas conforme necessário
 
   return server;
