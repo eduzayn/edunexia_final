@@ -268,99 +268,15 @@ export default function DisciplineVideoPage() {
       ) : (
         <>
           {/* Player de vídeo */}
-          <div className="mb-6 relative rounded-lg overflow-hidden shadow-md">
-            <div className="aspect-video bg-black relative">
-              <video
-                ref={videoRef}
-                className="w-full h-full"
-                poster={video.thumbnail}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleLoadedMetadata}
-                onEnded={() => setIsPlaying(false)}
-              >
-                <source src={video.url} type="video/mp4" />
-                Seu navegador não suporta a reprodução de vídeos.
-              </video>
-              
-              {/* Controles do player */}
-              <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-b from-black/0 via-black/0 to-black/60 opacity-0 hover:opacity-100 transition-opacity duration-300">
-                {/* Área clicável para play/pause */}
-                <div 
-                  className="flex-1 cursor-pointer"
-                  onClick={togglePlay}
-                ></div>
-                
-                {/* Controles inferiores */}
-                <div className="p-4">
-                  {/* Barra de progresso */}
-                  <div 
-                    className="w-full h-1.5 bg-gray-600 rounded-full cursor-pointer mb-4"
-                    onClick={seekTo}
-                  >
-                    <div 
-                      className="h-full bg-primary rounded-full relative"
-                      style={{ width: `${progress}%` }}
-                    >
-                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-primary rounded-full"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Botões de controle */}
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                      <button 
-                        className="text-white focus:outline-none"
-                        onClick={skipBackward}
-                      >
-                        <SkipBack className="h-5 w-5" />
-                      </button>
-                      
-                      <button 
-                        className="text-white focus:outline-none"
-                        onClick={togglePlay}
-                      >
-                        {isPlaying ? (
-                          <PauseCircle className="h-8 w-8" />
-                        ) : (
-                          <PlayCircle className="h-8 w-8" />
-                        )}
-                      </button>
-                      
-                      <button 
-                        className="text-white focus:outline-none"
-                        onClick={skipForward}
-                      >
-                        <SkipForward className="h-5 w-5" />
-                      </button>
-                      
-                      <div className="text-sm text-white ml-2">
-                        {formatTime(currentTime)} / {formatTime(duration)}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <button
-                        className="text-white focus:outline-none"
-                        onClick={toggleMute}
-                      >
-                        {isMuted ? (
-                          <VolumeX className="h-5 w-5" />
-                        ) : (
-                          <Volume2 className="h-5 w-5" />
-                        )}
-                      </button>
-                      
-                      <button
-                        className="text-white focus:outline-none"
-                        onClick={toggleFullscreen}
-                      >
-                        <Maximize className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="mb-6 relative shadow-md">
+            <EmbeddedVideoPlayer
+              url={video.url}
+              title={video.title}
+              source={video.source || 'youtube'}
+              poster={video.thumbnail}
+              onEnded={() => setIsPlaying(false)}
+              className="rounded-lg overflow-hidden"
+            />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
