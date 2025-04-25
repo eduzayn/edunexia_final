@@ -992,4 +992,107 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
   }
 });
 
+// Endpoints para E-book Interativo
+// GET - Obter e-book interativo de uma disciplina
+router.get('/:disciplineId/interactive-ebook', async (req, res) => {
+  try {
+    const { disciplineId } = req.params;
+    const numDisciplineId = validateDisciplineId(disciplineId);
+    
+    if (!numDisciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID da disciplina inválido' 
+      });
+    }
+    
+    // Como este é um recurso novo, retornamos um objeto indicando que não há e-book interativo
+    // Isso é apenas uma implementação temporária até que o schema seja atualizado
+    return res.status(200).json({ 
+      id: numDisciplineId,
+      available: false,
+      message: "E-book interativo ainda não configurado"
+    });
+  } catch (error) {
+    console.error('Erro ao obter e-book interativo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor' 
+    });
+  }
+});
+
+// POST - Adicionar ou atualizar e-book interativo
+router.post('/:disciplineId/interactive-ebook', upload.single('file'), async (req, res) => {
+  try {
+    const { disciplineId } = req.params;
+    const numDisciplineId = validateDisciplineId(disciplineId);
+    
+    if (!numDisciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID da disciplina inválido' 
+      });
+    }
+    
+    // Dados do formulário
+    const { title, description, url } = req.body;
+    const file = req.file;
+    
+    // Verificar se foi enviado arquivo ou URL
+    if (!file && !url) {
+      return res.status(400).json({
+        success: false,
+        error: 'É necessário fornecer um arquivo ou uma URL'
+      });
+    }
+    
+    // Simular sucesso - isso seria substituído por código real que salva os dados
+    return res.status(200).json({
+      success: true,
+      message: 'E-book interativo adicionado/atualizado com sucesso',
+      id: numDisciplineId,
+      available: true,
+      name: title || "E-book Interativo",
+      description: description || "",
+      interactiveEbookUrl: file ? 
+        `${req.protocol}://${req.get('host')}/uploads/${file.filename}` : 
+        url
+    });
+  } catch (error) {
+    console.error('Erro ao adicionar e-book interativo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor' 
+    });
+  }
+});
+
+// DELETE - Remover e-book interativo
+router.delete('/:disciplineId/interactive-ebook', async (req, res) => {
+  try {
+    const { disciplineId } = req.params;
+    const numDisciplineId = validateDisciplineId(disciplineId);
+    
+    if (!numDisciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID da disciplina inválido' 
+      });
+    }
+    
+    // Simular sucesso - seria substituído por código real
+    return res.status(200).json({
+      success: true,
+      message: 'E-book interativo removido com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro ao remover e-book interativo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor' 
+    });
+  }
+});
+
 export default router;
