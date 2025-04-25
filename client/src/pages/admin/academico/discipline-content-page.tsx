@@ -2905,14 +2905,14 @@ export default function DisciplineContentPage() {
 
       {/* Diálogo para visualizar questões de avaliação */}
       <Dialog open={isViewAssessmentQuestionsDialogOpen} onOpenChange={setIsViewAssessmentQuestionsDialogOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] max-h-[800px] flex flex-col">
           <DialogHeader>
             <DialogTitle>Questões da Avaliação</DialogTitle>
             <DialogDescription>
               Visualize e gerencie as questões incluídas nesta avaliação.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-medium">
@@ -2929,10 +2929,11 @@ export default function DisciplineContentPage() {
               </div>
             </div>
             
-            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
+            <div className="border rounded-md p-4 flex-1 overflow-y-auto">
               {isAssessmentQuestionsLoading ? (
-                <div className="flex justify-center py-4">
-                  <span className="animate-spin mr-2">◌</span> Carregando questões...
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p>Carregando questões da avaliação...</p>
                 </div>
               ) : assessmentQuestionsWithDetails && assessmentQuestionsWithDetails.length > 0 ? (
                 <div className="space-y-4">
@@ -2940,49 +2941,59 @@ export default function DisciplineContentPage() {
                     {assessmentQuestionsWithDetails.map((question, index) => (
                       <AccordionItem key={question.id} value={question.id.toString()}>
                         <AccordionTrigger className="hover:bg-muted/50 px-4 -mx-4 rounded-md">
-                          <div className="flex items-center text-left">
-                            <span className="font-semibold mr-2">{index + 1}.</span>
-                            <span className="truncate">
-                              {question.statement.length > 80
-                                ? `${question.statement.substring(0, 80)}...`
-                                : question.statement}
+                          <div className="flex items-center text-left w-full">
+                            <span className="font-semibold mr-2 text-primary">{index + 1}.</span>
+                            <span className="truncate flex-1 text-left">
+                              {question.statement && question.statement.length > 120
+                                ? `${question.statement.substring(0, 120)}...`
+                                : question.statement || "Sem enunciado"}
                             </span>
+                            <Badge variant="outline" className="ml-2">
+                              {question.options ? question.options.length : 0} opções
+                            </Badge>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="border-t pt-4 mt-1">
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="font-semibold">Enunciado:</h4>
-                              <p className="mt-1">{question.statement}</p>
+                          <div className="space-y-6">
+                            <div className="bg-muted/30 p-4 rounded-lg">
+                              <h4 className="font-semibold text-lg mb-2">Enunciado:</h4>
+                              <p className="mt-1 whitespace-pre-line">{question.statement}</p>
                             </div>
+                            
                             <div>
-                              <h4 className="font-semibold">Opções:</h4>
-                              <ul className="mt-2 space-y-2">
-                                {question.options.map((option: string, i: number) => (
-                                  <li key={i} className="flex items-center">
-                                    <span className="h-6 w-6 flex items-center justify-center rounded-full bg-muted font-medium text-sm mr-2">
-                                      {String.fromCharCode(65 + i)}
-                                    </span>
-                                    <span className="ml-2">{option}</span>
-                                    {i === question.correctOption && (
-                                      <Badge className="ml-2 bg-green-500">Correta</Badge>
-                                    )}
-                                  </li>
+                              <h4 className="font-semibold text-lg mb-3">Opções:</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {question.options && question.options.map((option: string, i: number) => (
+                                  <div key={i} className={`p-3 rounded-lg border ${i === question.correctOption ? 'border-green-500 bg-green-50' : 'border-muted'}`}>
+                                    <div className="flex items-center">
+                                      <span className="h-7 w-7 flex items-center justify-center rounded-full bg-primary text-white font-medium text-sm mr-2">
+                                        {String.fromCharCode(65 + i)}
+                                      </span>
+                                      <span className="ml-2 flex-1">{option}</span>
+                                      {i === question.correctOption && (
+                                        <Badge className="ml-2 bg-green-500">Correta</Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-semibold">Explicação:</h4>
-                              <p className="mt-1">{question.explanation}</p>
-                            </div>
-                            <div className="flex justify-end space-x-2">
+                            
+                            {question.explanation && (
+                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 className="font-semibold text-lg mb-2 text-blue-700">Explicação:</h4>
+                                <p className="mt-1 whitespace-pre-line text-blue-800">{question.explanation}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-end space-x-2 pt-2">
                               <Button
                                 variant="destructive"
                                 size="sm"
                                 onClick={() => handleRemoveQuestionFromAssessment(question.id)}
                               >
                                 <TrashIcon className="mr-1 h-4 w-4" />
-                                Remover
+                                Remover Questão
                               </Button>
                             </div>
                           </div>
