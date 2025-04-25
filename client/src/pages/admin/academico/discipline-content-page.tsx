@@ -812,6 +812,50 @@ export default function DisciplineContentPage() {
     },
   });
   
+
+  
+  // Função para buscar as questões detalhadas de uma avaliação
+  const fetchAssessmentQuestions = async (assessmentId: number) => {
+    setIsAssessmentQuestionsLoading(true);
+    try {
+      const response = await apiRequest(
+        "GET", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions`)
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setAssessmentQuestionsWithDetails(result.data);
+      } else {
+        setAssessmentQuestionsWithDetails([]);
+        toast({
+          title: "Erro ao carregar questões",
+          description: result.message || "Não foi possível carregar as questões desta avaliação",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Erro ao buscar questões da avaliação:", error);
+      setAssessmentQuestionsWithDetails([]);
+      toast({
+        title: "Erro ao carregar questões",
+        description: error.message || "Ocorreu um erro ao buscar as questões desta avaliação",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssessmentQuestionsLoading(false);
+    }
+  };
+  
+
+  
   // Mutation para verificar completude da disciplina
   const checkCompletenesssMutation = useMutation({
     mutationFn: async () => {
