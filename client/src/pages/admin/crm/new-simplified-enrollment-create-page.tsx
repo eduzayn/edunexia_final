@@ -52,7 +52,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 // Esquema de validação
 const formSchema = z.object({
   // Campos obrigatórios de matrícula
-  studentName: z.string().min(3, { message: 'Nome do aluno deve ter pelo menos 3 caracteres' }),
+  studentName: z.string().min(1, { message: 'Nome do aluno é obrigatório' }),
   studentEmail: z.string().email({ message: 'E-mail inválido' }),
   studentCpf: z.string()
     .min(11, { message: 'CPF deve ter 11 dígitos' })
