@@ -125,8 +125,15 @@ const videoFormSchema = z.object({
 const materialFormSchema = z.object({
   title: z.string().min(3, { message: "Título deve ter pelo menos 3 caracteres" }),
   description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
-  url: z.string().url({ message: "URL inválida" }),
-});
+  url: z.string().url({ message: "URL inválida" }).optional(),
+  file: z.any().optional(), // Suporte para upload de arquivo PDF
+}).refine(
+  (data) => data.url || data.file, 
+  {
+    message: "Forneça um link para o PDF ou faça upload de um arquivo",
+    path: ["url"],
+  }
+);
 
 // Schema para inserção de link de e-book externo
 const ebookLinkFormSchema = z.object({
@@ -507,19 +514,43 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar apostila
   const addMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormValues) => {
-      const response = await apiRequest("POST", buildDisciplineMaterialApiUrl(disciplineId), data);
-      
-      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Resposta do servidor não está no formato JSON');
-      }
-      
-      try {
+      // Verificar se é upload de arquivo ou URL
+      if (data.file) {
+        // Criar FormData para upload de arquivo
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('file', data.file);
+        
+        const response = await fetch(buildDisciplineMaterialApiUrl(disciplineId), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro ao fazer upload da apostila: ${response.statusText}`);
+        }
+        
         return await response.json();
-      } catch (error) {
-        console.error('Erro ao parsear resposta como JSON:', error);
-        throw new Error('Formato de resposta inválido');
+      } else {
+        // Envio de URL
+        const response = await apiRequest("POST", buildDisciplineMaterialApiUrl(disciplineId), data);
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        try {
+          return await response.json();
+        } catch (error) {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        }
       }
     },
     onSuccess: () => {
@@ -534,6 +565,39 @@ export default function DisciplineContentPage() {
     onError: (error) => {
       toast({
         title: "Erro ao adicionar apostila",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Mutation para excluir apostila
+  const deleteMaterialMutation = useMutation({
+    mutationFn: async () => {
+      const materialUrl = buildApiUrl(`/api/disciplines/${disciplineId}/material`);
+      const response = await apiRequest("DELETE", materialUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao excluir apostila: ${response.statusText}`);
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Apostila excluída com sucesso!",
+        description: "A apostila foi removida da disciplina.",
+      });
+      refetchMaterial();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir apostila",
         description: error.message,
         variant: "destructive",
       });
@@ -1429,8 +1493,19 @@ export default function DisciplineContentPage() {
                   ) : (
                     <Card>
                       <div className="p-6 flex flex-col md:flex-row gap-6">
-                        <div className="flex justify-center items-center p-8 bg-gray-100 rounded-md min-w-[200px]">
-                          <FileTextIcon className="h-20 w-20 text-gray-500" />
+                        <div className="relative aspect-[3/4] bg-gray-100 rounded-md min-w-[200px] overflow-hidden">
+                          {material.url ? (
+                            <iframe
+                              src={`${material.url}#page=1&view=FitH`}
+                              className="w-full h-full"
+                              title={material.title || 'Visualização da apostila'}
+                              sandbox="allow-scripts allow-same-origin"
+                            />
+                          ) : (
+                            <div className="flex justify-center items-center h-full w-full">
+                              <FileTextIcon className="h-20 w-20 text-gray-500" />
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold">{material.title}</h3>
@@ -1456,6 +1531,18 @@ export default function DisciplineContentPage() {
                             >
                               <PencilIcon className="mr-1 h-4 w-4" />
                               Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja excluir esta apostila? Esta ação não pode ser desfeita.')) {
+                                  deleteMaterialMutation.mutate();
+                                }
+                              }}
+                            >
+                              <MinusIcon className="mr-1 h-4 w-4" />
+                              Excluir
                             </Button>
                           </div>
                         </div>
@@ -2052,25 +2139,66 @@ export default function DisciplineContentPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={materialForm.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL do PDF</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Link para o arquivo PDF da apostila. Pode ser um link direto ou de serviços como Google Drive.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Escolha uma opção:</div>
+                <Tabs defaultValue="link" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="link">Link Externo</TabsTrigger>
+                    <TabsTrigger value="upload">Upload de Arquivo</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="link" className="pt-4">
+                    <FormField
+                      control={materialForm.control}
+                      name="url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL do PDF</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Link para o arquivo PDF da apostila. Pode ser um link direto ou de serviços como Google Drive.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                  <TabsContent value="upload" className="pt-4">
+                    <FormField
+                      control={materialForm.control}
+                      name="file"
+                      render={({ field: { onChange, value, ...rest } }) => (
+                        <FormItem>
+                          <FormLabel>Arquivo PDF</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  onChange(file);
+                                }
+                              }}
+                              {...rest}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Selecione um arquivo PDF para upload (máximo 10MB).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+              
               <DialogFooter>
                 <Button
                   type="button"
