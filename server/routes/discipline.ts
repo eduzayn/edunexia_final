@@ -92,12 +92,14 @@ router.get('/api/disciplines/:id/videos', async (req, res) => {
     for (let i = 1; i <= 10; i++) {
       const urlKey = `videoAula${i}Url` as keyof typeof discipline;
       const sourceKey = `videoAula${i}Source` as keyof typeof discipline;
+      const startTimeKey = `videoAula${i}StartTime` as keyof typeof discipline;
       
       if (discipline[urlKey]) {
         videos.push({
           id: i,
           url: discipline[urlKey],
           source: discipline[sourceKey],
+          startTime: discipline[startTimeKey],
           title: `Aula ${i}: ${discipline.name}`
         });
       }
@@ -116,7 +118,7 @@ router.get('/api/disciplines/:id/videos', async (req, res) => {
 router.post('/api/disciplines/:id/videos', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, videoSource, url, duration } = req.body;
+    const { title, description, videoSource, url, duration, startTime } = req.body;
     
     // Validar ID da disciplina
     const disciplineId = validateDisciplineId(id);
@@ -164,11 +166,13 @@ router.post('/api/disciplines/:id/videos', async (req, res) => {
     // Atualizar a disciplina com o novo vídeo
     const urlKey = `videoAula${nextSlot}Url`;
     const sourceKey = `videoAula${nextSlot}Source`;
+    const startTimeKey = `videoAula${nextSlot}StartTime`;
     
     const [updatedDiscipline] = await db.update(disciplines)
       .set({ 
         [urlKey]: url,
         [sourceKey]: videoSource,
+        [startTimeKey]: startTime || null,
         updatedAt: new Date()
       })
       .where(eq(disciplines.id, disciplineId))
@@ -190,6 +194,7 @@ router.post('/api/disciplines/:id/videos', async (req, res) => {
         title,
         url,
         videoSource,
+        startTime,
         duration
       }
     });
@@ -324,7 +329,7 @@ router.get('/api/disciplines/:id/assessments', async (req, res) => {
 router.put('/admin/discipline-videos/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
-    const { title, description, videoSource, url, duration, disciplineId } = req.body;
+    const { title, description, videoSource, url, duration, startTime, disciplineId } = req.body;
     
     // Validar ID da disciplina
     const numDisciplineId = validateDisciplineId(disciplineId?.toString());
@@ -364,11 +369,13 @@ router.put('/admin/discipline-videos/:videoId', async (req, res) => {
     // Atualizar a disciplina com o vídeo editado
     const urlKey = `videoAula${numVideoId}Url`;
     const sourceKey = `videoAula${numVideoId}Source`;
+    const startTimeKey = `videoAula${numVideoId}StartTime`;
     
     const [updatedDiscipline] = await db.update(disciplines)
       .set({ 
         [urlKey]: url,
         [sourceKey]: videoSource,
+        [startTimeKey]: startTime || null,
         updatedAt: new Date()
       })
       .where(eq(disciplines.id, numDisciplineId))
@@ -390,6 +397,7 @@ router.put('/admin/discipline-videos/:videoId', async (req, res) => {
         title,
         url,
         videoSource,
+        startTime,
         duration
       }
     });
