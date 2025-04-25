@@ -155,6 +155,8 @@ export default function DisciplineContentPage() {
   const { id } = useParams();
   const disciplineId = parseInt(id as string);
   const { user } = useAuth();
+  // Corrigindo o problema de tipagem do usuário
+  const typedUser = user as ExtendedUser | null;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("overview");
@@ -494,7 +496,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar avaliação
   const addAssessmentMutation = useMutation({
     mutationFn: async (data: AssessmentFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", buildAssessmentsApiUrl(), data);
+      const response = await apiRequest("POST", buildApiUrl("/admin/assessments"), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -530,7 +532,8 @@ export default function DisciplineContentPage() {
   // Mutation para verificar completude da disciplina
   const checkCompletenesssMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/disciplines/${disciplineId}/check-completeness`);
+      const completenessUrl = buildApiUrl(`/admin/disciplines/${disciplineId}/check-completeness`);
+      const response = await apiRequest("GET", completenessUrl);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
