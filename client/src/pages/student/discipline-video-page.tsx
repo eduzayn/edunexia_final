@@ -3,6 +3,7 @@ import { useParams } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import StudentLayout from "@/components/layout/student-layout";
+import EmbeddedVideoPlayer from "@/components/video-player/embedded-video-player";
 import { 
   ChevronLeft as ChevronLeftIcon,
   PlayCircle,

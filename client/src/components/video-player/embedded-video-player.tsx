@@ -202,37 +202,77 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
   }
   
   // YouTube embed
-  if (source === 'youtube' && youtubeVideoId) {
-    return (
-      <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${youtubeVideoId}?enablejsapi=1&rel=0`}
-          title={title}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-    );
+  if (source === 'youtube') {
+    // Tenta extrair o ID do vídeo se ainda não extraímos
+    const extractedId = youtubeVideoId || extractYouTubeVideoId(url);
+    
+    if (extractedId) {
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={`https://www.youtube.com/embed/${extractedId}?enablejsapi=1&rel=0`}
+            title={title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    } else {
+      // Se não conseguiu extrair o ID, tenta mostrar a URL completa como fallback
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={url}
+            title={title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
   }
   
   // Vimeo embed
-  if (source === 'vimeo' && vimeoVideoId) {
-    return (
-      <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://player.vimeo.com/video/${vimeoVideoId}`}
-          title={title}
-          frameBorder="0"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      </div>
-    );
+  if (source === 'vimeo') {
+    // Tenta extrair o ID do vídeo se ainda não extraímos
+    const extractedId = vimeoVideoId || extractVimeoVideoId(url);
+    
+    if (extractedId) {
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={`https://player.vimeo.com/video/${extractedId}`}
+            title={title}
+            frameBorder="0"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    } else {
+      // Se não conseguiu extrair o ID, tenta mostrar a URL completa como fallback
+      return (
+        <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
+          <iframe
+            width="100%"
+            height="100%"
+            src={url}
+            title={title}
+            frameBorder="0"
+            allow="autoplay; fullscreen"
+            allowFullScreen
+          ></iframe>
+        </div>
+      );
+    }
   }
   
   // OneDrive e Google Drive (abrem em um iframe de visualização)

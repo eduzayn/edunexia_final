@@ -23,6 +23,7 @@ import {
   buildDisciplineAssessmentsApiUrl, 
   buildApiUrl 
 } from "@/lib/api-config";
+import EmbeddedVideoPlayer from "@/components/video-player/embedded-video-player";
 import { Discipline, videoSourceEnum, contentCompletionStatusEnum } from "@shared/schema";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -184,6 +185,10 @@ export default function DisciplineContentPage() {
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
   const [selectedAssessmentType, setSelectedAssessmentType] = useState<"simulado" | "avaliacao_final">("simulado");
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  
+  // Estado para prévia de vídeo
+  const [previewVideoUrl, setPreviewVideoUrl] = useState("");
+  const [previewVideoSource, setPreviewVideoSource] = useState<"youtube" | "vimeo" | "onedrive" | "google_drive" | "upload">("youtube");
   
   // Estados para formulários de questões
   const [questionOptions, setQuestionOptions] = useState<string[]>(["", "", "", ""]);
