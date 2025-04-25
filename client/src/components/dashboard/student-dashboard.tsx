@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -137,7 +137,7 @@ export function StudentDashboard() {
   const overallProgress = calculateOverallProgress(courses);
 
   // Depuração do dashboard
-  React.useEffect(() => {
+  useEffect(() => {
     console.log("Dashboard data:", dashboardData);
     if (isError) {
       console.error("Error loading dashboard data:", error);
