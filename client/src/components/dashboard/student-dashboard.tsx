@@ -107,7 +107,7 @@ export function StudentDashboard() {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { data: dashboardData, isLoading } = useQuery<StudentDashboardData>({
+  const { data: dashboardData, isLoading, error, isError } = useQuery<StudentDashboardData>({
     queryKey: ["/api-json/dashboard/student"],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -134,6 +134,11 @@ export function StudentDashboard() {
   const coursesNotStarted = dashboardData?.studentInfo?.coursesNotStarted || 0;
   const pendingActivities = dashboardData?.studentInfo?.pendingActivities || 0;
   const overallProgress = calculateOverallProgress(courses);
+
+  // Mostrar erro se ocorrer algum problema
+  if (isError) {
+    console.log("Error details:", error);
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
