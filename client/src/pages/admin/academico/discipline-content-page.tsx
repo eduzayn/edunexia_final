@@ -1269,20 +1269,13 @@ export default function DisciplineContentPage() {
                         url: string 
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
-                          <div className="relative pb-[56.25%] bg-gray-100">
-                            {video.videoSource === "youtube" ? (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <YoutubeIcon className="h-16 w-16 text-red-600" />
-                              </div>
-                            ) : video.videoSource === "onedrive" ? (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <OneDriveIcon className="h-16 w-16 text-blue-500" />
-                              </div>
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <PlayIcon className="h-16 w-16 text-gray-500" />
-                              </div>
-                            )}
+                          <div className="relative aspect-video bg-gray-100">
+                            <EmbeddedVideoPlayer 
+                              url={video.url}
+                              title={video.title}
+                              source={video.videoSource}
+                              className="w-full"
+                            />
                           </div>
                           <CardContent className="p-4">
                             <h3 className="text-lg font-semibold">{video.title}</h3>
@@ -1294,14 +1287,25 @@ export default function DisciplineContentPage() {
                             </div>
                           </CardContent>
                           <CardFooter className="p-4 pt-0 flex justify-between">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenVideoEditDialog(video)}
-                            >
-                              <PencilIcon className="mr-1 h-4 w-4" />
-                              Editar
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenVideoEditDialog(video)}
+                              >
+                                <PencilIcon className="mr-1 h-4 w-4" />
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteVideo(video.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <MinusIcon className="mr-1 h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </div>
                             <Button
                               variant="outline"
                               size="sm"

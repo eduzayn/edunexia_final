@@ -402,4 +402,74 @@ router.put('/admin/discipline-videos/:videoId', async (req, res) => {
   }
 });
 
+/**
+ * Rota para excluir vídeo de uma disciplina
+ */
+router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
+  try {
+    const { videoId } = req.params;
+    const { disciplineId } = req.query;
+    
+    // Validar ID da disciplina
+    const numDisciplineId = validateDisciplineId(disciplineId?.toString());
+    if (!numDisciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Validar ID do vídeo
+    const numVideoId = parseInt(videoId, 10);
+    if (isNaN(numVideoId) || numVideoId < 1 || numVideoId > 10) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de vídeo inválido. Deve ser um número entre 1 e 10' 
+      });
+    }
+    
+    // Buscar a disciplina
+    const discipline = await getDisciplineById(numDisciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Remover o vídeo da disciplina (definindo os campos como null)
+    const urlKey = `videoAula${numVideoId}Url`;
+    const sourceKey = `videoAula${numVideoId}Source`;
+    
+    const [updatedDiscipline] = await db.update(disciplines)
+      .set({ 
+        [urlKey]: null,
+        [sourceKey]: null,
+        updatedAt: new Date()
+      })
+      .where(eq(disciplines.id, numDisciplineId))
+      .returning();
+    
+    if (!updatedDiscipline) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao excluir vídeo da disciplina' 
+      });
+    }
+    
+    // Retornar sucesso
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Vídeo excluído com sucesso',
+      videoId: numVideoId
+    });
+  } catch (error) {
+    console.error('Erro ao excluir vídeo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor' 
+    });
+  }
+});
+
 export default router;
