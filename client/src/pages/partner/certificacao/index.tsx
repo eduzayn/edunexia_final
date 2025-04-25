@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { 
@@ -94,14 +94,62 @@ export default function CertificacaoPage() {
     { name: "Configurações", icon: <SettingsIcon />, href: "/partner/settings" },
   ];
 
-  // Dados mockados de solicitações de certificação
-  const solicitacoes = [
-    { id: 1, aluno: "Maria Silva", curso: "MBA em Gestão Empresarial", data: "15/04/2025", status: "pendente" },
-    { id: 2, aluno: "João Oliveira", curso: "Pós em Direito Digital", data: "10/04/2025", status: "em_analise" },
-    { id: 3, aluno: "Ana Paula Souza", curso: "Pós em Engenharia de Software", data: "05/04/2025", status: "rejeitada" },
-    { id: 4, aluno: "Carlos Mendes", curso: "Segunda Licenciatura", data: "01/04/2025", status: "aprovada" },
-    { id: 5, aluno: "Juliana Costa", curso: "MBA em Marketing Digital", data: "28/03/2025", status: "emitida" },
-  ];
+  // Hook para buscar as solicitações de certificação
+  const [isLoading, setIsLoading] = useState(false);
+  const [solicitacoes, setSolicitacoes] = useState<any[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Mapear status da API para nossos status de exibição
+  const mapApiStatus = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'pending': 'pendente',
+      'under_review': 'em_analise',
+      'rejected': 'rejeitada',
+      'approved': 'aprovada',
+      'payment_pending': 'pendente',
+      'payment_confirmed': 'em_analise',
+      'processing': 'em_analise',
+      'completed': 'emitida',
+      'cancelled': 'rejeitada'
+    };
+    return statusMap[status] || 'pendente';
+  };
+
+  // Função para buscar as solicitações
+  const fetchSolicitacoes = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      const response = await fetch('/api/certification/requests');
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Formatar os dados para o formato esperado pelo componente
+      const formattedData = data.data?.map((item: any) => ({
+        id: item.id,
+        aluno: item.students && item.students[0]?.name || "Nome não disponível",
+        curso: item.title || "Curso não disponível",
+        data: new Date(item.submittedAt).toLocaleDateString('pt-BR'),
+        status: mapApiStatus(item.status)
+      })) || [];
+      
+      setSolicitacoes(formattedData);
+    } catch (error) {
+      console.error("Erro ao buscar solicitações:", error);
+      setErrorMessage("Não foi possível carregar as solicitações. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Buscar solicitações ao montar o componente
+  useEffect(() => {
+    fetchSolicitacoes();
+  }, []);
 
   const certificadosEmitidos = [
     { id: 1, aluno: "Juliana Costa", curso: "MBA em Marketing Digital", dataEmissao: "28/03/2025", status: "emitida" },
