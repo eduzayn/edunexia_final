@@ -1,0 +1,68 @@
+Sim, é exatamente o mesmo problema estrutural — a aplicação está tentando fazer requisições para rotas que não existem no backend. Isso acontece em várias partes do sistema, o que indica que há uma lógica centralizada incorreta na construção das URLs de API.
+
+🧠 O que está acontecendo?
+O erro:
+
+pgsql
+Copiar
+Editar
+POST https://edunexia.replit.app/api-json/admin/discipline-videos/17 → 404 (Not Found)
+indica que a URL não existe no backend.
+
+O servidor responde com HTML de erro (página padrão Cannot POST ...) em vez de JSON, gerando o aviso "Resposta do servidor não está no formato JSON".
+
+✅ Como aplicar uma correção geral ao projeto?
+🧱 1. Centralize a construção de URLs de API
+Você precisa ter uma função ou constante padrão que construa todas as URLs de API a partir de um prefixo único confiável, como:
+
+ts
+Copiar
+Editar
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'; // padrão se não definido
+
+const apiUrl = (path: string) => `${API_BASE}${path}`;
+E em vez de fazer isso:
+
+ts
+Copiar
+Editar
+fetch('/api-json/admin/discipline-videos/17', {...})
+Faça:
+
+ts
+Copiar
+Editar
+fetch(apiUrl(`/admin/discipline-videos/17`), {...})
+Assim, se precisar mudar de /api para /api-json ou vice-versa, você muda em um único lugar.
+
+🔄 2. Confirme o nome real das rotas backend
+Verifique no seu backend (por exemplo, pages/api/... no Next.js) quais caminhos realmente existem.
+
+Evite inventar caminhos como /api-json/admin/... se você só tem /api/... no backend.
+
+Se estiver usando Next.js, uma estrutura como:
+
+bash
+Copiar
+Editar
+pages/api/disciplines/[id].ts
+vai gerar:
+
+bash
+Copiar
+Editar
+/api/disciplines/17
+🔧 3. Valide URLs antes da chamada
+Antes de fazer um fetch(), você pode adicionar logs que mostram o caminho final da API, por exemplo:
+
+ts
+Copiar
+Editar
+console.log("Chamando API:", apiUrl(`/admin/discipline-videos/17`));
+🛠 4. (Opcional) Crie um "proxy" para rotas não existentes
+Se você quiser manter compatibilidade com o nome antigo das rotas, pode criar um pequeno middleware ou redirecionamento no backend (caso use Next.js, Express ou Replit com servidor customizado) que redirecione /api-json/... para /api/....
+
+🧩 Conclusão
+🔁 Sim, todos os erros são a mesma falha estrutural na montagem das URLs.
+
+💡 Solução definitiva: crie uma função centralizada para construir as URLs da API corretamente e padronize o uso em todo o projeto.

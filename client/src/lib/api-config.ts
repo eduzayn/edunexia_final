@@ -4,6 +4,10 @@
  * considerando diferentes ambientes (desenvolvimento, produção na Vercel)
  */
 
+// Constante para o prefixo padrão da API
+// Pode ser configurado via variável de ambiente para permitir testes com /api-json
+export const API_PREFIX = import.meta.env.VITE_API_PREFIX || '/api';
+
 // Determina a base URL para chamadas de API com base no ambiente
 export function getApiBaseUrl(): string {
   // Verificar se estamos em ambiente de produção de várias maneiras
@@ -26,31 +30,126 @@ export function getApiBaseUrl(): string {
   return 'http://localhost:5000';
 }
 
-// Formata um caminho de API
+// Formata um caminho de API - versão legada, mantida para compatibilidade 
 export function formatApiPath(path: string): string {
+  return buildApiUrl(path);
+}
+
+/**
+ * Constrói uma URL de API com base no caminho fornecido
+ * Versão melhorada e centralizada para construção de URLs
+ * @param path Caminho da API (pode incluir ou não o prefixo /api)
+ * @returns URL completa da API
+ */
+export function buildApiUrl(path: string): string {
+  // Se o caminho estiver vazio, vamos retornar apenas a base
+  if (!path) {
+    console.error("Path vazio passado para buildApiUrl");
+    return getApiBaseUrl();
+  }
+  
   const baseUrl = getApiBaseUrl();
   // Garantimos que o caminho comece com '/'
-  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Se estamos em produção (baseUrl vazio), garantimos que o caminho comece com /api ou /api-json
+  // Detecta se o caminho já contém um prefixo de API válido
+  const hasApiPrefix = normalizedPath.startsWith('/api/') || normalizedPath.startsWith('/api-json/');
+  
   if (!baseUrl) {
-    // Manter compatibilidade com ambos os padrões /api/ e /api-json/
-    if (apiPath.startsWith('/api/') || apiPath.startsWith('/api-json/')) {
-      return apiPath;
-    }
-    
-    // Se não começa com nenhum dos prefixos, adiciona /api/
-    return `/api${apiPath}`;
+    // Em produção - URL relativa
+    return hasApiPrefix ? normalizedPath : `${API_PREFIX}${normalizedPath}`;
   }
   
-  // Em desenvolvimento, usamos a URL base completa
-  // Mantém compatibilidade com ambos os padrões /api/ e /api-json/
-  if (apiPath.startsWith('/api/') || apiPath.startsWith('/api-json/')) {
-    return `${baseUrl}${apiPath}`;
+  // Em desenvolvimento - URL completa com localhost
+  const fullPath = hasApiPrefix ? normalizedPath : `${API_PREFIX}${normalizedPath}`;
+  return `${baseUrl}${fullPath}`;
+}
+
+/**
+ * Constrói uma URL de API específica para disciplinas
+ * @param id ID da disciplina
+ * @returns URL completa da API para a disciplina
+ */
+export function buildDisciplineApiUrl(id: number): string {
+  return buildApiUrl(`/admin/disciplines/${id}`);
+}
+
+/**
+ * Constrói uma URL de API para vídeos de disciplina
+ * @param disciplineId ID da disciplina
+ * @returns URL completa da API para vídeos da disciplina
+ */
+export function buildDisciplineVideosApiUrl(disciplineId: number): string {
+  return buildApiUrl(`/admin/discipline-videos/${disciplineId}`);
+}
+
+/**
+ * Constrói uma URL de API para materiais de disciplina
+ * @param disciplineId ID da disciplina
+ * @returns URL completa da API para materiais da disciplina
+ */
+export function buildDisciplineMaterialApiUrl(disciplineId: number): string {
+  return buildApiUrl(`/admin/discipline-material/${disciplineId}`);
+}
+
+/**
+ * Constrói uma URL de API para e-books de disciplina
+ * @param disciplineId ID da disciplina
+ * @returns URL completa da API para e-books da disciplina
+ */
+export function buildDisciplineEbookApiUrl(disciplineId: number): string {
+  return buildApiUrl(`/admin/discipline-ebook/${disciplineId}`);
+}
+
+/**
+ * Constrói uma URL de API para questões de disciplina
+ * @param disciplineId ID da disciplina
+ * @returns URL completa da API para questões da disciplina
+ */
+export function buildDisciplineQuestionsApiUrl(disciplineId: number): string {
+  return buildApiUrl(`/admin/discipline-questions/${disciplineId}`);
+}
+
+/**
+ * Constrói uma URL de API para avaliações de disciplina
+ * @param disciplineId ID da disciplina
+ * @returns URL completa da API para avaliações da disciplina
+ */
+export function buildDisciplineAssessmentsApiUrl(disciplineId: number): string {
+  return buildApiUrl(`/admin/discipline-assessments/${disciplineId}`);
+}
+
+/**
+ * Constrói uma URL de API para a rota de questões
+ * @returns URL completa da API para a rota de questões
+ */
+export function buildQuestionsApiUrl(): string {
+  return buildApiUrl('/admin/questions');
+}
+
+/**
+ * Constrói uma URL de API para a rota de avaliações
+ * @returns URL completa da API para a rota de avaliações
+ */
+export function buildAssessmentsApiUrl(): string {
+  return buildApiUrl('/admin/assessments');
+}
+
+/**
+ * Verifica se a resposta é JSON antes de tentar parsear
+ * @param response Objeto Response do fetch
+ * @returns Promise resolvida se a resposta for JSON, rejeitada caso contrário
+ */
+export function verifyJsonResponse(response: Response): Promise<Response> {
+  const contentType = response.headers.get('content-type');
+  
+  if (!contentType || !contentType.includes('application/json')) {
+    return Promise.reject(
+      new Error(`Resposta do servidor não é JSON. Recebido: ${contentType || 'desconhecido'}`)
+    );
   }
   
-  // Caso contrário, adiciona /api/ como padrão
-  return `${baseUrl}/api${apiPath}`;
+  return Promise.resolve(response);
 }
 
 // Configuração padrão para fetch

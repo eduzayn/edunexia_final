@@ -1,5 +1,12 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { formatApiPath } from "./api-config";
+import { 
+  buildApiUrl, 
+  verifyJsonResponse, 
+  buildDisciplineApiUrl,
+  buildDisciplineVideosApiUrl,
+  buildDisciplineEbookApiUrl,
+  buildDisciplineMaterialApiUrl
+} from "./api-config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -9,24 +16,19 @@ async function throwIfResNotOk(res: Response) {
 }
 
 /**
- * Função para fazer requisições à API com tipagem
- * @param url URL da requisição
- * @param requestOptions Opções da requisição (method, data, etc.)
- * @returns Resposta convertida para o tipo T
- */
-// Importando funções auxiliares para normalização de URL
-import { normalizeUrl } from "./api-vercel-fix";
-
-/**
- * Função para fazer requisições à API com tipagem e suporte para diferentes formatos de chamada
+ * Função unificada para fazer requisições à API
  * Suporta tanto apiRequest(url) quanto apiRequest(method, url, data)
+ * @param urlOrMethod URL da requisição ou método HTTP
+ * @param urlOrOptions URL (se o primeiro parâmetro for método) ou opções
+ * @param data Dados para enviar no corpo da requisição (quando usar formato method, url, data)
+ * @returns Resposta da requisição
  */
 export async function apiRequest(
   urlOrMethod: string,
   urlOrOptions?: string | { method?: string; data?: unknown; headers?: Record<string, string> },
   data?: unknown
 ): Promise<Response> {
-  // Determina se estamos usando o formato antigo (apiRequest(url)) ou o novo (apiRequest(method, url, data))
+  // Determina o formato utilizado na chamada
   let url: string;
   let requestOptions: { method?: string; data?: unknown; headers?: Record<string, string> } = {};
   
@@ -59,30 +61,8 @@ export async function apiRequest(
     throw new Error("URL inválida: " + url);
   }
   
-  // Em desenvolvimento, use um domínio garantido
-  const isDev = import.meta.env.DEV;
-  let apiBaseUrl = '';
-  
-  if (isDev) {
-    // Em desenvolvimento, hardcode para localhost:5000
-    apiBaseUrl = 'http://localhost:5000';
-    
-    // Se a URL já começa com http ou https, não adicione o domínio base
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      apiBaseUrl = '';
-    }
-  }
-  
-  // Normalizar a URL para garantir que não tenha barras duplas
-  let normalizedUrl = url;
-  if (normalizedUrl.startsWith('/')) {
-    normalizedUrl = normalizedUrl.substring(1);
-  }
-  
-  // Construir a URL final
-  const apiUrl = isDev 
-    ? `${apiBaseUrl}/${normalizedUrl}`
-    : normalizeUrl(url); // Em produção, use a função normalizeUrl existente
+  // ✨ Usar a função centralizada buildApiUrl para construir URLs de forma consistente
+  const apiUrl = buildApiUrl(url);
   
   // Log para debug
   console.log(`apiRequest - URL original: ${url}, método: ${requestOptions.method || "GET"}`);
@@ -147,6 +127,31 @@ export async function apiRequest(
   }
 }
 
+/**
+ * Helper específicos para chamadas API comuns
+ * Convenientes para páginas que precisam acessar esses recursos
+ */
+
+// Helper para obter detalhes de disciplina pelo ID
+export async function fetchDiscipline(id: number): Promise<Response> {
+  return apiRequest("GET", buildDisciplineApiUrl(id));
+}
+
+// Helper para obter vídeos de uma disciplina
+export async function fetchDisciplineVideos(id: number): Promise<Response> {
+  return apiRequest("GET", buildDisciplineVideosApiUrl(id));
+}
+
+// Helper para obter material de uma disciplina
+export async function fetchDisciplineMaterial(id: number): Promise<Response> {
+  return apiRequest("GET", buildDisciplineMaterialApiUrl(id));
+}
+
+// Helper para obter e-book de uma disciplina
+export async function fetchDisciplineEbook(id: number): Promise<Response> {
+  return apiRequest("GET", buildDisciplineEbookApiUrl(id));
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
@@ -162,37 +167,8 @@ export const getQueryFn: <T>(options: {
       throw new Error("QueryKey inválida para getQueryFn");
     }
     
-    // Em desenvolvimento, use um domínio garantido
-    const isDev = import.meta.env.DEV;
-    const isProd = import.meta.env.PROD;
-    let apiBaseUrl = '';
-    let url = urlFromKey;
-    
-    if (isDev) {
-      // Em desenvolvimento, hardcode para localhost:5000
-      apiBaseUrl = 'http://localhost:5000';
-      
-      // Se a URL já começa com http ou https, não adicione o domínio base
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        apiBaseUrl = '';
-      }
-    }
-    
-    // Normalizar a URL para garantir que não tenha barras duplas
-    let normalizedUrl = url;
-    if (normalizedUrl.startsWith('/')) {
-      normalizedUrl = normalizedUrl.substring(1);
-    }
-    
-    // Construir a URL final
-    let apiUrl;
-    if (isDev) {
-      apiUrl = `${apiBaseUrl}/${normalizedUrl}`;
-    } else {
-      // Em produção, use as funções existentes
-      const normalized = normalizeUrl(url);
-      apiUrl = formatApiPath(normalized);
-    }
+    // ✨ Usar a função centralizada buildApiUrl para URLs consistentes
+    const apiUrl = buildApiUrl(urlFromKey);
     
     // Log para debug
     console.log(`QueryClient fazendo requisição para: ${apiUrl}`);
@@ -225,7 +201,14 @@ export const getQueryFn: <T>(options: {
       }
   
       await throwIfResNotOk(res);
-      return await res.json();
+      
+      // Verificar se a resposta é JSON antes de tentar parsear
+      try {
+        return await res.json();
+      } catch (error) {
+        console.error("Erro ao parsear resposta JSON:", error);
+        throw new Error("Formato de resposta inválido: não é JSON válido");
+      }
     } catch (error) {
       console.error(`[ERRO CRÍTICO] Falha ao realizar fetch para ${apiUrl}:`, error);
       // Verificar se o erro é de CORS ou de rede

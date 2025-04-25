@@ -5,7 +5,23 @@ import { useAuth } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { 
+  queryClient, 
+  apiRequest, 
+  fetchDiscipline, 
+  fetchDisciplineVideos, 
+  fetchDisciplineMaterial, 
+  fetchDisciplineEbook 
+} from "@/lib/queryClient";
+import { 
+  buildDisciplineApiUrl, 
+  buildDisciplineVideosApiUrl, 
+  buildDisciplineMaterialApiUrl, 
+  buildDisciplineEbookApiUrl, 
+  buildDisciplineQuestionsApiUrl, 
+  buildDisciplineAssessmentsApiUrl, 
+  buildApiUrl 
+} from "@/lib/api-config";
 import { Discipline, videoSourceEnum, contentCompletionStatusEnum } from "@shared/schema";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -181,12 +197,12 @@ export default function DisciplineContentPage() {
     error: disciplineError,
     refetch: refetchDiscipline
   } = useQuery({
-    queryKey: ["/api-json/admin/disciplines", disciplineId],
+    queryKey: [buildApiUrl(`/admin/disciplines/${disciplineId}`)],
     queryFn: async () => {
       try {
         console.log(`Buscando disciplina com ID: ${disciplineId}`);
-        // Use /api-json/ em vez de /api/ para garantir a resposta JSON
-        const response = await apiRequest("GET", `/api-json/admin/disciplines/${disciplineId}`);
+        // Usando a função centralizada para construir a URL
+        const response = await fetchDiscipline(disciplineId);
         
         // Verifica o tipo de conteúdo da resposta
         const contentType = response.headers.get("content-type");
@@ -234,9 +250,9 @@ export default function DisciplineContentPage() {
     isLoading: isVideosLoading,
     refetch: refetchVideos
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-videos", disciplineId],
+    queryKey: [buildDisciplineVideosApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-videos/${disciplineId}`);
+      const response = await fetchDisciplineVideos(disciplineId);
       return response.json();
     },
   });
@@ -247,9 +263,9 @@ export default function DisciplineContentPage() {
     isLoading: isMaterialLoading,
     refetch: refetchMaterial
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-material", disciplineId],
+    queryKey: [buildDisciplineMaterialApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-material/${disciplineId}`);
+      const response = await fetchDisciplineMaterial(disciplineId);
       return response.json();
     },
   });
@@ -260,9 +276,9 @@ export default function DisciplineContentPage() {
     isLoading: isEbookLoading,
     refetch: refetchEbook
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-ebook", disciplineId],
+    queryKey: [buildDisciplineEbookApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-ebook/${disciplineId}`);
+      const response = await fetchDisciplineEbook(disciplineId);
       return response.json();
     },
   });
@@ -273,9 +289,9 @@ export default function DisciplineContentPage() {
     isLoading: isQuestionsLoading,
     refetch: refetchQuestions
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-questions", disciplineId],
+    queryKey: [buildDisciplineQuestionsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-questions/${disciplineId}`);
+      const response = await apiRequest("GET", buildDisciplineQuestionsApiUrl(disciplineId));
       return response.json();
     },
   });
@@ -286,9 +302,9 @@ export default function DisciplineContentPage() {
     isLoading: isAssessmentsLoading,
     refetch: refetchAssessments
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-assessments", disciplineId],
+    queryKey: [buildDisciplineAssessmentsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-assessments/${disciplineId}`);
+      const response = await apiRequest("GET", buildDisciplineAssessmentsApiUrl(disciplineId));
       return response.json();
     },
   });
@@ -296,7 +312,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar vídeo
   const addVideoMutation = useMutation({
     mutationFn: async (data: VideoFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-videos/${disciplineId}`, data);
+      const response = await apiRequest("POST", buildDisciplineVideosApiUrl(disciplineId), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -332,7 +348,8 @@ export default function DisciplineContentPage() {
   // Mutation para editar vídeo
   const editVideoMutation = useMutation({
     mutationFn: async ({ videoId, data }: { videoId: number, data: VideoFormValues }) => {
-      const response = await apiRequest("PUT", `/api-json/admin/discipline-videos/${videoId}`, data);
+      const videoUrl = buildApiUrl(`/admin/discipline-videos/${videoId}`);
+      const response = await apiRequest("PUT", videoUrl, data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -367,7 +384,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar apostila
   const addMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-material/${disciplineId}`, data);
+      const response = await apiRequest("POST", buildDisciplineMaterialApiUrl(disciplineId), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -403,7 +420,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar link de e-book externo
   const addEbookLinkMutation = useMutation({
     mutationFn: async (data: EbookLinkFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-ebook/${disciplineId}`, data);
+      const response = await apiRequest("POST", buildDisciplineEbookApiUrl(disciplineId), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -439,7 +456,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar questão
   const addQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", "/api-json/admin/questions", data);
+      const response = await apiRequest("POST", buildApiUrl("/admin/questions"), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
@@ -477,7 +494,7 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar avaliação
   const addAssessmentMutation = useMutation({
     mutationFn: async (data: AssessmentFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", "/api-json/admin/assessments", data);
+      const response = await apiRequest("POST", buildAssessmentsApiUrl(), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
