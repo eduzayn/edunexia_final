@@ -75,22 +75,53 @@ function extractVimeoVideoId(url: string): string | null {
   if (!url) return null;
   
   try {
+    console.log('Tentando extrair ID do Vimeo da URL:', url);
+    
     // Formato padrão: vimeo.com/VIDEO_ID
     if (url.includes('vimeo.com/') && !url.includes('/video/')) {
       const id = url.split('vimeo.com/')[1]?.split(/[?&/#]/)[0];
-      if (id && /^\d+$/.test(id)) return id;
+      if (id && /^\d+$/.test(id)) {
+        console.log('ID do Vimeo extraído (formato padrão):', id);
+        return id;
+      }
     }
     
     // Formato alternativo: vimeo.com/video/VIDEO_ID ou player.vimeo.com/video/VIDEO_ID
     if (url.includes('/video/')) {
       const id = url.split('/video/')[1]?.split(/[?&/#]/)[0];
-      if (id && /^\d+$/.test(id)) return id;
+      if (id && /^\d+$/.test(id)) {
+        console.log('ID do Vimeo extraído (formato alternativo):', id);
+        return id;
+      }
+    }
+    
+    // Formato seletor personalizado: vimeo.com/?selector=1&amp;player,id=0&amp;app_id=VIDEO_ID
+    if (url.includes('app_id=')) {
+      const id = url.split('app_id=')[1]?.split(/[?&/#]/)[0];
+      if (id && /^\d+$/.test(id)) {
+        console.log('ID do Vimeo extraído (formato seletor personalizado):', id);
+        return id;
+      }
+    }
+    
+    // Extrair número puro do Vimeo que pode estar em qualquer parte da URL 
+    // (útil para formatos não padrão)
+    const pureIdMatch = url.match(/(?:vimeo\.com\/|app_id=|player,id=)(\d+)/);
+    if (pureIdMatch && pureIdMatch[1]) {
+      console.log('ID do Vimeo extraído (formato regex puro):', pureIdMatch[1]);
+      return pureIdMatch[1];
     }
     
     // Fallback para o método regex original
     const regExp = /vimeo\.com\/(?:video\/)?(\d+)/;
     const match = url.match(regExp);
-    return match ? match[1] : null;
+    if (match && match[1]) {
+      console.log('ID do Vimeo extraído (regex original):', match[1]);
+      return match[1];
+    }
+    
+    console.warn('Não foi possível extrair o ID do Vimeo da URL:', url);
+    return null;
   } catch (error) {
     console.error('Erro ao extrair ID do Vimeo:', error);
     return null;
