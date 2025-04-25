@@ -103,7 +103,7 @@ import {
   CheckIcon,
   EditIcon,
 } from "@/components/ui/icons";
-import { Clock as ClockIcon, X } from "lucide-react";
+import { Clock as ClockIcon, List as ListIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -2853,6 +2853,123 @@ export default function DisciplineContentPage() {
                 ) : (
                   "Salvar Questões"
                 )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para visualizar questões de avaliação */}
+      <Dialog open={isViewAssessmentQuestionsDialogOpen} onOpenChange={setIsViewAssessmentQuestionsDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Questões da Avaliação</DialogTitle>
+            <DialogDescription>
+              Visualize e gerencie as questões incluídas nesta avaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">
+                  {selectedAssessment?.title || "Avaliação"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAssessment?.type === "simulado" 
+                    ? "Questões incluídas no simulado" 
+                    : "Questões incluídas na avaliação final"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{assessmentQuestionsWithDetails.length}</span> questões incluídas
+              </div>
+            </div>
+            
+            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
+              {isAssessmentQuestionsLoading ? (
+                <div className="flex justify-center py-4">
+                  <span className="animate-spin mr-2">◌</span> Carregando questões...
+                </div>
+              ) : assessmentQuestionsWithDetails && assessmentQuestionsWithDetails.length > 0 ? (
+                <div className="space-y-4">
+                  <Accordion type="multiple" className="w-full">
+                    {assessmentQuestionsWithDetails.map((question, index) => (
+                      <AccordionItem key={question.id} value={question.id.toString()}>
+                        <AccordionTrigger className="hover:bg-muted/50 px-4 -mx-4 rounded-md">
+                          <div className="flex items-center text-left">
+                            <span className="font-semibold mr-2">{index + 1}.</span>
+                            <span className="truncate">
+                              {question.statement.length > 80
+                                ? `${question.statement.substring(0, 80)}...`
+                                : question.statement}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="border-t pt-4 mt-1">
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="font-semibold">Enunciado:</h4>
+                              <p className="mt-1">{question.statement}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">Opções:</h4>
+                              <ul className="mt-2 space-y-2">
+                                {question.options.map((option: string, i: number) => (
+                                  <li key={i} className="flex items-center">
+                                    <span className="h-6 w-6 flex items-center justify-center rounded-full bg-muted font-medium text-sm mr-2">
+                                      {String.fromCharCode(65 + i)}
+                                    </span>
+                                    <span className="ml-2">{option}</span>
+                                    {i === question.correctOption && (
+                                      <Badge className="ml-2 bg-green-500">Correta</Badge>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">Explicação:</h4>
+                              <p className="mt-1">{question.explanation}</p>
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveQuestionFromAssessment(question.id)}
+                              >
+                                <TrashIcon className="mr-1 h-4 w-4" />
+                                Remover
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">
+                    Esta avaliação ainda não possui questões.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline" 
+                onClick={() => handleEditAssessmentQuestions(selectedAssessment)}
+              >
+                <PlusIcon className="mr-1 h-4 w-4" />
+                Adicionar Questões
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsViewAssessmentQuestionsDialogOpen(false)}
+              >
+                Fechar
               </Button>
             </DialogFooter>
           </div>
