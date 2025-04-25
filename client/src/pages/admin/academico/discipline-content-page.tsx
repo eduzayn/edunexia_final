@@ -2612,6 +2612,96 @@ export default function DisciplineContentPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog para editar questões da avaliação */}
+      <Dialog open={isEditQuestionsDialogOpen} onOpenChange={setIsEditQuestionsDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Editar Questões da Avaliação</DialogTitle>
+            <DialogDescription>
+              Selecione as questões que deseja incluir na avaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">
+                  {selectedAssessment?.title || "Avaliação"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAssessment?.type === "simulado" 
+                    ? "Selecione as questões para o simulado" 
+                    : "Selecione as questões para a avaliação final"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{selectedQuestionIds.length}</span> questões selecionadas
+              </div>
+            </div>
+            
+            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
+              {isQuestionsLoading ? (
+                <div className="flex justify-center py-4">
+                  <span className="animate-spin mr-2">◌</span> Carregando questões...
+                </div>
+              ) : questions && questions.length > 0 ? (
+                <div className="space-y-2">
+                  {questions.map((question: any) => (
+                    <div key={question.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded-md">
+                      <Checkbox 
+                        id={`question-${question.id}`}
+                        checked={selectedQuestionIds.includes(question.id)}
+                        onCheckedChange={() => handleQuestionSelection(question.id)}
+                      />
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor={`question-${question.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {question.statement.substring(0, 100)}
+                          {question.statement.length > 100 ? "..." : ""}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {question.options.length} opções | Opção correta: {String.fromCharCode(65 + question.correctOption)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">
+                    Nenhuma questão disponível. Adicione questões ao banco primeiro.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditQuestionsDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSaveAssessmentQuestions}
+                disabled={updateAssessmentQuestionsMutation.isPending}
+              >
+                {updateAssessmentQuestionsMutation.isPending ? (
+                  <>
+                    <span className="animate-spin mr-2">◌</span>
+                    Salvando...
+                  </>
+                ) : (
+                  "Salvar Questões"
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
