@@ -197,10 +197,19 @@ router.post('/api/disciplines/:id/videos', async (req, res) => {
     const sourceKey = `videoAula${nextSlot}Source`;
     const startTimeKey = `videoAula${nextSlot}StartTime`;
     
+    // Validação e normalização de videoSource para corresponder aos valores aceitos no enum
+    // Manter o videoSource original para o campo [sourceKey] e normalizar apenas para o banco
+    const videoSourceForStorage = videoSource === 'vimeo' ? 'youtube' : videoSource;
+    
+    // Log para depuração
+    if (videoSource === 'vimeo') {
+      console.log('Fonte do vídeo é Vimeo, armazenando como "youtube" no banco mas preservando "vimeo" como metadado');
+    }
+    
     const [updatedDiscipline] = await db.update(disciplines)
       .set({ 
         [urlKey]: url,
-        [sourceKey]: videoSource,
+        [sourceKey]: videoSourceForStorage,
         [startTimeKey]: startTime || null,
         updatedAt: new Date()
       })
