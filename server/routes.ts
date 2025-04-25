@@ -370,6 +370,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ message: 'API funcionando corretamente!', timestamp: new Date() });
   });
 
+  // Rota para dados do dashboard administrativo
+  app.get('/api/dashboard/admin', requireAuth, (req, res) => {
+    try {
+      // Dados simulados para o dashboard
+      const dashboardData = {
+        success: true,
+        data: {
+          totalStudents: 1528,
+          totalInstitutions: 23,
+          monthlyRevenue: 156400,
+          systemHealth: 99.8,
+          recentEnrollments: [],
+          activeUsers: 125,
+          systemMessages: []
+        }
+      };
+      
+      res.status(200).json(dashboardData);
+    } catch (error) {
+      console.error('Erro ao obter dados do dashboard admin:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao obter dados do dashboard' 
+      });
+    }
+  });
+
   // Desativamos as rotas de autenticação antigas
   // app.use('/api-json', authRouter);
 
