@@ -392,7 +392,7 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
     <div className="ebook-content-section">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <h2 className="text-xl font-semibold">E-book Interativo V2</h2>
+          <h2 className="text-xl font-semibold">E-book</h2>
           {ebookData?.available && (
             <Badge variant="outline" className="ml-2 bg-green-50">
               <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
@@ -467,15 +467,14 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                 <div>
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-semibold">{ebookData.name}</h3>
-                      <p className="text-sm text-gray-500">{ebookData.description}</p>
-                      <p className="text-xs text-blue-500 mt-1">URL: {ebookData.ebookPdfUrl}</p>
+                      <h3 className="text-xl font-bold">{ebookData.name}</h3>
+                      <p className="text-sm text-gray-600 mt-1">{ebookData.description}</p>
                     </div>
                     
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge variant="outline" className="bg-blue-50">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-800">
                             {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}
                           </Badge>
                         </TooltipTrigger>
@@ -485,47 +484,38 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                       </Tooltip>
                     </TooltipProvider>
                   </div>
+                  <p className="text-xs text-blue-500 mt-2 mb-3">
+                    URL: <span className="font-mono">{ebookData.ebookPdfUrl}</span>
+                  </p>
                 </div>
                 
                 <div className="flex space-x-2">
                   <Button 
-                    variant="secondary" 
+                    variant="default" 
                     onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                    className="flex gap-2 items-center"
+                    className="flex gap-2 items-center bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Book className="h-4 w-4" />
                     Visualizar E-book
                   </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    size="sm" 
-                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                    className="flex gap-2 items-center"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Abrir em Nova Aba
-                  </Button>
                 </div>
               </div>
               
-              <div className="h-64 w-full bg-slate-100 rounded-md overflow-hidden flex items-center justify-center">
-                <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                  <div className="w-full flex-1 flex items-center justify-center bg-slate-50 rounded-lg overflow-hidden">
-                    {urlType === 'google-drive' ? (
-                      <div className="text-center">
-                        <Badge className="mb-2 bg-blue-50 text-blue-800">Google Drive</Badge>
-                        <FileIcon className="h-16 w-16 text-slate-300 mx-auto mb-2" />
-                        <p className="text-slate-500 text-xs">Visualização prévia não disponível</p>
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <Badge className="mb-2 bg-blue-50 text-blue-800">PDF</Badge>
-                        <FileText className="h-16 w-16 text-slate-300 mx-auto mb-2" />
-                        <p className="text-slate-500 text-xs">Visualização prévia não disponível</p>
-                      </div>
-                    )}
-                  </div>
+              <div className="h-48 w-full bg-slate-50 rounded-md overflow-hidden flex items-center justify-center border border-slate-200">
+                <div className="flex flex-col items-center justify-center p-4">
+                  {urlType === 'google-drive' ? (
+                    <div className="text-center">
+                      <Badge className="mb-2 bg-blue-50 text-blue-800">Google Drive</Badge>
+                      <FileIcon className="h-14 w-14 text-slate-300 mx-auto mb-2" />
+                      <p className="text-slate-500 text-xs">Clique em "Visualizar E-book" para abrir o documento</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <Badge className="mb-2 bg-blue-50 text-blue-800">PDF</Badge>
+                      <FileText className="h-14 w-14 text-slate-300 mx-auto mb-2" />
+                      <p className="text-slate-500 text-xs">Clique em "Visualizar E-book" para abrir o documento</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
