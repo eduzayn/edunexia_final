@@ -1746,6 +1746,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para obter questões detalhadas de uma avaliação
+  app.get('/api/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Buscar as relações entre avaliação e questões
+      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
+      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
+        return res.json({ 
+          success: true, 
+          data: [] 
+        });
+      }
+
+      // Buscar as questões completas
+      const questionPromises = assessmentQuestionRelations.map((relation) => 
+        storage.getQuestion(relation.questionId)
+      );
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar possíveis questões nulas e associar com ordem e peso
+      const questions = questionsResults
+        .map((question, index) => {
+          if (!question) return null;
+          const relation = assessmentQuestionRelations[index];
+          return {
+            ...question,
+            order: relation.order,
+            weight: relation.weight
+          };
+        })
+        .filter((q) => q !== null);
+
+      return res.json({ 
+        success: true, 
+        data: questions 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao buscar questões da avaliação'
+      });
+    }
+  });
+  
+  // Endpoint para remover uma questão específica de uma avaliação
+  app.delete('/api/assessments/:id/questions/:questionId', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const questionId = parseInt(req.params.questionId);
+      
+      if (isNaN(assessmentId) || isNaN(questionId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Remover a questão específica da avaliação
+      await storage.removeQuestionFromAssessment(assessmentId, questionId);
+
+      return res.json({
+        success: true,
+        message: 'Questão removida da avaliação com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao remover questão da avaliação'
+      });
+    }
+  });
+
   // Endpoint PUT para atualizar questões de uma avaliação (compatibilidade com frontend)
   app.put('/api/assessments/:id/questions', requireAuth, async (req, res) => {
     try {

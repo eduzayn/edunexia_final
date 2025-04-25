@@ -103,7 +103,7 @@ import {
   CheckIcon,
   EditIcon,
 } from "@/components/ui/icons";
-import { Clock as ClockIcon, List as ListIcon, X } from "lucide-react";
+import { Clock as ClockIcon, List as ListIcon, Trash as TrashIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
