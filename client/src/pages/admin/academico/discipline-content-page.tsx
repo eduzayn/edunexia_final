@@ -1058,15 +1058,15 @@ export default function DisciplineContentPage() {
     setIsAssessmentQuestionsLoading(true);
     
     try {
-      // Usando a rota de api/admin/assessments/:id/questions para obter os detalhes completos
+      // Usando a nova rota api/assessments/:id/questions para obter os detalhes completos
       const response = await apiRequest(
         "GET",
-        buildApiUrl(`/api/admin/assessments/${assessment.id}/questions`)
+        buildApiUrl(`/api/assessments/${assessment.id}/questions`)
       );
       
       const data = await response.json();
-      if (data.success && Array.isArray(data.questions)) {
-        setAssessmentQuestionsWithDetails(data.questions);
+      if (data.success && Array.isArray(data.data)) {
+        setAssessmentQuestionsWithDetails(data.data);
       } else {
         setAssessmentQuestionsWithDetails([]);
         toast({
