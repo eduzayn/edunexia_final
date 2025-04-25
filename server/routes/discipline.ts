@@ -993,6 +993,11 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
 });
 
 // Endpoints para E-book Interativo
+
+// Simulação de banco de dados - estado persistente entre as chamadas
+// Em uma implementação real, seria armazenado no banco de dados
+let interactiveEbooks: Record<number, { available: boolean, url: string | null }> = {};
+
 /**
  * Rota para obter e-book interativo de uma disciplina
  */
@@ -1017,12 +1022,39 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       });
     }
     
-    // Aqui estamos simulando que o e-book interativo existe
-    // Para manter consistência com o comportamento de adição que implementamos
+    // Verificar se há um estado armazenado para este e-book
+    const state = interactiveEbooks[disciplineId];
     
+    // Se a exclusão foi realizada anteriormente, retornar como não disponível
+    if (state && state.available === false) {
+      return res.json({
+        id: disciplineId,
+        available: false,
+        message: "E-book interativo não disponível"
+      });
+    }
+    
+    // Se já existe um e-book carregado com URL
+    if (state && state.available === true && state.url) {
+      return res.json({
+        id: disciplineId,
+        available: true,
+        name: discipline.name,
+        description: discipline.description,
+        interactiveEbookUrl: state.url
+      });
+    }
+    
+    // Inicialização padrão (primeira vez)
     // Em uma implementação real, isso viria do banco de dados
     // Usando o link fornecido pelo usuário
     const interactiveEbookUrl = "https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/view?usp=drive_link";
+    
+    // Salvar o estado inicial
+    interactiveEbooks[disciplineId] = {
+      available: true,
+      url: interactiveEbookUrl
+    };
     
     return res.json({
       id: disciplineId,
@@ -1082,7 +1114,13 @@ router.post('/api/disciplines/:id/interactive-ebook', upload.single('file'), asy
     }
     
     // Em uma implementação real, atualizaríamos o banco de dados
-    // Aqui vamos simular que o e-book foi adicionado
+    // Aqui vamos simular que o e-book foi adicionado usando nossa variável de estado
+    
+    // Salvar no banco de dados simulado
+    interactiveEbooks[disciplineId] = {
+      available: true,
+      url: fileUrl
+    };
     
     // Criando um objeto no formato esperado pelo frontend
     const interactiveEbook = {
@@ -1092,6 +1130,8 @@ router.post('/api/disciplines/:id/interactive-ebook', upload.single('file'), asy
       description: description || discipline.description,
       interactiveEbookUrl: fileUrl
     };
+    
+    console.log(`E-book interativo adicionado com sucesso para disciplina ${disciplineId}. Estado atual:`, interactiveEbooks);
     
     // Retornar o e-book interativo no formato esperado
     return res.status(200).json(interactiveEbook);
@@ -1129,7 +1169,17 @@ router.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
     }
     
     // Em uma implementação real, atualizaríamos o banco de dados
-    // Aqui retornamos um objeto consistente com o formato usado no restante da API
+    // Aqui vamos atualizar nosso banco de dados simulado
+    
+    // Marcar como não disponível no banco de dados simulado
+    interactiveEbooks[disciplineId] = {
+      available: false,
+      url: null
+    };
+    
+    console.log(`E-book interativo removido com sucesso para disciplina ${disciplineId}. Estado atual:`, interactiveEbooks);
+    
+    // Retornar um objeto consistente com o formato usado no restante da API
     return res.status(200).json({
       id: disciplineId,
       available: false,
