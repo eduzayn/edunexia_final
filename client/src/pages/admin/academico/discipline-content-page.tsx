@@ -1095,6 +1095,18 @@ export default function DisciplineContentPage() {
     });
   };
   
+  // Função para remover uma questão individual de uma avaliação
+  const handleRemoveQuestionFromAssessment = (questionId: number) => {
+    if (!selectedAssessment) return;
+    
+    if (confirm('Tem certeza que deseja remover esta questão da avaliação?')) {
+      removeQuestionFromAssessmentMutation.mutate({
+        assessmentId: selectedAssessment.id,
+        questionId
+      });
+    }
+  };
+  
   // Função para manipular a seleção/deseleção de questões para avaliação
   const handleQuestionSelection = (questionId: number) => {
     setSelectedQuestionIds(prev => {
@@ -1945,6 +1957,13 @@ export default function DisciplineContentPage() {
                                   <PlusIcon className="mr-1 h-4 w-4" />
                                   Incluir Questões
                                 </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleViewAssessmentQuestions(simulado)}
+                                >
+                                  <ListIcon className="mr-1 h-4 w-4" />
+                                  Ver Questões
+                                </Button>
                               </div>
                             </div>
                           </Card>
@@ -2052,6 +2071,13 @@ export default function DisciplineContentPage() {
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
                                   Incluir Questões
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleViewAssessmentQuestions(avaliacao)}
+                                >
+                                  <ListIcon className="mr-1 h-4 w-4" />
+                                  Ver Questões
                                 </Button>
                               </div>
                             </div>
