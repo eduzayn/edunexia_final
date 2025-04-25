@@ -35,7 +35,8 @@ import {
   Calendar,
   MessagesSquare,
   User,
-  BookMarked
+  BookMarked,
+  RefreshCw
 } from "lucide-react";
 
 // Interface para os cursos no dashboard
@@ -135,10 +136,79 @@ export function StudentDashboard() {
   const pendingActivities = dashboardData?.studentInfo?.pendingActivities || 0;
   const overallProgress = calculateOverallProgress(courses);
 
-  // Mostrar erro se ocorrer algum problema
-  if (isError) {
-    console.log("Error details:", error);
-  }
+  // Depuração do dashboard
+  React.useEffect(() => {
+    console.log("Dashboard data:", dashboardData);
+    if (isError) {
+      console.error("Error loading dashboard data:", error);
+    }
+    
+    // Log do token para verificar autenticação
+    const token = localStorage.getItem('authToken');
+    console.log("Auth token disponível:", !!token);
+    
+    // Tentar uma chamada manual para o endpoint
+    if (!dashboardData && !isLoading) {
+      const fetchDashboardData = async () => {
+        try {
+          console.log("Tentando buscar dados do dashboard manualmente...");
+          const response = await fetch('/api-json/dashboard/student', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          console.log("Status da resposta:", response.status);
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Dados recebidos manualmente:", data);
+          } else {
+            console.error("Erro ao buscar dados manualmente:", response.statusText);
+          }
+        } catch (err) {
+          console.error("Erro na chamada manual:", err);
+        }
+      };
+      
+      fetchDashboardData();
+    }
+  }, [dashboardData, isLoading, isError, error]);
+
+  // Função para forçar a atualização dos dados
+  const forceRefresh = () => {
+    console.log("Forçando atualização do dashboard...");
+    
+    const fetchDashboardManually = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        console.log("Usando token:", token?.substring(0, 15) + '...');
+        
+        const response = await fetch('/api-json/dashboard/student', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log("Status da resposta manual:", response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Dados recebidos manualmente:", data);
+          alert("Dados carregados com sucesso! Veja o console.");
+        } else {
+          console.error("Erro ao buscar dados:", response.statusText);
+          alert(`Erro ao carregar dados: ${response.status} - ${response.statusText}`);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar dados manualmente:", err);
+        alert(`Erro: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
+      }
+    };
+    
+    fetchDashboardManually();
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -153,9 +223,19 @@ export function StudentDashboard() {
 
       <div className="flex-1 overflow-auto">
         <div className="px-4 py-20 md:py-6 md:px-8">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard do Aluno</h1>
-            <p className="text-gray-600">Bem-vindo(a) de volta{user ? `, ${user.fullName}` : ''}! Aqui está um resumo da sua conta.</p>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Dashboard do Aluno</h1>
+              <p className="text-gray-600">Bem-vindo(a) de volta{user ? `, ${user.fullName}` : ''}! Aqui está um resumo da sua conta.</p>
+            </div>
+            <Button 
+              variant="outline" 
+              className="flex gap-2 items-center" 
+              onClick={forceRefresh}
+            >
+              <RefreshCw size={16} />
+              Atualizar Dados
+            </Button>
           </div>
           
           {/* Welcome Card */}
