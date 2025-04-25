@@ -42,6 +42,45 @@ export async function createDiscipline(req: Request, res: Response) {
     return res.status(201).json(newDiscipline);
   } catch (error) {
     console.error('Erro ao criar disciplina:', error);
+    
+    // Verifica se é um erro de chave duplicada
+    if (error instanceof Error && 
+        error.message.includes('duplicate key') && 
+        error.message.includes('disciplines_code_key')) {
+      
+      // Tenta regenerar o código usando um timestamp para garantir unicidade
+      try {
+        const timestamp = new Date().getTime() % 10000; // Últimos 4 dígitos do timestamp
+        const uniqueCode = `${name.substring(0, 3).toUpperCase()}${timestamp}`;
+        
+        console.log('Tentando novamente com código usando timestamp:', uniqueCode);
+        
+        // Inserir a disciplina com o novo código gerado
+        const [newDiscipline] = await db.insert(disciplineTable)
+          .values({
+            code: uniqueCode,
+            name,
+            description,
+            workload: Number(workload),
+            syllabus,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        
+        console.log('Disciplina criada com sucesso (segunda tentativa):', newDiscipline);
+        return res.status(201).json(newDiscipline);
+      } catch (secondError) {
+        console.error('Falha na segunda tentativa de criar disciplina:', secondError);
+        return res.status(500).json({
+          success: false,
+          message: 'Erro ao criar disciplina mesmo após segunda tentativa',
+          error: secondError instanceof Error ? secondError.message : 'Erro desconhecido'
+        });
+      }
+    }
+    
+    // Para outros tipos de erro
     return res.status(500).json({
       success: false,
       message: 'Erro ao criar disciplina',
