@@ -482,24 +482,9 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
             <div className="flex flex-col">
               <div className="flex flex-col gap-4 mb-6">
                 <div className="mb-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-xl font-bold">{ebookData.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{ebookData.description}</p>
-                    </div>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className="bg-blue-50 text-blue-800">
-                            {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Tipo de conteúdo: {urlType === 'google-drive' ? 'Google Drive' : urlType === 'pdf' ? 'PDF' : 'Link Externo'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div>
+                    <h3 className="text-xl font-bold">{ebookData.name}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{ebookData.description}</p>
                   </div>
                 </div>
               </div>
