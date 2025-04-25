@@ -111,6 +111,98 @@ router.get('/api/disciplines/:id/videos', async (req, res) => {
 });
 
 /**
+ * Rota para adicionar vídeo a uma disciplina
+ */
+router.post('/api/disciplines/:id/videos', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, videoSource, url, duration } = req.body;
+    
+    // Validar ID da disciplina
+    const disciplineId = validateDisciplineId(id);
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Validar dados da requisição
+    if (!title || !videoSource || !url) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Dados incompletos. Título, fonte de vídeo e URL são obrigatórios' 
+      });
+    }
+    
+    // Buscar a disciplina
+    const discipline = await getDisciplineById(disciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Verificar qual slot de vídeo está disponível
+    let nextSlot = 0;
+    for (let i = 1; i <= 10; i++) {
+      const urlKey = `videoAula${i}Url` as keyof typeof discipline;
+      if (!discipline[urlKey]) {
+        nextSlot = i;
+        break;
+      }
+    }
+    
+    if (nextSlot === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Esta disciplina já possui o número máximo de vídeos (10)' 
+      });
+    }
+    
+    // Atualizar a disciplina com o novo vídeo
+    const urlKey = `videoAula${nextSlot}Url`;
+    const sourceKey = `videoAula${nextSlot}Source`;
+    
+    const [updatedDiscipline] = await db.update(disciplines)
+      .set({ 
+        [urlKey]: url,
+        [sourceKey]: videoSource,
+        updatedAt: new Date()
+      })
+      .where(eq(disciplines.id, disciplineId))
+      .returning();
+    
+    if (!updatedDiscipline) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao atualizar disciplina' 
+      });
+    }
+    
+    // Retornar sucesso
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Vídeo adicionado com sucesso',
+      video: {
+        id: nextSlot,
+        title,
+        url,
+        videoSource,
+        duration
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao adicionar vídeo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor ao adicionar vídeo'
+    });
+  }
+});
+
+/**
  * Rota para obter material de uma disciplina
  */
 router.get('/api/disciplines/:id/material', async (req, res) => {
@@ -223,6 +315,90 @@ router.get('/api/disciplines/:id/assessments', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar avaliações da disciplina:', error);
     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para editar vídeo de uma disciplina
+ */
+router.put('/admin/discipline-videos/:videoId', async (req, res) => {
+  try {
+    const { videoId } = req.params;
+    const { title, description, videoSource, url, duration, disciplineId } = req.body;
+    
+    // Validar ID da disciplina
+    const numDisciplineId = validateDisciplineId(disciplineId?.toString());
+    if (!numDisciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Validar ID do vídeo
+    const numVideoId = parseInt(videoId, 10);
+    if (isNaN(numVideoId) || numVideoId < 1 || numVideoId > 10) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de vídeo inválido. Deve ser um número entre 1 e 10' 
+      });
+    }
+    
+    // Validar dados da requisição
+    if (!title || !videoSource || !url) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Dados incompletos. Título, fonte de vídeo e URL são obrigatórios' 
+      });
+    }
+    
+    // Buscar a disciplina
+    const discipline = await getDisciplineById(numDisciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Atualizar a disciplina com o vídeo editado
+    const urlKey = `videoAula${numVideoId}Url`;
+    const sourceKey = `videoAula${numVideoId}Source`;
+    
+    const [updatedDiscipline] = await db.update(disciplines)
+      .set({ 
+        [urlKey]: url,
+        [sourceKey]: videoSource,
+        updatedAt: new Date()
+      })
+      .where(eq(disciplines.id, numDisciplineId))
+      .returning();
+    
+    if (!updatedDiscipline) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao atualizar disciplina' 
+      });
+    }
+    
+    // Retornar sucesso
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Vídeo atualizado com sucesso',
+      video: {
+        id: numVideoId,
+        title,
+        url,
+        videoSource,
+        duration
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao editar vídeo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor ao editar vídeo'
+    });
   }
 });
 
