@@ -62,10 +62,6 @@ export default function PortalDoParceiroPage() {
           </TabsList>
           
           <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Configurar
-            </Button>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Nova Instituição Parceira
