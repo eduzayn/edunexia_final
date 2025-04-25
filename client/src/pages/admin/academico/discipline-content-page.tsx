@@ -158,12 +158,13 @@ export default function DisciplineContentPage() {
   const { user } = useAuth();
   
   // Corrigindo o problema de tipagem do usuário
-  // Certificando-se de que o usuário tenha a propriedade role mesmo que não esteja no tipo original
+  // Como o user pode ser undefined, precisamos fazer verificações seguras
   const typedUser = user ? {
     ...user,
     portalType: user.portalType || 'admin',
-    role: user.role || (user.portalType === 'admin' ? 'admin' : 'student')
-  } as unknown as ExtendedUser : null;
+    // O casting para any é necessário para acessar propriedades que podem não existir no tipo
+    role: (user as any).role || (user.portalType === 'admin' ? 'admin' : 'student')
+  } as ExtendedUser : null;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("overview");
