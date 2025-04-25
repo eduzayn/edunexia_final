@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button';
 import { 
   ArrowLeft, 
   Settings, 
-  Tool, 
+  WrenchIcon, 
   Database, 
   RefreshCcw 
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnrollmentRecoveryTool } from '@/components/admin/enrollments/EnrollmentRecoveryTool';
-import { AdminLayout } from '@/components/layouts/admin-layout';
+import AdminLayout from '@/components/layout/admin-layout';
 
 export default function SystemMaintenancePage() {
   const [, navigate] = useLocation();
@@ -52,7 +52,7 @@ export default function SystemMaintenancePage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Tool className="h-5 w-5 mr-2 text-primary" />
+              <WrenchIcon className="h-5 w-5 mr-2 text-primary" />
               Centro de Manutenção
             </CardTitle>
             <CardDescription>

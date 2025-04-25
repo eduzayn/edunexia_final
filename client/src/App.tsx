@@ -101,6 +101,7 @@ import SecurityPage from "@/pages/admin/sistema/security-page";
 import SettingsPage from "@/pages/admin/sistema/settings-page";
 import InstitutionSettingsPage from "@/pages/admin/sistema/institution-settings-page";
 import PortalAccessControlPage from "@/pages/admin/sistema/portal-access-control-page";
+import SystemMaintenancePage from "@/pages/admin/maintenance/system-maintenance-page";
 // Import parcerias pages
 import PortalDoParceiroPage from "@/pages/admin/parcerias/portal-page";
 import CertificacaoAlunosPage from "@/pages/admin/parcerias/certificacao-page";
@@ -658,6 +659,10 @@ function Router() {
       
       <Route path="/admin/sistema/portal-access-control">
         {() => user?.portalType === "admin" ? <PortalAccessControlPage /> : <Redirect to="/admin" />}
+      </Route>
+      
+      <Route path="/admin/maintenance/system">
+        {() => user?.portalType === "admin" ? <SystemMaintenancePage /> : <Redirect to="/admin" />}
       </Route>
       
       <Route component={NotFound} />
