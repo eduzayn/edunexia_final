@@ -1317,14 +1317,20 @@ export default function DisciplineContentPage() {
                         startTime?: string
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
-                          <div className="relative aspect-video bg-gray-100">
-                            <EmbeddedVideoPlayer 
-                              url={video.url}
-                              title={video.title}
-                              source={video.videoSource as VideoSource}
-                              startTime={video.startTime}
-                              className="w-full"
-                            />
+                          <div className="relative aspect-video bg-gray-200">
+                            {video.videoSource === 'youtube' ? (
+                              <EmbeddedVideoPlayer 
+                                url={video.url}
+                                title={video.title}
+                                source={'youtube'}
+                                startTime={video.startTime}
+                                className="w-full h-full"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full">
+                                <PlayIcon className="h-12 w-12 text-gray-400" />
+                              </div>
+                            )}
                           </div>
                           <CardContent className="p-4">
                             <h3 className="text-lg font-semibold">{video.title}</h3>
