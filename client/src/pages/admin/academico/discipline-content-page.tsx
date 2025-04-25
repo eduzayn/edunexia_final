@@ -708,11 +708,15 @@ export default function DisciplineContentPage() {
   // Funções para manipular dialogs
   const handleOpenVideoDialog = () => {
     videoForm.reset();
+    // Resetar os estados de prévia ao abrir o diálogo
+    setPreviewVideoUrl("");
+    setPreviewVideoSource("youtube");
     setIsVideoDialogOpen(true);
   };
   
   const handleOpenVideoEditDialog = (video: any) => {
     setSelectedVideo(video);
+    // Inicializar o formulário com os dados do vídeo
     videoForm.reset({
       title: video.title,
       description: video.description,
@@ -720,6 +724,9 @@ export default function DisciplineContentPage() {
       url: video.url,
       duration: video.duration,
     });
+    // Inicializar estados de prévia com os dados do vídeo
+    setPreviewVideoUrl(video.url);
+    setPreviewVideoSource(video.videoSource as any);
     setIsVideoEditDialogOpen(true);
   };
   
