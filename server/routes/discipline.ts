@@ -411,7 +411,16 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
     const { disciplineId } = req.query;
     
     // Validar ID da disciplina
-    const numDisciplineId = validateDisciplineId(disciplineId?.toString());
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina é obrigatório' 
+      });
+    }
+    
+    const disciplineIdStr = Array.isArray(disciplineId) ? disciplineId[0] : disciplineId.toString();
+    const numDisciplineId = validateDisciplineId(disciplineIdStr);
+    
     if (!numDisciplineId) {
       return res.status(400).json({ 
         success: false, 
