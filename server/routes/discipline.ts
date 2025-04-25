@@ -10,6 +10,12 @@ import { and, eq, count } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import axios from 'axios';
+
+// URL base para chamadas internas no servidor
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://edunexia.replit.app' 
+  : 'http://localhost:5000';
 
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -1190,6 +1196,102 @@ router.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
     return res.status(500).json({ 
       success: false, 
       error: 'Erro interno do servidor' 
+    });
+  }
+});
+
+/**
+ * Rota para verificar a completude de uma disciplina
+ */
+router.get('/admin/disciplines/:id/check-completeness', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Garantir que a resposta seja JSON
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Verificar se a disciplina existe
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Disciplina não encontrada" 
+      });
+    }
+    
+    // Buscar informações dos conteúdos da disciplina
+    // Vídeos
+    const videosResponse = await axios.get(`${BASE_URL}/api/disciplines/${disciplineId}/videos`);
+    const hasVideos = videosResponse.data && videosResponse.data.length > 0;
+    
+    // Apostila
+    const materialResponse = await axios.get(`${BASE_URL}/api/disciplines/${disciplineId}/material`);
+    const hasMaterial = materialResponse.data && materialResponse.data.apostilaPdfUrl;
+    
+    // E-book
+    const ebookResponse = await axios.get(`${BASE_URL}/api/disciplines/${disciplineId}/ebook`);
+    const hasEbook = ebookResponse.data && ebookResponse.data.available;
+    
+    // E-book interativo (novo)
+    let hasInteractiveEbook = false;
+    try {
+      const interactiveEbookResponse = await axios.get(`${BASE_URL}/api/disciplines/${disciplineId}/interactive-ebook`);
+      hasInteractiveEbook = interactiveEbookResponse.data && interactiveEbookResponse.data.available;
+    } catch (error) {
+      console.log('E-book interativo não disponível para disciplina:', disciplineId);
+    }
+    
+    // Avaliações
+    const assessmentsResponse = await axios.get(`${BASE_URL}/api/disciplines/${disciplineId}/assessments`);
+    const hasAssessments = assessmentsResponse.data && assessmentsResponse.data.length > 0;
+    
+    // Calcular completude
+    const completenessItems = [
+      { id: "info", label: "Informações básicas", status: true ? "completed" : "pending" },
+      { id: "videos", label: "Vídeo-aulas", status: hasVideos ? "completed" : "pending" },
+      { id: "material", label: "Apostila", status: hasMaterial ? "completed" : "pending" },
+      { id: "ebook", label: "E-book", status: hasEbook ? "completed" : "pending" },
+      { id: "interactive-ebook", label: "E-book Interativo", status: hasInteractiveEbook ? "completed" : "pending" },
+      { id: "assessments", label: "Avaliações", status: hasAssessments ? "completed" : "pending" }
+    ];
+    
+    // Calcular porcentagem de completude
+    const completedItems = completenessItems.filter(item => item.status === "completed").length;
+    const totalItems = completenessItems.length;
+    const completionPercentage = Math.round((completedItems / totalItems) * 100);
+    
+    console.log(`Verificação de completude para disciplina ${disciplineId}:`, {
+      items: completenessItems,
+      completionPercentage,
+      complete: completionPercentage === 100
+    });
+    
+    return res.status(200).json({
+      success: true,
+      items: completenessItems,
+      completionPercentage,
+      complete: completionPercentage === 100
+    });
+    
+  } catch (error) {
+    console.error('Erro ao verificar completude da disciplina:', error);
+    
+    // Garantir que a resposta seja JSON mesmo em caso de erro
+    res.setHeader('Content-Type', 'application/json');
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao verificar completude da disciplina',
+      message: error instanceof Error ? error.message : 'Erro interno do servidor' 
     });
   }
 });
