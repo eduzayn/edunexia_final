@@ -993,25 +993,36 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
 });
 
 // Endpoints para E-book Interativo
-// GET - Obter e-book interativo de uma disciplina
-router.get('/:disciplineId/interactive-ebook', async (req, res) => {
+/**
+ * Rota para obter e-book interativo de uma disciplina
+ */
+router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
   try {
-    const { disciplineId } = req.params;
-    const numDisciplineId = validateDisciplineId(disciplineId);
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
     
-    if (!numDisciplineId) {
+    if (!disciplineId) {
       return res.status(400).json({ 
         success: false, 
-        error: 'ID da disciplina inválido' 
+        error: 'ID de disciplina inválido' 
       });
     }
     
-    // Como este é um recurso novo, retornamos um objeto indicando que não há e-book interativo
-    // Isso é apenas uma implementação temporária até que o schema seja atualizado
-    return res.status(200).json({ 
-      id: numDisciplineId,
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Como este é um recurso novo temporário, vamos simular que não há dados ainda
+    // Em uma implementação real, esse dado estaria armazenado no banco
+    return res.json({
+      id: disciplineId,
       available: false,
-      message: "E-book interativo ainda não configurado"
+      message: "Recurso não disponível"
     });
   } catch (error) {
     console.error('Erro ao obter e-book interativo:', error);
@@ -1022,16 +1033,27 @@ router.get('/:disciplineId/interactive-ebook', async (req, res) => {
   }
 });
 
-// POST - Adicionar ou atualizar e-book interativo
-router.post('/:disciplineId/interactive-ebook', upload.single('file'), async (req, res) => {
+/**
+ * Rota para adicionar ou atualizar e-book interativo
+ */
+router.post('/api/disciplines/:id/interactive-ebook', upload.single('file'), async (req, res) => {
   try {
-    const { disciplineId } = req.params;
-    const numDisciplineId = validateDisciplineId(disciplineId);
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
     
-    if (!numDisciplineId) {
+    if (!disciplineId) {
       return res.status(400).json({ 
         success: false, 
-        error: 'ID da disciplina inválido' 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
       });
     }
     
@@ -1047,17 +1069,21 @@ router.post('/:disciplineId/interactive-ebook', upload.single('file'), async (re
       });
     }
     
-    // Simular sucesso - isso seria substituído por código real que salva os dados
+    let fileUrl = url;
+    if (file) {
+      fileUrl = `/uploads/${file.filename}`;
+    }
+    
+    // Em uma implementação real, atualizaríamos o banco de dados
+    // Mas como estamos simulando, apenas retornamos sucesso
     return res.status(200).json({
       success: true,
-      message: 'E-book interativo adicionado/atualizado com sucesso',
-      id: numDisciplineId,
+      message: 'E-book interativo adicionado com sucesso',
+      id: disciplineId,
       available: true,
-      name: title || "E-book Interativo",
-      description: description || "",
-      interactiveEbookUrl: file ? 
-        `${req.protocol}://${req.get('host')}/uploads/${file.filename}` : 
-        url
+      name: title || discipline.name,
+      description: description || discipline.description,
+      interactiveEbookUrl: fileUrl
     });
   } catch (error) {
     console.error('Erro ao adicionar e-book interativo:', error);
@@ -1068,20 +1094,32 @@ router.post('/:disciplineId/interactive-ebook', upload.single('file'), async (re
   }
 });
 
-// DELETE - Remover e-book interativo
-router.delete('/:disciplineId/interactive-ebook', async (req, res) => {
+/**
+ * Rota para remover e-book interativo
+ */
+router.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
   try {
-    const { disciplineId } = req.params;
-    const numDisciplineId = validateDisciplineId(disciplineId);
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
     
-    if (!numDisciplineId) {
+    if (!disciplineId) {
       return res.status(400).json({ 
         success: false, 
-        error: 'ID da disciplina inválido' 
+        error: 'ID de disciplina inválido' 
       });
     }
     
-    // Simular sucesso - seria substituído por código real
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Em uma implementação real, atualizaríamos o banco de dados
+    // Mas como estamos simulando, apenas retornamos sucesso
     return res.status(200).json({
       success: true,
       message: 'E-book interativo removido com sucesso'
