@@ -101,6 +101,7 @@ function getGoogleDriveEmbedUrl(url: string): string | null {
   
   if (fileId) {
     // URL para incorporar documento do Google Drive diretamente como PDF
+    // Formato oficial de incorporação do Google Drive
     return `https://drive.google.com/file/d/${fileId}/preview`;
   }
   
@@ -504,6 +505,8 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
                     className="w-full h-full border-0"
                     allow="autoplay"
                     title="Visualizador de E-book Interativo"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                   ></iframe>
                 ) : viewerUrl ? (
                   <PdfViewer 
@@ -722,6 +725,8 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
                     src={getGoogleDriveEmbedUrl(ebookData.interactiveEbookUrl) || ''}
                     className="w-full h-full border-0"
                     allow="autoplay"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                     title="Visualizador de E-book Interativo"
                   ></iframe>
                 ) : viewerUrl ? (

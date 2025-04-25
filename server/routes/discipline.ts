@@ -1021,8 +1021,8 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
     // Para manter consistência com o comportamento de adição que implementamos
     
     // Em uma implementação real, isso viria do banco de dados
-    // Para este exemplo, vamos usar uma URL fixa de demonstração
-    const interactiveEbookUrl = "https://drive.google.com/file/d/1QR8x5lMxdS9jZJEI7OZMp9FxeZS-AGlO/view?usp=sharing";
+    // Usando o link fornecido pelo usuário
+    const interactiveEbookUrl = "https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/view?usp=drive_link";
     
     return res.json({
       id: disciplineId,
