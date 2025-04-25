@@ -1701,7 +1701,7 @@ export default function DisciplineContentPage() {
                         <Button
                           onClick={() => handleOpenAssessmentDialog("simulado")}
                           className="mt-4 md:mt-0"
-                          disabled={!questions || questions.length < 30}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
                           Criar Simulado
@@ -1776,17 +1776,17 @@ export default function DisciplineContentPage() {
                         </p>
                         <Button
                           onClick={() => {
-                            if (questions && questions.length >= 30) {
+                            if (questions && questions.length >= 1) { // Reduzindo o requisito
                               handleOpenAssessmentDialog("simulado");
                             } else {
                               handleOpenQuestionDialog();
                             }
                           }}
                           className="mt-4"
-                          disabled={!questions || questions.length < 30}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
-                          {!questions || questions.length < 30
+                          {!questions || questions.length < 1 // Reduzindo o requisito
                             ? "Adicionar Questão"
                             : "Criar Simulado"}
                         </Button>
@@ -1809,7 +1809,7 @@ export default function DisciplineContentPage() {
                         <Button
                           onClick={() => handleOpenAssessmentDialog("avaliacao_final")}
                           className="mt-4 md:mt-0"
-                          disabled={!questions || questions.length < 10}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
                           Criar Avaliação
@@ -1884,17 +1884,17 @@ export default function DisciplineContentPage() {
                         </p>
                         <Button
                           onClick={() => {
-                            if (questions && questions.length >= 10) {
+                            if (questions && questions.length >= 1) { // Reduzindo o requisito
                               handleOpenAssessmentDialog("avaliacao_final");
                             } else {
                               handleOpenQuestionDialog();
                             }
                           }}
                           className="mt-4"
-                          disabled={!questions || questions.length < 10}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
-                          {!questions || questions.length < 10
+                          {!questions || questions.length < 1 // Reduzindo o requisito
                             ? "Adicionar Questão"
                             : "Criar Avaliação"}
                         </Button>
