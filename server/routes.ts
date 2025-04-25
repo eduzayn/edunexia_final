@@ -218,6 +218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api-json/user', (req, res) => {
     try {
       // Verificar o token no header de Authorization
+      // Log completo de headers para debug
+      console.log('GET /api-json/user - Todos headers:', JSON.stringify(req.headers));
       const authHeader = req.headers.authorization;
       console.log('GET /api-json/user - Auth Header:', authHeader);
       const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
@@ -397,14 +399,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app._router.handle(req, res);
   });
 
+  // Implementação direta para /api/user sem redirecionamento
   app.get('/api/user', (req, res) => {
-    console.log('Redirecionando /api/user para /api-json/user');
+    console.log('Acessando diretamente /api/user (implementação unificada)');
+    console.log('Headers na requisição /api/user:', JSON.stringify(req.headers));
+    
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
 
-    // Redirecionar a requisição para o novo endpoint
-    req.url = '/api-json/user';
-    app._router.handle(req, res);
+    try {
+      // Verificar o token no header de Authorization
+      const authHeader = req.headers.authorization;
+      console.log('GET /api/user - Auth Header:', authHeader);
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+      if (!token) {
+        console.log('GET /api/user - Token não encontrado');
+        return res.status(401).json({
+          success: false,
+          message: "Usuário não autenticado"
+        });
+      }
+
+      console.log('GET /api/user - Token:', token);
+      const user = getActiveUserByToken(token);
+      console.log('GET /api/user - User encontrado:', user ? 'Sim' : 'Não');
+
+      if (!user) {
+        console.log('GET /api/user - Sessão inválida');
+        return res.status(401).json({
+          success: false,
+          message: "Sessão inválida ou expirada"
+        });
+      }
+
+      console.log('GET /api/user - Retornando usuário');
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error('Erro em GET /api/user:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
   });
 
   // Adicionar redirecionamentos para endpoints acadêmicos
