@@ -157,24 +157,13 @@ export default function DisciplineContentPage() {
   const disciplineId = parseInt(id as string);
   const { user } = useAuth();
   
-  // Interface para lidar com as tipagens do usuário
-  interface ExtendedUser {
-    id: number;
-    username: string;
-    fullName: string;
-    email: string;
-    portalType: string;
-    role: string;
-    [key: string]: any; // Para outras propriedades que possam existir
-  }
-  
   // Corrigindo o problema de tipagem do usuário
-  // Certifique-se de que o usuário tenha a propriedade role mesmo que não esteja no tipo original
+  // Certificando-se de que o usuário tenha a propriedade role mesmo que não esteja no tipo original
   const typedUser = user ? {
     ...user,
     portalType: user.portalType || 'admin',
     role: user.role || (user.portalType === 'admin' ? 'admin' : 'student')
-  } as ExtendedUser : null;
+  } as unknown as ExtendedUser : null;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("overview");
