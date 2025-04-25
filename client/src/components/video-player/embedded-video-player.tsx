@@ -70,6 +70,7 @@ function extractYouTubeVideoId(url: string): string | null {
  * - vimeo.com/VIDEO_ID
  * - vimeo.com/video/VIDEO_ID
  * - player.vimeo.com/video/VIDEO_ID
+ * - URLs com parâmetros como quality_selector e outros
  */
 function extractVimeoVideoId(url: string): string | null {
   if (!url) return null;
@@ -77,7 +78,7 @@ function extractVimeoVideoId(url: string): string | null {
   try {
     console.log('Tentando extrair ID do Vimeo da URL:', url);
     
-    // Formato padrão: vimeo.com/VIDEO_ID
+    // Método 1: Formato padrão - vimeo.com/VIDEO_ID
     if (url.includes('vimeo.com/') && !url.includes('/video/')) {
       const id = url.split('vimeo.com/')[1]?.split(/[?&/#]/)[0];
       if (id && /^\d+$/.test(id)) {
@@ -86,38 +87,36 @@ function extractVimeoVideoId(url: string): string | null {
       }
     }
     
-    // Formato alternativo: vimeo.com/video/VIDEO_ID ou player.vimeo.com/video/VIDEO_ID
+    // Método 2: Formato player - player.vimeo.com/video/VIDEO_ID
     if (url.includes('/video/')) {
       const id = url.split('/video/')[1]?.split(/[?&/#]/)[0];
       if (id && /^\d+$/.test(id)) {
-        console.log('ID do Vimeo extraído (formato alternativo):', id);
+        console.log('ID do Vimeo extraído (formato player):', id);
         return id;
       }
     }
     
-    // Formato seletor personalizado: vimeo.com/?selector=1&amp;player,id=0&amp;app_id=VIDEO_ID
-    if (url.includes('app_id=')) {
-      const id = url.split('app_id=')[1]?.split(/[?&/#]/)[0];
-      if (id && /^\d+$/.test(id)) {
-        console.log('ID do Vimeo extraído (formato seletor personalizado):', id);
-        return id;
+    // Método 3: Formato URL complexa com quality_selector
+    const complexMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
+    if (complexMatch && complexMatch[1]) {
+      console.log('ID do Vimeo extraído (regex complexa):', complexMatch[1]);
+      return complexMatch[1];
+    }
+    
+    // Método 4: Extração de parâmetros de URL para formatos com player_id, app_id, etc.
+    try {
+      // Tenta extrair números puros da URL, útil quando temos URLs complexas
+      const allNumbers = url.match(/\d+/g);
+      if (allNumbers && allNumbers.length > 0) {
+        // Filtra números que são potencialmente IDs do Vimeo (mais de 6 dígitos normalmente)
+        const potentialIds = allNumbers.filter(num => num.length >= 6 && num.length <= 10);
+        if (potentialIds.length > 0) {
+          console.log('ID do Vimeo extraído (números puros):', potentialIds[0]);
+          return potentialIds[0];
+        }
       }
-    }
-    
-    // Extrair número puro do Vimeo que pode estar em qualquer parte da URL 
-    // (útil para formatos não padrão)
-    const pureIdMatch = url.match(/(?:vimeo\.com\/|app_id=|player,id=)(\d+)/);
-    if (pureIdMatch && pureIdMatch[1]) {
-      console.log('ID do Vimeo extraído (formato regex puro):', pureIdMatch[1]);
-      return pureIdMatch[1];
-    }
-    
-    // Fallback para o método regex original
-    const regExp = /vimeo\.com\/(?:video\/)?(\d+)/;
-    const match = url.match(regExp);
-    if (match && match[1]) {
-      console.log('ID do Vimeo extraído (regex original):', match[1]);
-      return match[1];
+    } catch (e) {
+      console.warn('Falha ao tentar extrair números da URL do Vimeo');
     }
     
     console.warn('Não foi possível extrair o ID do Vimeo da URL:', url);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Control } from 'react-hook-form';
 import {
   FormField,
@@ -21,6 +21,33 @@ import {
 } from "@/components/ui/icons";
 
 export type VideoSource = "youtube" | "vimeo" | "onedrive" | "google_drive" | "upload";
+
+// Detecta automaticamente o tipo de fonte de vídeo baseado na URL
+function detectVideoSource(url: string): VideoSource | null {
+  if (!url) return null;
+  
+  // Detecta URLs do YouTube
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return 'youtube';
+  }
+  
+  // Detecta URLs do Vimeo
+  if (url.includes('vimeo.com') || url.includes('player.vimeo.com')) {
+    return 'vimeo';
+  }
+  
+  // Detecta URLs do Google Drive
+  if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+    return 'google_drive';
+  }
+  
+  // Detecta URLs do OneDrive
+  if (url.includes('onedrive.live.com') || url.includes('1drv.ms')) {
+    return 'onedrive';
+  }
+  
+  return null;
+}
 
 interface VideoFormFieldsProps {
   control: Control<any>;
