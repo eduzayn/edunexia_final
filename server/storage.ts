@@ -498,9 +498,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   async addDisciplineToCourse(courseDiscipline: InsertCourseDiscipline): Promise<CourseDiscipline> {
+    // Modificar objeto antes da inserção para remover propriedades que não existem na tabela
+    const insertData = {
+      courseId: courseDiscipline.courseId,
+      disciplineId: courseDiscipline.disciplineId,
+      order: courseDiscipline.order
+      // Não incluir isRequired se a coluna não existir na tabela
+    };
+    
     const [newCourseDiscipline] = await db
       .insert(courseDisciplines)
-      .values(courseDiscipline)
+      .values(insertData)
       .returning();
     return newCourseDiscipline;
   }

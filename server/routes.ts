@@ -4,6 +4,9 @@ import { Express, Request, Response, NextFunction } from 'express';
 import z from 'zod';
 import { Server } from 'http';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { eq, asc } from 'drizzle-orm';
+import { courseDisciplines } from '@shared/schema';
+import { db } from './db'; // Importado para acesso direto ao banco de dados
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
@@ -1011,10 +1014,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Buscar disciplinas vinculadas ao curso
-      const courseDisciplines = await storage.getCourseDisciplines(courseId);
-      console.log(`GET /api/admin/courses/${courseId}/disciplines - Encontradas ${courseDisciplines.length} disciplinas`);
+      // Consulta direta evitando a coluna is_required que pode não existir
+      const result = await db
+        .select({
+          id: courseDisciplines.id,
+          courseId: courseDisciplines.courseId,
+          disciplineId: courseDisciplines.disciplineId,
+          order: courseDisciplines.order
+        })
+        .from(courseDisciplines)
+        .where(eq(courseDisciplines.courseId, courseId))
+        .orderBy(asc(courseDisciplines.order));
       
-      return res.json(courseDisciplines);
+      console.log(`GET /api/admin/courses/${courseId}/disciplines - Encontradas ${result.length} disciplinas`);
+      
+      return res.json(result);
     } catch (error) {
       console.error(`Erro ao buscar disciplinas do curso: ${error}`);
       return res.status(500).json({ 
@@ -1118,12 +1132,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, message: "Curso não encontrado" });
       }
       
-      // Buscar disciplinas vinculadas ao curso
-      const courseDisciplines = await storage.getCourseDisciplines(courseId);
+      // Buscar disciplinas vinculadas ao curso usando consulta direta para evitar erros de coluna
+      const result = await db
+        .select({
+          id: courseDisciplines.id,
+          courseId: courseDisciplines.courseId,
+          disciplineId: courseDisciplines.disciplineId,
+          order: courseDisciplines.order
+        })
+        .from(courseDisciplines)
+        .where(eq(courseDisciplines.courseId, courseId))
+        .orderBy(asc(courseDisciplines.order));
       
       return res.json({
         success: true,
-        data: courseDisciplines
+        data: result
       });
     } catch (error) {
       console.error(`Erro ao buscar disciplinas do curso: ${error}`);
