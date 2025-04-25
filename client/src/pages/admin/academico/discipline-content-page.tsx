@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { ExtendedUser } from "@/types/user";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -155,8 +156,25 @@ export default function DisciplineContentPage() {
   const { id } = useParams();
   const disciplineId = parseInt(id as string);
   const { user } = useAuth();
+  
+  // Interface para lidar com as tipagens do usuário
+  interface ExtendedUser {
+    id: number;
+    username: string;
+    fullName: string;
+    email: string;
+    portalType: string;
+    role: string;
+    [key: string]: any; // Para outras propriedades que possam existir
+  }
+  
   // Corrigindo o problema de tipagem do usuário
-  const typedUser = user as ExtendedUser | null;
+  // Certifique-se de que o usuário tenha a propriedade role mesmo que não esteja no tipo original
+  const typedUser = user ? {
+    ...user,
+    portalType: user.portalType || 'admin',
+    role: user.role || (user.portalType === 'admin' ? 'admin' : 'student')
+  } as ExtendedUser : null;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("overview");
@@ -768,7 +786,7 @@ export default function DisciplineContentPage() {
       <div className="flex h-screen bg-gray-50">
         <Sidebar
           items={sidebarItems}
-          user={user}
+          user={typedUser}
           portalType="admin"
           portalColor="#3451B2"
           isMobileMenuOpen={isMobileMenuOpen}
@@ -804,7 +822,7 @@ export default function DisciplineContentPage() {
       <div className="flex h-screen bg-gray-50">
         <Sidebar
           items={sidebarItems}
-          user={user}
+          user={typedUser}
           portalType="admin"
           portalColor="#3451B2"
           isMobileMenuOpen={isMobileMenuOpen}
@@ -848,7 +866,7 @@ export default function DisciplineContentPage() {
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         items={sidebarItems}
-        user={user}
+        user={typedUser}
         portalType="admin"
         portalColor="#3451B2"
         isMobileMenuOpen={isMobileMenuOpen}
@@ -1044,7 +1062,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some((a: any) => a.type === "simulado") 
+                      {assessments?.some((a: { type: string }) => a.type === "simulado") 
                         ? "Gerenciar Simulado" 
                         : "Adicionar Simulado"}
                     </Button>
@@ -1086,7 +1104,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some((a: any) => a.type === "avaliacao_final") 
+                      {assessments?.some((a: { type: string }) => a.type === "avaliacao_final") 
                         ? "Gerenciar Avaliação" 
                         : "Adicionar Avaliação"}
                     </Button>
