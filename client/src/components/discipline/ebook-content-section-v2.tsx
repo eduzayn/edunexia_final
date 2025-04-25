@@ -56,8 +56,8 @@ function isGoogleDriveUrl(url: string): boolean {
 }
 
 // Função para converter URL do Google Drive para formato de visualização direta
-function convertGoogleDriveUrl(url: string): string {
-  if (!isGoogleDriveUrl(url)) return url;
+function getGoogleDriveFileId(url: string): string | null {
+  if (!isGoogleDriveUrl(url)) return null;
   
   // Extrair o ID do arquivo
   let fileId = '';
@@ -78,16 +78,33 @@ function convertGoogleDriveUrl(url: string): string {
     }
   }
   
+  return fileId || null;
+}
+
+function convertGoogleDriveUrl(url: string): string {
+  if (!isGoogleDriveUrl(url)) return url;
+  
+  const fileId = getGoogleDriveFileId(url);
+  
   if (fileId) {
     console.log('Google Drive ID extraído:', fileId);
     
-    // Em vez de usar o iframe direto do Google Drive, que tem restrições de
-    // Content Security Policy, usamos um serviço alternativo que não tem essas restrições
-    // Usar uma abordagem de visualização que funciona em ambiente de desenvolvimento
+    // Usar URL de exportação direta para o conteúdo
     return `https://drive.google.com/uc?export=view&id=${fileId}`;
   }
   
   return url;
+}
+
+function getGoogleDriveEmbedUrl(url: string): string | null {
+  const fileId = getGoogleDriveFileId(url);
+  
+  if (fileId) {
+    // URL para incorporar documento do Google Drive diretamente como PDF
+    return `https://drive.google.com/file/d/${fileId}/preview`;
+  }
+  
+  return null;
 }
 
 // Função para detectar o tipo de URL
@@ -492,7 +509,7 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                 <div className="flex space-x-2">
                   <Button 
                     variant="default" 
-                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                    onClick={() => setIsViewDialogOpen(true)}
                     className="flex gap-2 items-center bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     <Book className="h-4 w-4" />
@@ -501,22 +518,30 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                 </div>
               </div>
               
-              <div className="h-48 w-full bg-slate-50 rounded-md overflow-hidden flex items-center justify-center border border-slate-200">
-                <div className="flex flex-col items-center justify-center p-4">
-                  {urlType === 'google-drive' ? (
+              <div className="h-[400px] w-full bg-slate-50 rounded-md overflow-hidden border border-slate-200">
+                {urlType === 'google-drive' && ebookData?.ebookPdfUrl ? (
+                  <iframe 
+                    src={getGoogleDriveEmbedUrl(ebookData.ebookPdfUrl) || ''}
+                    className="w-full h-full border-0"
+                    allow="autoplay"
+                    title="Visualizador de E-book"
+                  ></iframe>
+                ) : viewerUrl ? (
+                  <PdfViewer 
+                    pdfUrl={viewerUrl} 
+                    height="100%"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-4 h-full">
                     <div className="text-center">
-                      <Badge className="mb-2 bg-blue-50 text-blue-800">Google Drive</Badge>
-                      <FileIcon className="h-14 w-14 text-slate-300 mx-auto mb-2" />
-                      <p className="text-slate-500 text-xs">Clique em "Visualizar E-book" para abrir o documento</p>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Badge className="mb-2 bg-blue-50 text-blue-800">PDF</Badge>
+                      <Badge className="mb-2 bg-blue-50 text-blue-800">
+                        {urlType === 'google-drive' ? 'Google Drive' : 'PDF'}
+                      </Badge>
                       <FileText className="h-14 w-14 text-slate-300 mx-auto mb-2" />
-                      <p className="text-slate-500 text-xs">Clique em "Visualizar E-book" para abrir o documento</p>
+                      <p className="text-slate-500 text-xs">Visualização não disponível</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -716,42 +741,22 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
             
             <TabsContent value="preview" className="space-y-4 mt-4">
               <div className="h-[400px] w-full bg-slate-100 rounded-md overflow-hidden flex items-center justify-center">
-                {viewerUrl ? (
-                  urlType === 'google-drive' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                      <p className="mb-4 text-center">
-                        Para visualizar arquivos do Google Drive, é necessário usar uma abordagem alternativa devido às restrições de segurança.
-                      </p>
-                      <Button
-                        onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir no Google Drive
-                      </Button>
-                      <p className="mt-4 text-sm text-muted-foreground">
-                        Recomendamos que você abra o arquivo diretamente no Google Drive para a melhor experiência de visualização.
-                      </p>
-                    </div>
-                  ) : (
-                    <PdfViewer 
-                      pdfUrl={viewerUrl} 
-                      height="100%"
-                    />
-                  )
+                {urlType === 'google-drive' && ebookData?.ebookPdfUrl ? (
+                  <iframe 
+                    src={getGoogleDriveEmbedUrl(ebookData.ebookPdfUrl) || ''}
+                    className="w-full h-full border-0"
+                    allow="autoplay"
+                    title="Visualizador de E-book"
+                  ></iframe>
+                ) : viewerUrl ? (
+                  <PdfViewer 
+                    pdfUrl={viewerUrl} 
+                    height="100%"
+                  />
                 ) : (
                   <div className="text-center p-4">
                     <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                     <p className="text-gray-500">Pré-visualização não disponível</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Abrir para visualizar
-                    </Button>
                   </div>
                 )}
               </div>
@@ -830,42 +835,22 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
           showTitle={true}
         >
           <div className="flex-grow overflow-auto h-[calc(90vh-120px)] mt-4">
-            {viewerUrl ? (
-              urlType === 'google-drive' ? (
-                <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                  <p className="mb-4 text-center">
-                    Para visualizar arquivos do Google Drive, é necessário usar uma abordagem alternativa devido às restrições de segurança.
-                  </p>
-                  <Button
-                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Abrir no Google Drive
-                  </Button>
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Recomendamos que você abra o arquivo diretamente no Google Drive para a melhor experiência de visualização.
-                  </p>
-                </div>
-              ) : (
-                <PdfViewer 
-                  pdfUrl={viewerUrl} 
-                  height="100%"
-                />
-              )
+            {urlType === 'google-drive' && ebookData?.ebookPdfUrl ? (
+              <iframe 
+                src={getGoogleDriveEmbedUrl(ebookData.ebookPdfUrl) || ''}
+                className="w-full h-full border-0"
+                allow="autoplay"
+                title="Visualizador de E-book"
+              ></iframe>
+            ) : viewerUrl ? (
+              <PdfViewer 
+                pdfUrl={viewerUrl} 
+                height="100%"
+              />
             ) : (
               <div className="text-center p-4">
                 <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                 <p className="text-gray-500">Visualização não disponível</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Abrir para visualizar
-                </Button>
               </div>
             )}
           </div>
