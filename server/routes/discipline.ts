@@ -356,6 +356,102 @@ router.delete('/api/disciplines/:id/material', async (req, res) => {
 });
 
 /**
+ * Rota para adicionar ou atualizar ebook de uma disciplina
+ */
+router.post('/api/disciplines/:id/ebook', upload.single('file'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
+    }
+    
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
+    }
+
+    const { title, description, url } = req.body;
+    
+    // Verificar se tem arquivo uploaded ou URL
+    let fileUrl = url;
+    
+    // Se tem arquivo, fazer upload e obter URL
+    if (req.file) {
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
+    
+    if (!fileUrl && !req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'É necessário fornecer um arquivo ou uma URL para o e-book' 
+      });
+    }
+
+    // Atualizar disciplina com o e-book
+    await db.update(disciplines)
+      .set({ 
+        ebookInterativoUrl: fileUrl,
+        updatedAt: new Date()
+      })
+      .where(eq(disciplines.id, disciplineId));
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'E-book adicionado com sucesso',
+      data: {
+        id: disciplineId,
+        title: title || discipline.name,
+        description: description || discipline.description,
+        url: fileUrl
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erro ao adicionar e-book à disciplina:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para excluir ebook de uma disciplina
+ */
+router.delete('/api/disciplines/:id/ebook', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
+    }
+    
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
+    }
+
+    // Atualizar disciplina removendo o e-book
+    await db.update(disciplines)
+      .set({ 
+        ebookInterativoUrl: null
+      })
+      .where(eq(disciplines.id, disciplineId));
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'E-book removido com sucesso'
+    });
+    
+  } catch (error) {
+    console.error('Erro ao excluir e-book da disciplina:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
  * Rota para obter ebook de uma disciplina
  */
 router.get('/api/disciplines/:id/ebook', async (req, res) => {
@@ -373,10 +469,25 @@ router.get('/api/disciplines/:id/ebook', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
     }
     
-    // Retornar informações sobre ebook
+    // Verificar se existe um ebook real ou uma apostila
+    const ebookUrl = discipline.ebookInterativoUrl || discipline.apostilaPdfUrl;
+    
+    // Se não tiver conteúdo real, retornamos uma estrutura indicando que não há ebook
+    if (!ebookUrl) {
+      return res.json({
+        id: disciplineId,
+        available: false,
+        name: discipline.name,
+        description: discipline.description,
+        message: 'Nenhum e-book disponível para esta disciplina.'
+      });
+    }
+    
+    // Retornar informações sobre ebook com indicação de que está disponível
     res.json({
       id: disciplineId,
-      ebookPdfUrl: discipline.ebookInterativoUrl || discipline.apostilaPdfUrl,
+      available: true,
+      ebookPdfUrl: ebookUrl,
       name: discipline.name,
       description: discipline.description
     });
