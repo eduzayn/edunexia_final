@@ -280,7 +280,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
     <div className="ebook-content-section">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <h2 className="text-xl font-semibold">E-book Interativo</h2>
+          <h2 className="text-xl font-semibold">E-book Interativo (Nova Interface)</h2>
           {ebookData?.available && (
             <Badge variant="outline" className="ml-2 bg-green-50">
               <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
