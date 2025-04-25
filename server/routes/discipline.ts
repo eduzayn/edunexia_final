@@ -4,6 +4,24 @@ import { disciplines } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
+
+// Configuração do Multer para upload de arquivos
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }); // Limite de 10MB
 
 const router = Router();
 
@@ -229,11 +247,110 @@ router.get('/api/disciplines/:id/material', async (req, res) => {
     res.json({
       id: disciplineId,
       apostilaPdfUrl: discipline.apostilaPdfUrl,
-      name: discipline.name,
-      description: discipline.description
+      title: discipline.name,
+      description: discipline.description,
+      url: discipline.apostilaPdfUrl,
+      name: discipline.name
     });
   } catch (error) {
     console.error('Erro ao buscar material da disciplina:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para adicionar ou atualizar material (apostila) de uma disciplina
+ */
+router.post('/api/disciplines/:id/material', upload.single('file'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
+    }
+    
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
+    }
+
+    const { title, description, url } = req.body;
+    
+    // Verificar se tem arquivo uploaded ou URL
+    let fileUrl = url;
+    
+    // Se tem arquivo, fazer upload e obter URL
+    if (req.file) {
+      // Aqui você implementaria a lógica de upload do arquivo
+      // Para este exemplo, vamos apenas simular que salvamos e temos uma URL
+      fileUrl = `/uploads/${req.file.filename}`;
+    }
+    
+    if (!fileUrl && !req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'É necessário fornecer um arquivo ou uma URL para a apostila' 
+      });
+    }
+
+    // Atualizar disciplina com a apostila
+    await db.update(disciplines)
+      .set({ 
+        apostilaPdfUrl: fileUrl
+      })
+      .where(eq(disciplines.id, disciplineId));
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Apostila adicionada com sucesso',
+      data: {
+        id: disciplineId,
+        title,
+        description,
+        url: fileUrl
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erro ao adicionar material à disciplina:', error);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para excluir material (apostila) de uma disciplina
+ */
+router.delete('/api/disciplines/:id/material', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
+    }
+    
+    const discipline = await getDisciplineById(disciplineId);
+    
+    if (!discipline) {
+      return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
+    }
+
+    // Atualizar disciplina removendo a apostila
+    await db.update(disciplines)
+      .set({ 
+        apostilaPdfUrl: null
+      })
+      .where(eq(disciplines.id, disciplineId));
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Apostila removida com sucesso'
+    });
+    
+  } catch (error) {
+    console.error('Erro ao excluir material da disciplina:', error);
     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
@@ -426,7 +543,7 @@ router.delete('/admin/discipline-videos/:videoId', async (req, res) => {
       });
     }
     
-    const disciplineIdStr = Array.isArray(disciplineId) ? disciplineId[0] : disciplineId.toString();
+    const disciplineIdStr = Array.isArray(disciplineId) ? disciplineId[0] : disciplineId as string;
     const numDisciplineId = validateDisciplineId(disciplineIdStr);
     
     if (!numDisciplineId) {
