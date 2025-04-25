@@ -189,6 +189,7 @@ export default function DisciplineContentPage() {
   // Estados para diálogos
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isVideoEditDialogOpen, setIsVideoEditDialogOpen] = useState(false);
+  const [isVideoPreviewDialogOpen, setIsVideoPreviewDialogOpen] = useState(false);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [isEbookLinkDialogOpen, setIsEbookLinkDialogOpen] = useState(false);
   // Estado isEbookDialogOpen removido - usando interface completa em /admin/ebooks/generate
@@ -1645,11 +1646,11 @@ export default function DisciplineContentPage() {
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative aspect-video bg-gray-200">
-                            {video.videoSource === 'youtube' ? (
+                            {video.videoSource ? (
                               <EmbeddedVideoPlayer 
                                 url={video.url}
                                 title={video.title}
-                                source={'youtube'}
+                                source={video.videoSource as VideoSource}
                                 startTime={video.startTime}
                                 className="w-full h-full"
                               />
@@ -1697,9 +1698,15 @@ export default function DisciplineContentPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => window.open(video.url, "_blank")}
+                              onClick={() => {
+                                // Definir o URL e tipo para preview e abrir o modal
+                                setPreviewVideoUrl(video.url);
+                                setPreviewVideoSource(video.videoSource as VideoSource);
+                                // Podemos criar um estado separado para o modal de visualização completa
+                                setIsVideoPreviewDialogOpen(true);
+                              }}
                             >
-                              <LinkIcon className="mr-1 h-4 w-4" />
+                              <PlayIcon className="mr-1 h-4 w-4" />
                               Visualizar
                             </Button>
                           </CardFooter>

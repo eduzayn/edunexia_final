@@ -25,20 +25,76 @@ interface EmbeddedVideoPlayerProps {
 
 /**
  * Extrai o ID do vídeo do YouTube de uma URL
+ * Suporta vários formatos de URL do YouTube:
+ * - youtu.be/VIDEO_ID
+ * - youtube.com/watch?v=VIDEO_ID
+ * - youtube.com/embed/VIDEO_ID
+ * - youtube.com/v/VIDEO_ID
  */
 function extractYouTubeVideoId(url: string): string | null {
-  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[7].length === 11) ? match[7] : null;
+  if (!url) return null;
+  
+  try {
+    // Formato curto: youtu.be/VIDEO_ID
+    if (url.includes('youtu.be/')) {
+      const id = url.split('youtu.be/')[1]?.split(/[?&]/)[0];
+      if (id && id.length === 11) return id;
+    }
+    
+    // Formato de embed: youtube.com/embed/VIDEO_ID
+    if (url.includes('/embed/')) {
+      const id = url.split('/embed/')[1]?.split(/[?&]/)[0];
+      if (id && id.length === 11) return id;
+    }
+    
+    // Formato padrão: youtube.com/watch?v=VIDEO_ID
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes('youtube.com')) {
+      const videoId = urlObj.searchParams.get('v');
+      if (videoId && videoId.length === 11) return videoId;
+    }
+    
+    // Fallback para o método regex original
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7] && match[7].length === 11) ? match[7] : null;
+  } catch (error) {
+    console.error('Erro ao extrair ID do YouTube:', error);
+    return null;
+  }
 }
 
 /**
  * Extrai o ID do vídeo do Vimeo de uma URL
+ * Suporta vários formatos de URL do Vimeo:
+ * - vimeo.com/VIDEO_ID
+ * - vimeo.com/video/VIDEO_ID
+ * - player.vimeo.com/video/VIDEO_ID
  */
 function extractVimeoVideoId(url: string): string | null {
-  const regExp = /vimeo\.com\/(?:video\/)?(\d+)/;
-  const match = url.match(regExp);
-  return match ? match[1] : null;
+  if (!url) return null;
+  
+  try {
+    // Formato padrão: vimeo.com/VIDEO_ID
+    if (url.includes('vimeo.com/') && !url.includes('/video/')) {
+      const id = url.split('vimeo.com/')[1]?.split(/[?&/#]/)[0];
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    
+    // Formato alternativo: vimeo.com/video/VIDEO_ID ou player.vimeo.com/video/VIDEO_ID
+    if (url.includes('/video/')) {
+      const id = url.split('/video/')[1]?.split(/[?&/#]/)[0];
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    
+    // Fallback para o método regex original
+    const regExp = /vimeo\.com\/(?:video\/)?(\d+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  } catch (error) {
+    console.error('Erro ao extrair ID do Vimeo:', error);
+    return null;
+  }
 }
 
 /**
@@ -104,14 +160,19 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
   useEffect(() => {
     if (source === 'youtube' && youtubeVideoId) {
       // YouTube iframe API já está carregada?
-      if (!window.YT) {
+      if (typeof window !== 'undefined' && !window.YT) {
         // Criar script do YouTube API
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+          document.head.appendChild(tag);
+        }
       }
       
+      // Não precisa esperar pelo carregamento da API para mostrar o iframe
       setIsLoading(false);
     }
   }, [source, youtubeVideoId]);
