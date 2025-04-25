@@ -205,6 +205,9 @@ export default function DisciplineContentPage() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [isAvailableQuestionsLoading, setIsAvailableQuestionsLoading] = useState(false);
+  const [isViewAssessmentQuestionsDialogOpen, setIsViewAssessmentQuestionsDialogOpen] = useState(false);
+  const [assessmentQuestionsWithDetails, setAssessmentQuestionsWithDetails] = useState<any[]>([]);
+  const [isAssessmentQuestionsLoading, setIsAssessmentQuestionsLoading] = useState(false);
   
   // Estado para prévia de vídeo
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
@@ -727,6 +730,50 @@ export default function DisciplineContentPage() {
   });
   
   // Mutation para atualizar questões de uma avaliação
+  // Mutation para remover uma questão individual de uma avaliação
+  const removeQuestionFromAssessmentMutation = useMutation({
+    mutationFn: async ({ assessmentId, questionId }: { assessmentId: number, questionId: number }) => {
+      const response = await apiRequest(
+        "DELETE", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions/${questionId}`)
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Questão removida com sucesso!",
+        description: "A questão foi removida da avaliação.",
+      });
+      
+      // Recarregar a lista de questões da avaliação
+      if (selectedAssessment) {
+        handleViewAssessmentQuestions(selectedAssessment);
+      }
+      
+      // Atualizar a lista de avaliações para refletir o novo contador de questões
+      refetchAssessments();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao remover questão",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   const updateAssessmentQuestionsMutation = useMutation({
     mutationFn: async ({ assessmentId, questionIds }: { assessmentId: number, questionIds: number[] }) => {
       const response = await apiRequest(
@@ -958,6 +1005,43 @@ export default function DisciplineContentPage() {
     } finally {
       setIsAvailableQuestionsLoading(false);
       setIsEditQuestionsDialogOpen(true);
+    }
+  };
+  
+  // Função para exibir as questões já incluídas em uma avaliação
+  const handleViewAssessmentQuestions = async (assessment: any) => {
+    setSelectedAssessment(assessment);
+    setIsAssessmentQuestionsLoading(true);
+    
+    try {
+      // Usando a rota de api/admin/assessments/:id/questions para obter os detalhes completos
+      const response = await apiRequest(
+        "GET",
+        buildApiUrl(`/api/admin/assessments/${assessment.id}/questions`)
+      );
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.questions)) {
+        setAssessmentQuestionsWithDetails(data.questions);
+      } else {
+        setAssessmentQuestionsWithDetails([]);
+        toast({
+          title: "Aviso",
+          description: "Não foi possível carregar as questões desta avaliação.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar questões da avaliação:", error);
+      setAssessmentQuestionsWithDetails([]);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar as questões da avaliação.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssessmentQuestionsLoading(false);
+      setIsViewAssessmentQuestionsDialogOpen(true);
     }
   };
   
