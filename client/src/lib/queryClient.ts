@@ -89,7 +89,8 @@ export async function apiRequest(
     // Adicionar cache: 'no-cache' para evitar problemas de cache
     cache: 'no-cache',
     // Adicionar credentials: 'same-origin' para lidar com cookies corretamente
-    credentials: 'same-origin'
+    credentials: 'same-origin',
+    mode: 'cors' // Certificar que o modo CORS está ativado
   };
 
   if (requestOptions.data) {
@@ -193,7 +194,8 @@ export const getQueryFn: <T>(options: {
         method: "GET",
         headers,
         cache: 'no-cache',
-        credentials: 'include' // Alterado para 'include' para permitir cookies cross-origin
+        credentials: 'same-origin', // Usar 'same-origin' é mais seguro e funciona melhor no Replit
+        mode: 'cors' // Certificar que o modo CORS está ativado
       });
       
       // Log para debug
