@@ -18,9 +18,20 @@ interface LoginResponse {
   [key: string]: any; // Permite campos adicionais
 }
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { buildApiUrl } from "../lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { getNavigationPath } from "../lib/url-utils";
+
+// Definir as rotas da API para padronizar todas as chamadas
+// Note: Todas as rotas devem usar caminhos relativos sem domínio, para funcionar em produção
+// Mudamos de volta para /api/ pois agora temos handlers específicos para produção
+const API_ROUTES = {
+  LOGIN: "/api/login", 
+  LOGOUT: "/api/logout",
+  USER: "/api/user",
+  REGISTER: "/api/register"
+};
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -99,13 +110,19 @@ export const AuthContext = createContext<AuthContextType>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  // Verificar primeiro se há um token disponível antes de fazer a consulta
+  // Isso reduz as chamadas desnecessárias ao servidor
+  const hasToken = !!localStorage.getItem('auth_token');
+  
   const {
     data: user,
     error,
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
-    queryKey: ["/api-json/user"],
+    queryKey: [API_ROUTES.USER],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    // Não executar a consulta se não houver token disponível
+    enabled: hasToken,
   });
 
   const [, setLocation] = useLocation();
@@ -119,10 +136,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Limpar o cache de usuário antes de tentar o login
       // para evitar conflitos de estado entre logins
-      queryClient.removeQueries({ queryKey: ["/api-json/user"] });
+      queryClient.removeQueries({ queryKey: [API_ROUTES.USER] });
       
-      const response = await apiRequest("POST", "/api-json/login", data);
-      return await response.json();
+      // Limpar token antigo se existir para garantir um login limpo
+      localStorage.removeItem('auth_token');
+      
+      try {
+        // Simplificamos a chamada para evitar erros de tipo
+        let response;
+        
+        // API em ambiente de produção - Usando buildApiUrl para obter a URL completa
+        const loginUrl = buildApiUrl(API_ROUTES.LOGIN);
+        console.log("Fazendo requisição de login para:", loginUrl);
+        
+        // Configuração otimizada para requisição de login
+        const loginConfig: RequestInit = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data),
+          // Configurações para melhorar performance
+          cache: 'no-store' as RequestCache, 
+          credentials: 'same-origin',
+          mode: 'cors',
+          keepalive: true // Garantir que a requisição seja completada mesmo se a página for fechada
+        };
+        
+        // Implementar mecanismo de retry para login
+        const MAX_RETRIES = 2;
+        let retryCount = 0;
+        let lastError = null;
+        
+        while (retryCount <= MAX_RETRIES) {
+          try {
+            if (retryCount > 0) {
+              console.log(`Tentativa ${retryCount} de login...`);
+            }
+            
+            response = await fetch(loginUrl, loginConfig);
+            break; // Se chegou aqui, o fetch foi bem-sucedido
+          } catch (fetchError) {
+            lastError = fetchError;
+            retryCount++;
+            
+            if (retryCount <= MAX_RETRIES) {
+              // Esperar um pouco antes de tentar novamente (backoff exponencial)
+              const delay = Math.pow(2, retryCount) * 500; // 1s, 2s
+              console.log(`Erro de rede no login, tentando novamente em ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        
+        // Se após todas as tentativas ainda temos erro, lançar a exceção
+        if (!response) {
+          throw lastError || new Error("Não foi possível conectar ao servidor após múltiplas tentativas");
+        }
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Resposta não-JSON do servidor:', await response.text());
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        try {
+          return await response.json();
+        } catch (error) {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        }
+      } catch (error) {
+        console.error('Erro durante requisição de login:', error);
+        throw error;
+      }
     },
     onSuccess: async (response) => {
       // Salvar o token no localStorage
@@ -147,19 +235,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         state: null,
         zipCode: null,
         birthDate: null,
-        poloId: null
-      } as SelectUser;
+        poloId: null,
+        asaasId: null
+      } as unknown as SelectUser;
       
       // Atualizar o cache do usuário com os dados mais recentes
-      queryClient.setQueryData(["/api-json/user"], user);
-      
-      // Forçar uma invalidação do cache para garantir que temos os dados mais recentes
-      await queryClient.invalidateQueries({ queryKey: ["/api-json/user"] });
+      // Isso evita uma chamada de rede adicional ao servidor
+      queryClient.setQueryData([API_ROUTES.USER], user);
       
       // Adicionar logs para debug
       console.log("Login bem-sucedido. Dados do usuário:", user);
       console.log("Portal type:", user.portalType);
       
+      // Mostrar mensagem de sucesso antes de redirecionar
       toast({
         title: "Login bem-sucedido",
         description: `Bem-vindo(a) de volta, ${user.fullName}!`,
@@ -168,7 +256,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Login bem-sucedido, redirecionando para dashboard administrativo");
       // Forçar o redirecionamento para o dashboard
       if (user.portalType) {
-        window.location.href = `/${user.portalType}/dashboard`;
+        // Redirecionar diretamente sem recarregar página completa, mais rápido
+        setTimeout(() => {
+          window.location.replace(`/${user.portalType}/dashboard`);
+        }, 100); // Pequeno timeout para garantir que o toast apareça
       }
     },
     onError: (error: Error) => {
@@ -182,11 +273,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const response = await apiRequest("POST", "/api-json/register", credentials);
+      // Usando buildApiUrl para construir a URL correta
+      const registerUrl = buildApiUrl(API_ROUTES.REGISTER);
+      console.log("Fazendo requisição de registro para:", registerUrl);
+      
+      // Usando fetch diretamente
+      const response = await fetch(registerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(credentials)
+      });
       return await response.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api-json/user"], user);
+      queryClient.setQueryData([API_ROUTES.USER], user);
       toast({
         title: "Registro bem-sucedido",
         description: `Bem-vindo(a), ${user.fullName}!`,
@@ -209,7 +311,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       console.log("Executando logout - mutationFn");
-      const response = await apiRequest("POST", "/api-json/logout");
+      // Usando buildApiUrl para construir a URL correta
+      const logoutUrl = buildApiUrl(API_ROUTES.LOGOUT);
+      console.log("Fazendo requisição de logout para:", logoutUrl);
+      
+      // Usando fetch diretamente
+      const response = await fetch(logoutUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
       
       // Limpar todos os dados em cache para evitar problemas de persistência
       queryClient.clear();
@@ -222,7 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('auth_token');
       
       // Definir explicitamente o usuário como null no cache
-      queryClient.setQueryData(["/api-json/user"], null);
+      queryClient.setQueryData([API_ROUTES.USER], null);
       
       // Notificar o usuário
       toast({
@@ -230,33 +343,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Você foi desconectado com sucesso.",
       });
       
-      // Forçar limpeza do sessionStorage/localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          // Limpar quaisquer dados armazenados localmente que possam interferir
-          sessionStorage.clear();
-          localStorage.removeItem('queryClient');
-          localStorage.removeItem('auth_token'); // Remover o token de autenticação
-        } catch (e) {
-          console.error("Erro ao limpar storage:", e);
-        }
-      }
-      
-      // Redirecionar para a página de login após o logout
-      window.location.href = '/auth'; 
+      // Redirecionar para a página inicial
+      window.location.href = "/";
     },
     onError: (error: Error) => {
-      console.error("Erro ao fazer logout:", error);
-      
       toast({
         title: "Falha no logout",
         description: error.message,
         variant: "destructive",
       });
-      
-      // Em caso de erro, tentar forçar o logout de qualquer maneira
-      queryClient.setQueryData(["/api-json/user"], null);
-      queryClient.clear();
     },
   });
 

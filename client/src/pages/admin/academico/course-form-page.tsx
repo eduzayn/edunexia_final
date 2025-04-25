@@ -142,7 +142,7 @@ export default function CourseFormPage() {
     queryKey: ["/api/admin/courses", courseId],
     queryFn: async () => {
       if (!courseId) return null;
-      const response = await apiRequest("GET", `/api/admin/courses/${courseId}`);
+      const response = await apiRequest(`/api/admin/courses/${courseId}`, { method: "GET" });
       return response.json();
     },
     enabled: !!courseId,
@@ -156,7 +156,7 @@ export default function CourseFormPage() {
     queryKey: ["/api/admin/course-disciplines", courseId],
     queryFn: async () => {
       if (!courseId) return [];
-      const response = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+      const response = await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "GET" });
       return response.json();
     },
     enabled: !!courseId,
@@ -177,7 +177,7 @@ export default function CourseFormPage() {
   } = useQuery({
     queryKey: ["/api/admin/disciplines"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/admin/disciplines");
+      const response = await apiRequest("/api/admin/disciplines", { method: "GET" });
       return response.json();
     },
   });
@@ -192,7 +192,7 @@ export default function CourseFormPage() {
   // Mutation para criar curso
   const createCourseMutation = useMutation({
     mutationFn: async (data: CourseFormValues) => {
-      const response = await apiRequest("POST", "/api/admin/courses", data);
+      const response = await apiRequest("/api/admin/courses", { method: "POST", data });
       return response.json();
     },
     onSuccess: (createdCourse) => {
@@ -225,7 +225,7 @@ export default function CourseFormPage() {
   const updateCourseMutation = useMutation({
     mutationFn: async (data: CourseFormValues) => {
       if (!courseId) throw new Error("ID do curso não encontrado");
-      const response = await apiRequest("PUT", `/api/admin/courses/${courseId}`, data);
+      const response = await apiRequest(`/api/admin/courses/${courseId}`, { method: "PUT", data });
       return response.json();
     },
     onSuccess: () => {
@@ -257,15 +257,18 @@ export default function CourseFormPage() {
         console.log("Disciplinas selecionadas:", disciplineIds);
         
         // Armazenar temporariamente as disciplinas selecionadas como backup
-        await apiRequest("POST", "/api/admin/system-settings", {
-          key: `temp_course_disciplines_${courseId}`,
-          value: JSON.stringify(disciplineIds),
-          scope: "system"
+        await apiRequest("/api/admin/system-settings", {
+          method: "POST", 
+          data: {
+            key: `temp_course_disciplines_${courseId}`,
+            value: JSON.stringify(disciplineIds),
+            scope: "system"
+          }
         });
         
         // Remover disciplinas existentes de forma segura
         try {
-          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "DELETE" });
           console.log("Disciplinas existentes removidas com sucesso");
         } catch (deleteError) {
           console.error("Erro ao remover disciplinas existentes:", deleteError);
@@ -277,10 +280,13 @@ export default function CourseFormPage() {
         for (let i = 0; i < disciplineIds.length; i++) {
           const disciplineId = disciplineIds[i];
           try {
-            await apiRequest("POST", "/api/admin/course-disciplines", {
-              courseId,
-              disciplineId,
-              order: i + 1
+            await apiRequest("/api/admin/course-disciplines", { 
+              method: "POST", 
+              data: {
+                courseId,
+                disciplineId,
+                order: i + 1
+              }
             });
             console.log(`Disciplina ${disciplineId} adicionada com sucesso na posição ${i + 1}`);
           } catch (addError) {
@@ -290,7 +296,7 @@ export default function CourseFormPage() {
         }
         
         // Verificar se as disciplinas foram realmente adicionadas
-        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const result = await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "GET" });
         const addedDisciplines = await result.json();
         console.log("Disciplinas adicionadas verificadas:", addedDisciplines?.length || 0);
         
@@ -298,7 +304,7 @@ export default function CourseFormPage() {
           console.log("Nenhuma disciplina adicionada, tentando reparo...");
           // Se falhar, tente recuperar usando a API de reparo
           try {
-            await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+            await apiRequest(`/api/enrollments/${courseId}/fix-disciplines`, { method: "POST" });
             console.log("Reparo de disciplinas concluído");
           } catch (fixError) {
             console.error("Erro ao reparar disciplinas:", fixError);
@@ -311,7 +317,7 @@ export default function CourseFormPage() {
         
         // Tente recuperar disciplinas em caso de erro
         try {
-          await apiRequest("POST", `/api/enrollments/${courseId}/fix-disciplines`);
+          await apiRequest(`/api/enrollments/${courseId}/fix-disciplines`, { method: "POST" });
         } catch (repairError) {
           console.error("Erro também durante tentativa de reparo:", repairError);
         }
@@ -346,7 +352,7 @@ export default function CourseFormPage() {
         
         // Primeiro, remove todas as disciplinas do curso com tratamento de erro
         try {
-          await apiRequest("DELETE", `/api/admin/courses/${courseId}/disciplines`);
+          await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "DELETE" });
           console.log("Disciplinas existentes removidas com sucesso");
         } catch (deleteError) {
           console.error("Erro ao remover disciplinas existentes:", deleteError);
@@ -358,10 +364,13 @@ export default function CourseFormPage() {
         for (let i = 0; i < disciplineIds.length; i++) {
           const disciplineId = disciplineIds[i];
           try {
-            await apiRequest("POST", "/api/admin/course-disciplines", {
-              courseId,
-              disciplineId,
-              order: i + 1
+            await apiRequest("/api/admin/course-disciplines", {
+              method: "POST",
+              data: {
+                courseId,
+                disciplineId,
+                order: i + 1
+              }
             });
             console.log(`Disciplina ${disciplineId} adicionada na posição ${i + 1}`);
           } catch (addError) {
@@ -371,7 +380,7 @@ export default function CourseFormPage() {
         }
         
         // Verificar se a atualização foi bem-sucedida
-        const result = await apiRequest("GET", `/api/admin/courses/${courseId}/disciplines`);
+        const result = await apiRequest(`/api/admin/courses/${courseId}/disciplines`, { method: "GET" });
         const updatedDisciplines = await result.json();
         console.log("Disciplinas atualizadas verificadas:", updatedDisciplines?.length || 0);
         

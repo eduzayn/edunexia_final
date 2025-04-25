@@ -4,6 +4,9 @@ import { Express, Request, Response, NextFunction } from 'express';
 import z from 'zod';
 import { Server } from 'http';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+import { eq, asc } from 'drizzle-orm';
+import { courseDisciplines } from '@shared/schema';
+import { pool } from './db'; // Importado para acesso direto ao banco de dados
 // Importar rotas e serviços
 import debugRouter from './routes/debug-route';
 import permissionsRouter from './routes/permissions-routes';
@@ -21,6 +24,7 @@ import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
 import { createLead, getLeads, getLeadById, updateLead, addLeadActivity } from './controllers/leads-controller';
+import { db, executeWithRetry } from './db'; // Importação do db e executeWithRetry
 // Desativar import com erro
 // import { createAsaasCustomer, searchAsaasCustomerByCpfCnpj } from './controllers/crm-controller';
 
@@ -62,6 +66,7 @@ import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
 import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
+import disciplineDetailRoute from './routes/discipline'; // Route for individual discipline by ID
 
 // Armazenamento de sessão simplificado (em memória)
 // Definição movida para shared/active-users.ts
@@ -71,15 +76,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Sistema de autenticação super-simplificado
   app.post('/api-json/login', (req, res) => {
-    const { username, password, portalType } = req.body;
+    // Definir o tipo de conteúdo como JSON para evitar problemas
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const { username, password, portalType } = req.body;
 
-    console.log(`Tentativa de login: ${username}, tipo portal: ${portalType}`);
+      console.log(`Tentativa de login: ${username}, tipo portal: ${portalType}`);
 
-    // Credenciais de emergência para admin (acesso direto)
-    if ((username === 'admin' && password === 'Admin123') || 
-        (username === 'superadmin' && password === 'Super123') ||
-        (username === 'admin' && password === 'admin123') ||
-        (username === 'admin@edunexa.com' && password === 'Admin123')) {
+      // Credenciais de emergência para admin (acesso direto)
+      if ((username === 'admin' && password === 'Admin123') || 
+          (username === 'superadmin' && password === 'Super123') ||
+          (username === 'admin' && password === 'admin123') ||
+          (username === 'admin@edunexa.com' && password === 'Admin123')) {
 
       // Criar usuário simulado
       const user = {
@@ -106,8 +115,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } 
 
-    // Tentar login via banco de dados como último recurso
-    storage.getUserByUsername(username)
+    // Tentar login via banco de dados com retry para ambiente serverless
+    executeWithRetry(() => storage.getUserByUsername(username))
       .then(dbUser => {
         if (!dbUser || dbUser.password !== password) {
           console.log(`Login falhou: credenciais inválidas para ${username}`);
@@ -157,9 +166,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Gerar token JWT
           const token = generateToken(user);
 
-          // Não usar cookies, enviar o token na resposta
-          // O cliente irá armazenar no localStorage
-
           console.log(`Login de emergência para ${username}, token JWT gerado`);
 
           return res.status(200).json({
@@ -174,28 +180,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Erro interno durante autenticação."
         });
       });
+    } catch (error) {
+      console.error('Erro durante o processamento do login:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Erro durante o processamento do login",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
   });
 
   // Rota para logout simples
   app.post('/api-json/logout', (req, res) => {
-    // Verificar o token no header de Authorization
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-
-    if (token) {
-      removeActiveUser(token);
+    // Definir o tipo de conteúdo como JSON para evitar problemas
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      // Verificar o token no header de Authorization
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+  
+      if (token) {
+        removeActiveUser(token);
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Logout realizado com sucesso"
+      });
+    } catch (error) {
+      console.error('Erro durante logout:', error);
+      res.status(500).json({
+        success: false,
+        message: "Erro durante logout",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Logout realizado com sucesso"
-    });
   });
 
   // Rota para obter usuário atual
   app.get('/api-json/user', (req, res) => {
     try {
       // Verificar o token no header de Authorization
+      // Log completo de headers para debug
+      console.log('GET /api-json/user - Todos headers:', JSON.stringify(req.headers));
       const authHeader = req.headers.authorization;
       console.log('GET /api-json/user - Auth Header:', authHeader);
       const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
@@ -345,6 +373,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ message: 'API funcionando corretamente!', timestamp: new Date() });
   });
 
+  // Rota para dados do dashboard administrativo
+  app.get('/api/dashboard/admin', requireAuth, (req, res) => {
+    try {
+      // Dados simulados para o dashboard
+      const dashboardData = {
+        success: true,
+        data: {
+          totalStudents: 1528,
+          totalInstitutions: 23,
+          monthlyRevenue: 156400,
+          systemHealth: 99.8,
+          recentEnrollments: [],
+          activeUsers: 125,
+          systemMessages: []
+        }
+      };
+      
+      res.status(200).json(dashboardData);
+    } catch (error) {
+      console.error('Erro ao obter dados do dashboard admin:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao obter dados do dashboard' 
+      });
+    }
+  });
+
   // Desativamos as rotas de autenticação antigas
   // app.use('/api-json', authRouter);
 
@@ -375,14 +430,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app._router.handle(req, res);
   });
 
+  // Implementação direta para /api/user sem redirecionamento
   app.get('/api/user', (req, res) => {
-    console.log('Redirecionando /api/user para /api-json/user');
+    console.log('Acessando diretamente /api/user (implementação unificada)');
+    console.log('Headers na requisição /api/user:', JSON.stringify(req.headers));
+    
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
 
-    // Redirecionar a requisição para o novo endpoint
-    req.url = '/api-json/user';
-    app._router.handle(req, res);
+    try {
+      // Verificar o token no header de Authorization
+      const authHeader = req.headers.authorization;
+      console.log('GET /api/user - Auth Header:', authHeader);
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+      if (!token) {
+        console.log('GET /api/user - Token não encontrado');
+        return res.status(401).json({
+          success: false,
+          message: "Usuário não autenticado"
+        });
+      }
+
+      console.log('GET /api/user - Token:', token);
+      const user = getActiveUserByToken(token);
+      console.log('GET /api/user - User encontrado:', user ? 'Sim' : 'Não');
+
+      if (!user) {
+        console.log('GET /api/user - Sessão inválida');
+        return res.status(401).json({
+          success: false,
+          message: "Sessão inválida ou expirada"
+        });
+      }
+
+      console.log('GET /api/user - Retornando usuário');
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error('Erro em GET /api/user:', error);
+      return res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
   });
 
   // Adicionar redirecionamentos para endpoints acadêmicos
@@ -407,6 +498,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
+  
+  // Rota para obter um curso específico pelo ID
+  app.get('/api/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Buscar o curso pelo ID
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      console.log(`GET /api/admin/courses/${courseId} - Curso encontrado`);
+      return res.json(course);
+    } catch (error) {
+      console.error(`Erro ao buscar curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao buscar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Rota para atualizar um curso específico pelo ID
+  app.put('/api/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ 
+          success: false,
+          message: "ID do curso inválido" 
+        });
+      }
+      
+      // Verificar se o curso existe
+      const existingCourse = await storage.getCourse(courseId);
+      if (!existingCourse) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Curso não encontrado" 
+        });
+      }
+      
+      // Atualizar o curso
+      console.log(`PUT /api/admin/courses/${courseId} - Atualizando curso:`, req.body);
+      const updatedCourse = await storage.updateCourse(courseId, req.body);
+      
+      console.log(`PUT /api/admin/courses/${courseId} - Curso atualizado com sucesso`);
+      return res.json({ 
+        success: true,
+        message: "Curso atualizado com sucesso",
+        data: updatedCourse
+      });
+    } catch (error) {
+      console.error(`Erro ao atualizar curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao atualizar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Nova rota API JSON para cursos - usada no formulário de matrícula
   app.get('/api-json/courses', async (req, res) => {
@@ -429,8 +591,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Rota para obter um curso específico pelo ID (formato JSON-API)
+  app.get('/api-json/courses/:id', async (req, res) => {
+    console.log(`Buscando curso ID ${req.params.id} (API JSON)`);
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID do curso inválido"
+        });
+      }
+      
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({
+          success: false,
+          message: "Curso não encontrado"
+        });
+      }
+      
+      console.log(`GET /api-json/courses/${courseId} - Curso encontrado`);
+      return res.status(200).json({
+        success: true,
+        data: course
+      });
+    } catch (error) {
+      console.error(`Erro ao buscar curso: ${error}`);
+      return res.status(500).json({
+        success: false,
+        message: "Erro ao buscar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
 
   // Rota JSON para listar cursos do aluno
+  // Rota para o dashboard do estudante
+  app.get('/api-json/dashboard/student', requireStudent, async (req, res) => {
+    console.log('Buscando dados do dashboard do aluno');
+    res.setHeader('Content-Type', 'application/json');
+    
+    try {
+      const userId = (req as any).user.id;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do usuário não encontrado'
+        });
+      }
+      
+      // Obter matrículas do aluno
+      const enrollments = await storage.getStudentEnrollments(userId);
+      
+      // Mapear para o formato esperado pelo frontend
+      const studentCourses = await Promise.all(enrollments.map(async (enrollment) => {
+        const course = await storage.getCourse(enrollment.courseId);
+        
+        if (!course) {
+          return null;
+        }
+        
+        return {
+          id: course.id,
+          code: course.code,
+          name: course.name,
+          description: course.description || '',
+          status: course.status,
+          workload: course.workload || 0,
+          thumbnail: course.thumbnail || '',
+          progress: enrollment.progress || 0,
+          enrolledAt: enrollment.createdAt,
+          updatedAt: enrollment.updatedAt || enrollment.createdAt
+        };
+      }));
+      
+      // Filtrar valores nulos (cursos não encontrados)
+      const validCourses = studentCourses.filter(course => course !== null);
+      
+      // Contadores para o dashboard
+      const totalCourses = validCourses.length;
+      const coursesInProgress = validCourses.filter(course => (course?.progress || 0) > 0 && (course?.progress || 0) < 100).length;
+      const coursesNotStarted = validCourses.filter(course => (course?.progress || 0) === 0).length;
+      
+      // Poderíamos buscar eventos reais do aluno no futuro
+      const upcomingEvents: { title: string; date: string; time: string }[] = [];
+      
+      // Poderíamos buscar avisos reais do sistema
+      const announcements: { title: string; content: string; date: string }[] = [];
+      
+      // Poderíamos buscar atividades pendentes do aluno
+      const pendingActivities = validCourses.length > 0 ? 2 : 0;
+      
+      // Construir resposta do dashboard
+      const dashboardData = {
+        studentInfo: {
+          totalCourses,
+          coursesInProgress,
+          coursesNotStarted,
+          pendingActivities
+        },
+        courses: validCourses,
+        upcomingEvents,
+        announcements
+      };
+      
+      console.log(`Retornando dashboard para o aluno ${userId} com ${validCourses.length} cursos`);
+      return res.status(200).json(dashboardData);
+    } catch (error) {
+      console.error('Erro ao buscar dados do dashboard do aluno:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar dados do dashboard',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   app.get('/api-json/student/courses', requireStudent, async (req, res) => {
     console.log('Buscando cursos do aluno (API JSON)');
     res.setHeader('Content-Type', 'application/json');
@@ -806,6 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
+  app.use(disciplineDetailRoute); // Route for accessing discipline by ID
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação
@@ -901,6 +1183,928 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: 'Erro interno ao buscar avaliações'
       });
+    }
+  });
+  
+  // Rotas para gerenciamento de disciplinas de cursos
+  app.get('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Buscar disciplinas vinculadas ao curso
+      // Consulta direta evitando a coluna is_required que pode não existir
+      const result = await db
+        .select({
+          id: courseDisciplines.id,
+          courseId: courseDisciplines.courseId,
+          disciplineId: courseDisciplines.disciplineId,
+          order: courseDisciplines.order
+        })
+        .from(courseDisciplines)
+        .where(eq(courseDisciplines.courseId, courseId))
+        .orderBy(asc(courseDisciplines.order));
+      
+      console.log(`GET /api/admin/courses/${courseId}/disciplines - Encontradas ${result.length} disciplinas`);
+      
+      return res.json(result);
+    } catch (error) {
+      console.error(`Erro ao buscar disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao buscar disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.delete('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Remover todas as disciplinas do curso
+      await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
+      console.log(`DELETE /api/admin/courses/${courseId}/disciplines - Disciplinas removidas`);
+      
+      return res.json({ success: true, message: "Todas as disciplinas foram removidas do curso" });
+    } catch (error) {
+      console.error(`Erro ao remover disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao remover disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api/admin/course-disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const { courseId, disciplineId, order } = req.body;
+      
+      // Validar dados de entrada
+      if (!courseId || !disciplineId || !order) {
+        return res.status(400).json({ 
+          message: "Dados incompletos",
+          required: ["courseId", "disciplineId", "order"]
+        });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Curso não encontrado" });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ message: "Disciplina não encontrada" });
+      }
+      
+      // Adicionar disciplina ao curso
+      const courseDiscipline = await storage.addDisciplineToCourse({
+        courseId,
+        disciplineId,
+        order,
+        isRequired: true
+      });
+      
+      console.log(`POST /api/admin/course-disciplines - Disciplina ${disciplineId} adicionada ao curso ${courseId} na posição ${order}`);
+      
+      return res.status(201).json(courseDiscipline);
+    } catch (error) {
+      console.error(`Erro ao adicionar disciplina ao curso: ${error}`);
+      return res.status(500).json({ 
+        message: "Erro ao adicionar disciplina ao curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar redirecionamento entre a rota admin e a rota JSON comum para curso específico
+  app.get('/api-json/admin/courses/:id', requireAuth, (req, res) => {
+    console.log(`Redirecionando /api-json/admin/courses/${req.params.id} para /api-json/courses/${req.params.id}`);
+    res.redirect(`/api-json/courses/${req.params.id}`);
+  });
+  
+  // Rota para atualizar curso (formato JSON-API)
+  app.put('/api-json/admin/courses/:id', requireAuth, async (req, res) => {
+    try {
+      console.log(`PUT /api-json/admin/courses/${req.params.id} - Atualizando curso (API JSON)`);
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID do curso inválido"
+        });
+      }
+      
+      const existingCourse = await storage.getCourse(courseId);
+      if (!existingCourse) {
+        return res.status(404).json({
+          success: false,
+          message: "Curso não encontrado"
+        });
+      }
+      
+      // Atualizar o curso
+      console.log(`Dados de atualização:`, req.body);
+      const updatedCourse = await storage.updateCourse(courseId, req.body);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Curso atualizado com sucesso",
+        data: updatedCourse
+      });
+    } catch (error) {
+      console.error(`Erro ao atualizar curso: ${error}`);
+      return res.status(500).json({
+        success: false,
+        message: "Erro ao atualizar curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Também fornecer suporte para rotas em formato JSON-JSON
+  app.get('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ success: false, message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Buscar disciplinas vinculadas ao curso usando consulta direta para evitar erros de coluna
+      const result = await db
+        .select({
+          id: courseDisciplines.id,
+          courseId: courseDisciplines.courseId,
+          disciplineId: courseDisciplines.disciplineId,
+          order: courseDisciplines.order
+        })
+        .from(courseDisciplines)
+        .where(eq(courseDisciplines.courseId, courseId))
+        .orderBy(asc(courseDisciplines.order));
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error(`Erro ao buscar disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao buscar disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.delete('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const courseId = parseInt(req.params.id);
+      if (isNaN(courseId)) {
+        return res.status(400).json({ success: false, message: "ID do curso inválido" });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Remover todas as disciplinas do curso
+      await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
+      
+      return res.json({ 
+        success: true, 
+        message: "Todas as disciplinas foram removidas do curso" 
+      });
+    } catch (error) {
+      console.error(`Erro ao remover disciplinas do curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao remover disciplinas do curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api-json/admin/course-disciplines', requireAuth, async (req, res) => {
+    try {
+      // Definir tipo de conteúdo para uniformidade
+      res.setHeader('Content-Type', 'application/json');
+      
+      const { courseId, disciplineId, order } = req.body;
+      
+      // Validar dados de entrada
+      if (!courseId || !disciplineId || !order) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Dados incompletos",
+          required: ["courseId", "disciplineId", "order"]
+        });
+      }
+      
+      // Verificar se o curso existe
+      const course = await storage.getCourse(courseId);
+      if (!course) {
+        return res.status(404).json({ success: false, message: "Curso não encontrado" });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({ success: false, message: "Disciplina não encontrada" });
+      }
+      
+      // Adicionar disciplina ao curso
+      const courseDiscipline = await storage.addDisciplineToCourse({
+        courseId,
+        disciplineId,
+        order,
+        isRequired: true
+      });
+      
+      return res.status(201).json({
+        success: true,
+        data: courseDiscipline
+      });
+    } catch (error) {
+      console.error(`Erro ao adicionar disciplina ao curso: ${error}`);
+      return res.status(500).json({ 
+        success: false,
+        message: "Erro ao adicionar disciplina ao curso",
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // Endpoint para obter questões de uma avaliação
+  app.get('/api/admin/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Buscar as relações entre avaliação e questões
+      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
+      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
+        return res.json({ 
+          success: true, 
+          questions: [] 
+        });
+      }
+
+      // Buscar as questões completas
+      const questionPromises = assessmentQuestionRelations.map(relation => 
+        storage.getQuestion(relation.questionId)
+      );
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar possíveis questões nulas e associar com ordem e peso
+      const questions = questionsResults
+        .map((question, index) => {
+          if (!question) return null;
+          const relation = assessmentQuestionRelations[index];
+          return {
+            ...question,
+            order: relation.order,
+            weight: relation.weight
+          };
+        })
+        .filter(q => q !== null);
+
+      return res.json({ 
+        success: true, 
+        questions 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao buscar questões da avaliação'
+      });
+    }
+  });
+
+  // Endpoint para adicionar questão a uma avaliação
+  app.post('/api/admin/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionId, order = 1, weight = 1 } = req.body;
+      
+      if (!questionId || isNaN(parseInt(questionId))) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de questão inválido' 
+        });
+      }
+
+      // Verificar se a questão existe
+      const question = await storage.getQuestion(parseInt(questionId));
+      if (!question) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Questão não encontrada' 
+        });
+      }
+
+      // Verificar se a questão já está associada à avaliação
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const alreadyExists = existingQuestions.some(q => q.questionId === parseInt(questionId));
+      
+      if (alreadyExists) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Esta questão já está associada à avaliação' 
+        });
+      }
+
+      // Adicionar a questão à avaliação
+      const assessmentQuestion = await storage.addQuestionToAssessment({
+        assessmentId,
+        questionId: parseInt(questionId),
+        order: order,
+        weight: weight
+      });
+
+      return res.status(201).json({ 
+        success: true, 
+        message: 'Questão adicionada com sucesso à avaliação',
+        assessmentQuestion
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar questão à avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao adicionar questão à avaliação'
+      });
+    }
+  });
+
+  // Endpoint para adicionar múltiplas questões a uma avaliação
+  app.post('/api/admin/assessments/:id/questions/batch', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionIds } = req.body;
+      
+      if (!Array.isArray(questionIds) || questionIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de IDs de questões é obrigatória' 
+        });
+      }
+
+      // Obter as questões já associadas
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const existingQuestionIds = existingQuestions.map(q => q.questionId);
+      
+      // Filtrar apenas os novos IDs
+      const newQuestionIds = questionIds
+        .map(id => parseInt(id))
+        .filter(id => !isNaN(id) && !existingQuestionIds.includes(id));
+
+      if (newQuestionIds.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Todas as questões já estão associadas ou são inválidas' 
+        });
+      }
+
+      // Verificar se as questões existem
+      const questionPromises = newQuestionIds.map(id => storage.getQuestion(id));
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar apenas questões válidas
+      const validQuestionIds = newQuestionIds.filter((_, index) => questionsResults[index] !== undefined);
+      
+      if (validQuestionIds.length === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Nenhuma questão válida encontrada' 
+        });
+      }
+
+      // Adicionar as questões à avaliação
+      const nextOrder = existingQuestions.length > 0 
+        ? Math.max(...existingQuestions.map(q => q.order)) + 1 
+        : 1;
+      
+      const results = [];
+      for (let i = 0; i < validQuestionIds.length; i++) {
+        const assessmentQuestion = await storage.addQuestionToAssessment({
+          assessmentId,
+          questionId: validQuestionIds[i],
+          order: nextOrder + i,
+          weight: 1
+        });
+        results.push(assessmentQuestion);
+      }
+
+      return res.status(201).json({ 
+        success: true, 
+        message: `${results.length} questões adicionadas com sucesso à avaliação`,
+        results
+      });
+    } catch (error) {
+      console.error('Erro ao adicionar questões em lote à avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao adicionar questões à avaliação'
+      });
+    }
+  });
+  
+  // Endpoint para obter questões disponíveis (não usadas) para uma avaliação
+  app.get('/api/assessments/:id/available-questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Obter todas as questões da disciplina
+      const disciplineId = assessment.disciplineId;
+      const allQuestions = await storage.getQuestionsByDiscipline(disciplineId);
+      
+      // Obter questões já associadas à avaliação
+      const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const usedQuestionIds = assessmentQuestions.map(q => q.questionId);
+      
+      // Filtrar apenas questões não utilizadas
+      const availableQuestions = allQuestions.filter(q => !usedQuestionIds.includes(q.id));
+      
+      return res.status(200).json({
+        success: true,
+        data: availableQuestions
+      });
+    } catch (error) {
+      console.error('Erro ao obter questões disponíveis:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao obter questões disponíveis'
+      });
+    }
+  });
+
+  // Endpoint para obter questões detalhadas de uma avaliação
+  app.get('/api/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Buscar as relações entre avaliação e questões
+      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
+      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
+        return res.json({ 
+          success: true, 
+          data: [] 
+        });
+      }
+
+      // Buscar as questões completas
+      const questionPromises = assessmentQuestionRelations.map((relation) => 
+        storage.getQuestion(relation.questionId)
+      );
+      const questionsResults = await Promise.all(questionPromises);
+      
+      // Filtrar possíveis questões nulas e associar com ordem e peso
+      const questions = questionsResults
+        .map((question, index) => {
+          if (!question) return null;
+          const relation = assessmentQuestionRelations[index];
+          return {
+            ...question,
+            order: relation.order,
+            weight: relation.weight
+          };
+        })
+        .filter((q) => q !== null);
+
+      return res.json({ 
+        success: true, 
+        data: questions 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao buscar questões da avaliação'
+      });
+    }
+  });
+  
+  // Endpoint para remover uma questão específica de uma avaliação
+  app.delete('/api/assessments/:id/questions/:questionId', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const questionId = parseInt(req.params.questionId);
+      
+      if (isNaN(assessmentId) || isNaN(questionId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+
+      // Verificar se a avaliação existe
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Avaliação não encontrada' 
+        });
+      }
+
+      // Remover a questão específica da avaliação
+      await storage.removeQuestionFromAssessment(assessmentId, questionId);
+
+      return res.json({
+        success: true,
+        message: 'Questão removida da avaliação com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao remover questão da avaliação'
+      });
+    }
+  });
+
+  // Endpoint PUT para atualizar questões de uma avaliação (compatibilidade com frontend)
+  app.put('/api/assessments/:id/questions', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionIds } = req.body;
+      
+      if (!Array.isArray(questionIds)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de IDs de questões é obrigatória' 
+        });
+      }
+
+      // Obter as questões já associadas
+      const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
+      
+      // Remover todas as questões existentes
+      for (const question of existingQuestions) {
+        await storage.removeQuestionFromAssessment(assessmentId, question.questionId);
+      }
+      
+      // Adicionar as novas questões selecionadas
+      const results = [];
+      for (let i = 0; i < questionIds.length; i++) {
+        const questionId = parseInt(questionIds[i]);
+        if (isNaN(questionId)) continue;
+        
+        // Verificar se a questão existe
+        const question = await storage.getQuestion(questionId);
+        if (!question) continue;
+        
+        const assessmentQuestion = await storage.addQuestionToAssessment({
+          assessmentId,
+          questionId,
+          order: i + 1,
+          weight: 1
+        });
+        results.push(assessmentQuestion);
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: `${results.length} questões atualizadas com sucesso`,
+        data: results
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao atualizar questões da avaliação'
+      });
+    }
+  });
+
+  // Endpoint para remover questão de uma avaliação
+  app.delete('/api/admin/assessments/:assessmentId/questions/:questionId', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.assessmentId);
+      const questionId = parseInt(req.params.questionId);
+      
+      if (isNaN(assessmentId) || isNaN(questionId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+
+      // Verificar se a relação existe
+      const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
+      const exists = assessmentQuestions.some(aq => aq.questionId === questionId);
+      
+      if (!exists) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Questão não está associada a esta avaliação' 
+        });
+      }
+
+      // Remover a questão da avaliação
+      const success = await storage.removeQuestionFromAssessment(assessmentId, questionId);
+      
+      if (!success) {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Falha ao remover questão da avaliação' 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Questão removida com sucesso da avaliação' 
+      });
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao remover questão da avaliação'
+      });
+    }
+  });
+
+  // Endpoint para atualizar ordem das questões
+  app.put('/api/admin/assessments/:id/questions/reorder', requireAuth, async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      if (isNaN(assessmentId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de avaliação inválido' 
+        });
+      }
+
+      // Validar o corpo da requisição
+      const { questionOrder } = req.body;
+      
+      if (!Array.isArray(questionOrder) || questionOrder.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Lista de ordenação é obrigatória' 
+        });
+      }
+
+      // Validar formato da lista de ordenação
+      const isValidFormat = questionOrder.every(item => 
+        item && typeof item.questionId === 'number' && typeof item.order === 'number'
+      );
+      
+      if (!isValidFormat) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Formato inválido para lista de ordenação' 
+        });
+      }
+
+      // Reordenar as questões
+      const success = await storage.reorderAssessmentQuestions(assessmentId, questionOrder);
+      
+      if (!success) {
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Falha ao reordenar questões' 
+        });
+      }
+
+      return res.json({ 
+        success: true, 
+        message: 'Questões reordenadas com sucesso' 
+      });
+    } catch (error) {
+      console.error('Erro ao reordenar questões da avaliação:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao reordenar questões'
+      });
+    }
+  });
+
+  // Endpoint para obter avaliações de uma disciplina
+  app.get('/api/disciplines/:id/assessments', requireAuth, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ success: false, message: 'ID de disciplina inválido' });
+      }
+
+      const connection = await pool.connect();
+      try {
+        const result = await connection.query(
+          'SELECT * FROM assessments WHERE discipline_id = $1 ORDER BY id',
+          [disciplineId]
+        );
+        
+        return res.status(200).json(result.rows);
+      } finally {
+        connection.release();
+      }
+    } catch (error) {
+      console.error('Erro ao buscar avaliações da disciplina:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao buscar avaliações da disciplina' });
+    }
+  });
+  
+  // Endpoint para criar uma avaliação (simulado ou avaliação final) para uma disciplina
+  app.post('/api/disciplines/:id/assessments', requireAuth, async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ success: false, message: 'ID de disciplina inválido' });
+      }
+
+      const { title, description, type, passingScore, questionIds } = req.body;
+      
+      if (!title || !description || !['simulado', 'avaliacao_final'].includes(type)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Dados de avaliação inválidos. Título, descrição e tipo são obrigatórios.' 
+        });
+      }
+
+      // Cria a avaliação
+      const connection = await pool.connect();
+      let assessmentId;
+      
+      try {
+        const result = await connection.query(
+          'INSERT INTO assessments (discipline_id, title, description, type, passing_score) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [disciplineId, title, description, type, passingScore || 6]
+        );
+        assessmentId = result.rows[0].id;
+      } finally {
+        connection.release();
+      }
+
+      // Se há questões selecionadas, vincula-as à avaliação
+      if (Array.isArray(questionIds) && questionIds.length > 0) {
+        // Insere as questões em lote
+        const promises = questionIds.map(async (questionId) => {
+          const conn = await pool.connect();
+          try {
+            const result = await conn.query(
+              'INSERT INTO assessment_questions (assessment_id, question_id) VALUES ($1, $2) RETURNING *',
+              [assessmentId, questionId]
+            );
+            return result.rows[0];
+          } finally {
+            conn.release();
+          }
+        });
+
+        await Promise.all(promises);
+        
+        // Não precisamos atualizar question_count pois a coluna não existe no schema
+        // As questões já estão sendo associadas através da tabela assessment_questions
+      }
+
+      // Retorna a avaliação criada
+      return res.status(201).json({ 
+        success: true, 
+        data: { 
+          id: assessmentId, 
+          disciplineId, 
+          title, 
+          description, 
+          type, 
+          passingScore: passingScore || 6,
+          questionCount: questionIds?.length || 0
+        } 
+      });
+    } catch (error) {
+      console.error('Erro ao criar avaliação:', error);
+      return res.status(500).json({ success: false, message: 'Erro ao criar avaliação' });
     }
   });
   

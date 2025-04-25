@@ -1,0 +1,70 @@
+ identifiquei que o endpoint /api/disciplines/:id não está implementado no backend. Isso está causando os erros persistentes no frontend, onde as requisições a essa rota retornam HTML em vez de JSON.​
+
+🧩 Diagnóstico
+Frontend: Está realizando requisições para /api/disciplines/17.
+
+Backend: Não possui uma rota correspondente para /api/disciplines/:id.
+
+Resultado: O servidor retorna uma resposta HTML padrão (como uma página 404), que o frontend tenta interpretar como JSON, resultando em erro.​
+
+✅ Solução
+1. Implementar a rota no backend
+No arquivo server/routes/discipline.ts (ou equivalente), adicione a seguinte rota:​
+
+ts
+Copiar
+Editar
+import { Router } from 'express';
+const router = Router();
+
+router.get('/api/disciplines/:id', async (req, res) => {
+  const { id } = req.params;
+  // Lógica para buscar a disciplina pelo ID
+  const disciplina = await buscarDisciplinaPorId(id);
+  if (!disciplina) {
+    return res.status(404).json({ error: 'Disciplina não encontrada' });
+  }
+  res.json(disciplina);
+});
+
+export default router;
+Certifique-se de que essa rota está sendo utilizada no seu servidor principal, geralmente em server/index.ts:​
+
+ts
+Copiar
+Editar
+import express from 'express';
+import disciplineRoutes from './routes/discipline';
+
+const app = express();
+
+app.use(disciplineRoutes);
+
+app.listen(3000, () => {
+  console.log('Servidor rodando na porta 3000');
+});
+2. Verificar a função buscarDisciplinaPorId
+Assegure-se de que a função buscarDisciplinaPorId está corretamente implementada para retornar a disciplina com base no ID fornecido.​
+
+3. Atualizar o frontend
+No frontend, utilize uma função para construir as URLs da API de forma consistente:​
+
+ts
+Copiar
+Editar
+const apiUrl = (path: string) => `${import.meta.env.VITE_API_BASE}${path}`;
+E utilize-a nas requisições:​
+
+ts
+Copiar
+Editar
+fetch(apiUrl(`/disciplines/17`))
+  .then(response => response.json())
+  .then(data => {
+    // Lógica para lidar com os dados da disciplina
+  });
+4. Testar a rota
+Após implementar a rota, teste-a diretamente no navegador ou utilizando ferramentas como Postman para garantir que está retornando os dados corretamente.​
+
+🛠️ Conclusão
+A ausência da rota /api/disciplines/:id no backend é a causa dos erros no frontend. Implementando essa rota e garantindo que o frontend a consuma corretamente, os problemas devem ser resolvidos.

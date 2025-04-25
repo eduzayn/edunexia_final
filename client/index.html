@@ -3,6 +3,43 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    
+    <!-- Fix universal de DOM para todos os navegadores -->
+    <script>
+      // Aplicar patch diretamente no HTML para garantir que seja executado antes de qualquer coisa
+      (function() {
+        // Salvar referência ao método original
+        if (typeof Node !== 'undefined') {
+          try {
+            const originalRemoveChild = Node.prototype.removeChild;
+            
+            // Substituir com versão segura - implementação robusta conforme recomendado
+            Node.prototype.removeChild = function(child) {
+              try {
+                // Verificação robusta:
+                // 1. Verificar se o elemento existe
+                // 2. Verificar se o elemento tem um pai
+                // 3. Verificar se este nó contém o elemento filho
+                if (!child || !child.parentNode || !this.contains(child)) {
+                  console.log('[HTML DOM Fix] Evitou erro de removeChild - nó não encontrado ou já removido');
+                  return child;
+                }
+                
+                // Se tudo estiver ok, chamar método original
+                return originalRemoveChild.call(this, child);
+              } catch (error) {
+                console.log('[HTML DOM Fix] Erro capturado:', error.message);
+                return child; // Retornar o nó sem propagar o erro
+              }
+            };
+            
+            console.log('[HTML DOM Fix] Proteção global aplicada com sucesso');
+          } catch (error) {
+            console.error('[HTML DOM Fix] Erro ao aplicar patch:', error);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -6,6 +6,7 @@ import enrollmentIntegrationService from '../services/enrollment-integration-ser
  * Responsável por:
  * 1. Processar matrículas pendentes
  * 2. Sincronizar matrícula específica
+ * 3. Recuperar matrículas com problemas de conversão
  */
 export class EnrollmentIntegrationController {
   
@@ -86,6 +87,42 @@ export class EnrollmentIntegrationController {
       return res.status(500).json({
         success: false,
         message: 'Erro ao sincronizar matrícula',
+        error: (error as Error).message
+      });
+    }
+  }
+  
+  /**
+   * Recupera matrículas com problemas de conversão
+   * Identifica e corrige matrículas que deveriam ter sido convertidas mas não foram
+   * @param req Requisição
+   * @param res Resposta
+   */
+  async recoverIncompleteEnrollments(req: Request, res: Response) {
+    try {
+      // Verificar permissão do usuário (apenas administradores)
+      if (req.user?.role !== 'admin' && req.user?.role !== 'manager') {
+        return res.status(403).json({
+          success: false,
+          message: 'Permissão negada. Apenas administradores podem executar esta operação.'
+        });
+      }
+      
+      // Recuperar matrículas com problemas
+      const result = await enrollmentIntegrationService.recoverIncompleteEnrollments();
+      
+      return res.status(200).json({
+        success: true,
+        message: `Recuperação concluída. Matrículas recuperadas: ${result.recovered.length}, falhas: ${result.failed}`,
+        processed: result.processed,
+        recovered: result.recovered,
+        failed: result.failed
+      });
+    } catch (error) {
+      console.error('Erro ao recuperar matrículas incompletas:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao recuperar matrículas incompletas',
         error: (error as Error).message
       });
     }

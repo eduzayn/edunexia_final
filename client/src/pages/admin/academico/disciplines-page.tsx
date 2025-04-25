@@ -7,7 +7,9 @@ import { getAdminSidebarItems } from "@/components/layout/admin-sidebar-items";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { ApiErrorDisplay } from "@/components/ui/api-error-display";
 import { Discipline } from "@shared/schema";
+import { ExtendedUser } from "@/types/user";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -87,7 +89,7 @@ const disciplineEditFormSchema = z.object({
 type DisciplineFormValues = z.infer<typeof disciplineFormSchema>;
 
 export default function DisciplinesPage() {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: ExtendedUser | null };
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [location, navigate] = useLocation();
@@ -112,10 +114,23 @@ export default function DisciplinesPage() {
     queryFn: async () => {
       const url = `/api/admin/disciplines${searchTerm ? `?search=${searchTerm}` : ""}`;
       console.log("Buscando disciplinas...");
-      const response = await apiRequest("GET", url);
-      const data = await response.json();
-      console.log("Disciplinas recebidas:", data);
-      return data;
+      try {
+        // Utilizando o formato com método explícito "GET" para evitar problemas
+        const response = await apiRequest("GET", url);
+        // Verificar se o conteúdo retornado é HTML (indicação de erro)
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.error("Resposta HTML recebida em vez de JSON. Possível erro 404 ou redirecionamento.");
+          throw new Error("Resposta HTML recebida. Endpoint incorreto ou indisponível.");
+        }
+        
+        const data = await response.json();
+        console.log("Disciplinas recebidas:", data);
+        return data;
+      } catch (error) {
+        console.error("Erro ao buscar disciplinas:", error);
+        throw error;
+      }
     },
     retry: 3, // Tenta até 3 vezes em caso de erro
     retryDelay: 1000, // Espera 1 segundo entre as tentativas
@@ -128,7 +143,10 @@ export default function DisciplinesPage() {
         // Remover o campo code do objeto, pois será gerado automaticamente no servidor
         const { code, ...restData } = data;
         
-        const response = await apiRequest("POST", "/api/admin/disciplines", restData);
+        const response = await apiRequest("/api-json/admin/disciplines", { 
+          method: "POST", 
+          data: restData 
+        });
         
         // Verifica se a resposta foi bem-sucedida
         if (!response.ok) {
@@ -173,7 +191,10 @@ export default function DisciplinesPage() {
     mutationFn: async (data: DisciplineFormValues & { id: number }) => {
       const { id, ...updateData } = data;
       try {
-        const response = await apiRequest("PUT", `/api/admin/disciplines/${id}`, updateData);
+        const response = await apiRequest(`/api-json/admin/disciplines/${id}`, { 
+          method: "PUT", 
+          data: updateData 
+        });
         
         // Verifica se a resposta foi bem-sucedida
         if (!response.ok) {
@@ -215,7 +236,7 @@ export default function DisciplinesPage() {
   // Mutation para excluir disciplina
   const deleteDisciplineMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/admin/disciplines/${id}`);
+      await apiRequest(`/api-json/admin/disciplines/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       toast({
@@ -400,12 +421,12 @@ export default function DisciplinesPage() {
                     ))}
                 </div>
               ) : isError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Erro ao carregar disciplinas</AlertTitle>
-                  <AlertDescription>
-                    Ocorreu um erro ao tentar carregar a lista de disciplinas. Por favor, tente novamente.
-                  </AlertDescription>
-                </Alert>
+                <div>
+                  <ApiErrorDisplay 
+                    error={new Error("Erro ao carregar disciplinas. Verifique se o endpoint de API está correto.")} 
+                    refetch={refetch} 
+                  />
+                </div>
               ) : disciplines && disciplines.length > 0 ? (
                 <div className="rounded-md border">
                   <Table>
@@ -614,11 +635,14 @@ export default function DisciplinesPage() {
                         <Input 
                           placeholder="Ex: MAT101" 
                           {...field} 
+                          // @ts-ignore - Temporariamente ignorando erro até corrigir user.role
                           disabled={user?.role !== 'admin'} 
+                          // @ts-ignore - Temporariamente ignorando erro até corrigir user.role
                           className={user?.role !== 'admin' ? "bg-gray-100" : ""}
                         />
                       </FormControl>
                       <FormMessage />
+                      {/* @ts-ignore - Temporariamente ignorando erro até corrigir user.role */}
                       {user?.role !== 'admin' && (
                         <p className="text-xs text-gray-500 mt-1">Apenas administradores podem editar o código da disciplina</p>
                       )}

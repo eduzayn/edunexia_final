@@ -2,14 +2,33 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { ExtendedUser } from "@/types/user";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { 
+  queryClient, 
+  apiRequest, 
+  fetchDiscipline, 
+  fetchDisciplineVideos, 
+  fetchDisciplineMaterial, 
+  fetchDisciplineEbook 
+} from "@/lib/queryClient";
+import { 
+  buildDisciplineApiUrl, 
+  buildDisciplineVideosApiUrl, 
+  buildDisciplineMaterialApiUrl, 
+  buildDisciplineEbookApiUrl, 
+  buildDisciplineQuestionsApiUrl, 
+  buildDisciplineAssessmentsApiUrl, 
+  buildApiUrl 
+} from "@/lib/api-config";
+import EmbeddedVideoPlayer from "@/components/video-player/embedded-video-player";
 import { Discipline, videoSourceEnum, contentCompletionStatusEnum } from "@shared/schema";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import EbookContentSection from "@/components/discipline/ebook-content-section";
 import {
   Card,
   CardContent,
@@ -24,6 +43,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Checkbox,
+} from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -42,6 +64,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { AccessibleDialog } from "@/components/ui/accessible-dialog";
 import {
   Accordion,
   AccordionContent,
@@ -81,6 +104,7 @@ import {
   CheckIcon,
   EditIcon,
 } from "@/components/ui/icons";
+import { Clock as ClockIcon, List as ListIcon, Trash as TrashIcon, X, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,6 +115,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import VideoFormFields, { VideoSource } from "@/components/disciplinas/video-form-fields";
 
 // Schema para validação dos formulários
 const videoFormSchema = z.object({
@@ -99,13 +124,21 @@ const videoFormSchema = z.object({
   videoSource: z.enum(["youtube", "onedrive", "google_drive", "vimeo", "upload"]),
   url: z.string().url({ message: "URL inválida" }),
   duration: z.string().regex(/^\d+:\d+$/, { message: "Duração deve estar no formato mm:ss" }),
+  startTime: z.string().regex(/^\d+:\d+$/, { message: "Tempo de início deve estar no formato mm:ss" }).optional(),
 });
 
 const materialFormSchema = z.object({
   title: z.string().min(3, { message: "Título deve ter pelo menos 3 caracteres" }),
   description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
-  url: z.string().url({ message: "URL inválida" }),
-});
+  url: z.string().url({ message: "URL inválida" }).optional(),
+  file: z.any().optional(), // Suporte para upload de arquivo PDF
+}).refine(
+  (data) => data.url || data.file, 
+  {
+    message: "Forneça um link para o PDF ou faça upload de um arquivo",
+    path: ["url"],
+  }
+);
 
 // Schema para inserção de link de e-book externo
 const ebookLinkFormSchema = z.object({
@@ -126,6 +159,7 @@ const assessmentFormSchema = z.object({
   description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
   type: z.enum(["simulado", "avaliacao_final"]),
   passingScore: z.coerce.number().min(0, { message: "Nota mínima deve ser maior ou igual a 0" }).max(10, { message: "Nota mínima deve ser menor ou igual a 10" }),
+  questionIds: z.array(z.number()).optional(),
 });
 
 type VideoFormValues = z.infer<typeof videoFormSchema>;
@@ -139,6 +173,15 @@ export default function DisciplineContentPage() {
   const { id } = useParams();
   const disciplineId = parseInt(id as string);
   const { user } = useAuth();
+  
+  // Corrigindo o problema de tipagem do usuário
+  // Como o user pode ser undefined, precisamos fazer verificações seguras
+  const typedUser = user ? {
+    ...user,
+    portalType: user.portalType || 'admin',
+    // O casting para any é necessário para acessar propriedades que podem não existir no tipo
+    role: (user as any).role || (user.portalType === 'admin' ? 'admin' : 'student')
+  } as ExtendedUser : null;
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("overview");
@@ -147,6 +190,7 @@ export default function DisciplineContentPage() {
   // Estados para diálogos
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isVideoEditDialogOpen, setIsVideoEditDialogOpen] = useState(false);
+  const [isVideoPreviewDialogOpen, setIsVideoPreviewDialogOpen] = useState(false);
   const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [isEbookLinkDialogOpen, setIsEbookLinkDialogOpen] = useState(false);
   // Estado isEbookDialogOpen removido - usando interface completa em /admin/ebooks/generate
@@ -158,6 +202,18 @@ export default function DisciplineContentPage() {
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
   const [selectedAssessmentType, setSelectedAssessmentType] = useState<"simulado" | "avaliacao_final">("simulado");
   const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<any | null>(null);
+  const [isEditQuestionsDialogOpen, setIsEditQuestionsDialogOpen] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+  const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
+  const [isAvailableQuestionsLoading, setIsAvailableQuestionsLoading] = useState(false);
+  const [isViewAssessmentQuestionsDialogOpen, setIsViewAssessmentQuestionsDialogOpen] = useState(false);
+  const [assessmentQuestionsWithDetails, setAssessmentQuestionsWithDetails] = useState<any[]>([]);
+  const [isAssessmentQuestionsLoading, setIsAssessmentQuestionsLoading] = useState(false);
+  
+  // Estado para prévia de vídeo
+  const [previewVideoUrl, setPreviewVideoUrl] = useState("");
+  const [previewVideoSource, setPreviewVideoSource] = useState<VideoSource>("youtube");
   
   // Estados para formulários de questões
   const [questionOptions, setQuestionOptions] = useState<string[]>(["", "", "", ""]);
@@ -181,12 +237,12 @@ export default function DisciplineContentPage() {
     error: disciplineError,
     refetch: refetchDiscipline
   } = useQuery({
-    queryKey: ["/api-json/admin/disciplines", disciplineId],
+    queryKey: [buildApiUrl(`/admin/disciplines/${disciplineId}`)],
     queryFn: async () => {
       try {
         console.log(`Buscando disciplina com ID: ${disciplineId}`);
-        // Use /api-json/ em vez de /api/ para garantir a resposta JSON
-        const response = await apiRequest("GET", `/api-json/admin/disciplines/${disciplineId}`);
+        // Usando a função centralizada para construir a URL
+        const response = await fetchDiscipline(disciplineId);
         
         // Verifica o tipo de conteúdo da resposta
         const contentType = response.headers.get("content-type");
@@ -201,8 +257,16 @@ export default function DisciplineContentPage() {
         }
         
         // Se chegou aqui, é seguro processar como JSON
-        const data = await response.clone().json();
-        console.log(`Dados da disciplina recebidos:`, data);
+        const response_data = await response.clone().json();
+        console.log(`Dados da disciplina recebidos:`, response_data);
+        
+        // Verifica formato de resposta padrão da API {success: boolean, data: object}
+        let data;
+        if (response_data && typeof response_data === 'object' && 'success' in response_data && 'data' in response_data) {
+          data = response_data.data;
+        } else {
+          data = response_data; // Se não estiver no formato padrão, usa o objeto completo
+        }
         
         // Verifica se a resposta é um objeto vazio ou null
         if (!data) {
@@ -214,11 +278,40 @@ export default function DisciplineContentPage() {
           throw new Error("Disciplina retornou array vazio");
         }
         
+        // Verificação básica - ID é essencial, o resto pode ser null
         if (!data.id) {
           throw new Error(`Dados da disciplina inválidos: ${JSON.stringify(data)}`);
         }
         
-        return data;
+        // Preenche valores padrão para campos que podem ser null
+        // Isso garante que a UI não quebre ao tentar acessar esses campos
+        return {
+          ...data,
+          // Definindo valores padrão para os campos que podem ser null
+          videoAula1Url: data.videoAula1Url || null,
+          videoAula1Source: data.videoAula1Source || null,
+          videoAula2Url: data.videoAula2Url || null,
+          videoAula2Source: data.videoAula2Source || null,
+          videoAula3Url: data.videoAula3Url || null,
+          videoAula3Source: data.videoAula3Source || null,
+          videoAula4Url: data.videoAula4Url || null,
+          videoAula4Source: data.videoAula4Source || null,
+          videoAula5Url: data.videoAula5Url || null,
+          videoAula5Source: data.videoAula5Source || null,
+          videoAula6Url: data.videoAula6Url || null,
+          videoAula6Source: data.videoAula6Source || null,
+          videoAula7Url: data.videoAula7Url || null,
+          videoAula7Source: data.videoAula7Source || null,
+          videoAula8Url: data.videoAula8Url || null,
+          videoAula8Source: data.videoAula8Source || null,
+          videoAula9Url: data.videoAula9Url || null,
+          videoAula9Source: data.videoAula9Source || null,
+          videoAula10Url: data.videoAula10Url || null,
+          videoAula10Source: data.videoAula10Source || null,
+          apostilaPdfUrl: data.apostilaPdfUrl || null,
+          ebookInterativoUrl: data.ebookInterativoUrl || null,
+          contentStatus: data.contentStatus || 'incomplete',
+        };
       } catch (error) {
         console.error(`Erro ao buscar disciplina ${disciplineId}:`, error);
         throw error;
@@ -234,10 +327,17 @@ export default function DisciplineContentPage() {
     isLoading: isVideosLoading,
     refetch: refetchVideos
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-videos", disciplineId],
+    queryKey: [buildDisciplineVideosApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-videos/${disciplineId}`);
-      return response.json();
+      try {
+        const response = await fetchDisciplineVideos(disciplineId);
+        const data = await response.json();
+        // Retorna array vazio se não houver dados
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar vídeos da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
@@ -247,10 +347,16 @@ export default function DisciplineContentPage() {
     isLoading: isMaterialLoading,
     refetch: refetchMaterial
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-material", disciplineId],
+    queryKey: [buildDisciplineMaterialApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-material/${disciplineId}`);
-      return response.json();
+      try {
+        const response = await fetchDisciplineMaterial(disciplineId);
+        const data = await response.json();
+        return data || { apostilaPdfUrl: null, id: disciplineId };
+      } catch (error) {
+        console.error("Erro ao buscar material da disciplina:", error);
+        return { apostilaPdfUrl: null, id: disciplineId };
+      }
     },
   });
   
@@ -260,10 +366,16 @@ export default function DisciplineContentPage() {
     isLoading: isEbookLoading,
     refetch: refetchEbook
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-ebook", disciplineId],
+    queryKey: [buildDisciplineEbookApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-ebook/${disciplineId}`);
-      return response.json();
+      try {
+        const response = await fetchDisciplineEbook(disciplineId);
+        const data = await response.json();
+        return data || { ebookPdfUrl: null, ebookInterativoUrl: null, id: disciplineId };
+      } catch (error) {
+        console.error("Erro ao buscar e-book da disciplina:", error);
+        return { ebookPdfUrl: null, ebookInterativoUrl: null, id: disciplineId };
+      }
     },
   });
   
@@ -273,10 +385,17 @@ export default function DisciplineContentPage() {
     isLoading: isQuestionsLoading,
     refetch: refetchQuestions
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-questions", disciplineId],
+    queryKey: [buildDisciplineQuestionsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-questions/${disciplineId}`);
-      return response.json();
+      try {
+        const response = await apiRequest("GET", buildDisciplineQuestionsApiUrl(disciplineId));
+        const data = await response.json();
+        // Retorna array vazio se não houver dados ou se o formato for inválido
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar questões da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
@@ -286,18 +405,37 @@ export default function DisciplineContentPage() {
     isLoading: isAssessmentsLoading,
     refetch: refetchAssessments
   } = useQuery({
-    queryKey: ["/api-json/admin/discipline-assessments", disciplineId],
+    queryKey: [buildDisciplineAssessmentsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/discipline-assessments/${disciplineId}`);
-      return response.json();
+      try {
+        const response = await apiRequest("GET", buildDisciplineAssessmentsApiUrl(disciplineId));
+        const data = await response.json();
+        // Retorna array vazio se não houver dados ou se o formato for inválido
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar avaliações da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
   // Mutation para adicionar vídeo
   const addVideoMutation = useMutation({
     mutationFn: async (data: VideoFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-videos/${disciplineId}`, data);
-      return response.json();
+      const response = await apiRequest("POST", buildDisciplineVideosApiUrl(disciplineId), data);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -320,8 +458,21 @@ export default function DisciplineContentPage() {
   // Mutation para editar vídeo
   const editVideoMutation = useMutation({
     mutationFn: async ({ videoId, data }: { videoId: number, data: VideoFormValues }) => {
-      const response = await apiRequest("PUT", `/api-json/admin/discipline-videos/${videoId}`, data);
-      return response.json();
+      const videoUrl = buildApiUrl(`/admin/discipline-videos/${videoId}`);
+      const response = await apiRequest("PUT", videoUrl, data);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -340,11 +491,82 @@ export default function DisciplineContentPage() {
     },
   });
   
+  // Mutation para excluir vídeo
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: number) => {
+      const videoUrl = buildApiUrl(`/admin/discipline-videos/${videoId}?disciplineId=${disciplineId}`);
+      const response = await apiRequest("DELETE", videoUrl);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Vídeo excluído com sucesso!",
+        description: "O vídeo foi removido da disciplina.",
+      });
+      refetchVideos();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir vídeo",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Mutation para adicionar apostila
   const addMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-material/${disciplineId}`, data);
-      return response.json();
+      // Verificar se é upload de arquivo ou URL
+      if (data.file) {
+        // Criar FormData para upload de arquivo
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('file', data.file);
+        
+        const response = await fetch(buildDisciplineMaterialApiUrl(disciplineId), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro ao fazer upload da apostila: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } else {
+        // Envio de URL
+        const response = await apiRequest("POST", buildDisciplineMaterialApiUrl(disciplineId), data);
+        
+        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Resposta do servidor não está no formato JSON');
+        }
+        
+        try {
+          return await response.json();
+        } catch (error) {
+          console.error('Erro ao parsear resposta como JSON:', error);
+          throw new Error('Formato de resposta inválido');
+        }
+      }
     },
     onSuccess: () => {
       toast({
@@ -364,11 +586,56 @@ export default function DisciplineContentPage() {
     },
   });
   
+  // Mutation para excluir apostila
+  const deleteMaterialMutation = useMutation({
+    mutationFn: async () => {
+      const materialUrl = buildApiUrl(`/api/disciplines/${disciplineId}/material`);
+      const response = await apiRequest("DELETE", materialUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao excluir apostila: ${response.statusText}`);
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Apostila excluída com sucesso!",
+        description: "A apostila foi removida da disciplina.",
+      });
+      refetchMaterial();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir apostila",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Mutation para adicionar link de e-book externo
   const addEbookLinkMutation = useMutation({
     mutationFn: async (data: EbookLinkFormValues) => {
-      const response = await apiRequest("POST", `/api-json/admin/discipline-ebook/${disciplineId}`, data);
-      return response.json();
+      const response = await apiRequest("POST", buildDisciplineEbookApiUrl(disciplineId), data);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -391,8 +658,20 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar questão
   const addQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", "/api-json/admin/questions", data);
-      return response.json();
+      const response = await apiRequest("POST", buildApiUrl("/admin/questions"), data);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -417,8 +696,22 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar avaliação
   const addAssessmentMutation = useMutation({
     mutationFn: async (data: AssessmentFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", "/api-json/admin/assessments", data);
-      return response.json();
+      // Usar o endpoint criado para avaliações
+      const disciplineId = data.disciplineId;
+      const response = await apiRequest("POST", buildApiUrl(`/api/disciplines/${disciplineId}/assessments`), data);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: () => {
       toast({
@@ -438,11 +731,151 @@ export default function DisciplineContentPage() {
     },
   });
   
+  // Mutation para atualizar questões de uma avaliação
+  // Mutation para remover uma questão individual de uma avaliação
+  const removeQuestionFromAssessmentMutation = useMutation({
+    mutationFn: async ({ assessmentId, questionId }: { assessmentId: number, questionId: number }) => {
+      const response = await apiRequest(
+        "DELETE", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions/${questionId}`)
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Questão removida com sucesso!",
+        description: "A questão foi removida da avaliação.",
+      });
+      
+      // Recarregar a lista de questões da avaliação
+      if (selectedAssessment) {
+        handleViewAssessmentQuestions(selectedAssessment);
+      }
+      
+      // Atualizar a lista de avaliações para refletir o novo contador de questões
+      refetchAssessments();
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao remover questão",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const updateAssessmentQuestionsMutation = useMutation({
+    mutationFn: async ({ assessmentId, questionIds }: { assessmentId: number, questionIds: number[] }) => {
+      const response = await apiRequest(
+        "PUT", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions`), 
+        { questionIds }
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Questões atualizadas com sucesso!",
+        description: "As questões da avaliação foram atualizadas.",
+      });
+      refetchAssessments();
+      setIsEditQuestionsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar questões",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+
+  
+  // Função para buscar as questões detalhadas de uma avaliação
+  const fetchAssessmentQuestions = async (assessmentId: number) => {
+    setIsAssessmentQuestionsLoading(true);
+    try {
+      const response = await apiRequest(
+        "GET", 
+        buildApiUrl(`/api/assessments/${assessmentId}/questions`)
+      );
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setAssessmentQuestionsWithDetails(result.data);
+      } else {
+        setAssessmentQuestionsWithDetails([]);
+        toast({
+          title: "Erro ao carregar questões",
+          description: result.message || "Não foi possível carregar as questões desta avaliação",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Erro ao buscar questões da avaliação:", error);
+      setAssessmentQuestionsWithDetails([]);
+      toast({
+        title: "Erro ao carregar questões",
+        description: error.message || "Ocorreu um erro ao buscar as questões desta avaliação",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssessmentQuestionsLoading(false);
+    }
+  };
+  
+
+  
   // Mutation para verificar completude da disciplina
   const checkCompletenesssMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("GET", `/api-json/admin/disciplines/${disciplineId}/check-completeness`);
-      return response.json();
+      const completenessUrl = buildApiUrl(`/admin/disciplines/${disciplineId}/check-completeness`);
+      const response = await apiRequest("GET", completenessUrl);
+      
+      // Verificar o tipo de conteúdo antes de tentar parsear como JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Resposta do servidor não está no formato JSON');
+      }
+      
+      try {
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao parsear resposta como JSON:', error);
+        throw new Error('Formato de resposta inválido');
+      }
     },
     onSuccess: (data) => {
       if (data.complete) {
@@ -515,25 +948,42 @@ export default function DisciplineContentPage() {
       description: "",
       type: "simulado",
       passingScore: 6,
+      questionIds: [],
     },
   });
   
   // Funções para manipular dialogs
   const handleOpenVideoDialog = () => {
     videoForm.reset();
+    // Resetar os estados de prévia ao abrir o diálogo
+    setPreviewVideoUrl("");
+    setPreviewVideoSource("youtube");
     setIsVideoDialogOpen(true);
   };
   
   const handleOpenVideoEditDialog = (video: any) => {
     setSelectedVideo(video);
+    // Inicializar o formulário com os dados do vídeo
     videoForm.reset({
       title: video.title,
       description: video.description,
       videoSource: video.videoSource,
       url: video.url,
       duration: video.duration,
+      startTime: video.startTime || "", // Incluir campo de tempo de início
     });
+    // Inicializar estados de prévia com os dados do vídeo
+    setPreviewVideoUrl(video.url);
+    setPreviewVideoSource(video.videoSource as VideoSource);
     setIsVideoEditDialogOpen(true);
+  };
+  
+  // Função para excluir um vídeo
+  const handleDeleteVideo = (videoId: number) => {
+    // Mostrar um diálogo de confirmação antes de excluir
+    if (confirm('Tem certeza que deseja excluir este vídeo? Esta ação não pode ser desfeita.')) {
+      deleteVideoMutation.mutate(videoId);
+    }
   };
   
   const handleOpenMaterialDialog = () => {
@@ -567,6 +1017,80 @@ export default function DisciplineContentPage() {
     setIsAssessmentDialogOpen(true);
   };
   
+  // Função para abrir o diálogo de edição de questões de avaliação
+  const handleEditAssessmentQuestions = async (assessment: any) => {
+    setSelectedAssessment(assessment);
+    // Se a avaliação já tem questões selecionadas, carregamos elas
+    setSelectedQuestionIds(assessment.questionIds || []);
+    
+    // Buscar questões disponíveis que ainda não foram adicionadas a essa avaliação
+    setIsAvailableQuestionsLoading(true);
+    try {
+      const response = await apiRequest(
+        "GET", 
+        buildApiUrl(`/api/assessments/${assessment.id}/available-questions`)
+      );
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAvailableQuestions(data.data);
+      } else {
+        // Se não encontrar questões disponíveis via nova API, usa todas as questões como fallback
+        setAvailableQuestions(questions || []);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar questões disponíveis:", error);
+      // Fallback para todas as questões da disciplina
+      setAvailableQuestions(questions || []);
+      
+      toast({
+        title: "Aviso",
+        description: "Não foi possível filtrar questões já utilizadas. Todas as questões serão exibidas.",
+        variant: "default",
+      });
+    } finally {
+      setIsAvailableQuestionsLoading(false);
+      setIsEditQuestionsDialogOpen(true);
+    }
+  };
+  
+  // Função para exibir as questões já incluídas em uma avaliação
+  const handleViewAssessmentQuestions = async (assessment: any) => {
+    setSelectedAssessment(assessment);
+    setIsAssessmentQuestionsLoading(true);
+    
+    try {
+      // Usando a nova rota api/assessments/:id/questions para obter os detalhes completos
+      const response = await apiRequest(
+        "GET",
+        buildApiUrl(`/api/assessments/${assessment.id}/questions`)
+      );
+      
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAssessmentQuestionsWithDetails(data.data);
+      } else {
+        setAssessmentQuestionsWithDetails([]);
+        toast({
+          title: "Aviso",
+          description: "Não foi possível carregar as questões desta avaliação.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar questões da avaliação:", error);
+      setAssessmentQuestionsWithDetails([]);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar as questões da avaliação.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssessmentQuestionsLoading(false);
+      setIsViewAssessmentQuestionsDialogOpen(true);
+    }
+  };
+  
   // Funções para envio de formulários
   const onVideoSubmit = (data: VideoFormValues) => {
     addVideoMutation.mutate(data);
@@ -592,7 +1116,53 @@ export default function DisciplineContentPage() {
   };
   
   const onAssessmentSubmit = (data: AssessmentFormValues) => {
+    console.log("Enviando dados de avaliação:", { ...data, disciplineId });
+    // Verificar se há questões selecionadas
+    if (!data.questionIds || data.questionIds.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Selecione pelo menos uma questão para a avaliação.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Enviar dados para o backend
     addAssessmentMutation.mutate({ ...data, disciplineId });
+  };
+  
+  // Função para salvar as questões editadas da avaliação
+  const handleSaveAssessmentQuestions = () => {
+    if (!selectedAssessment) return;
+    
+    updateAssessmentQuestionsMutation.mutate({
+      assessmentId: selectedAssessment.id,
+      questionIds: selectedQuestionIds
+    });
+  };
+  
+  // Função para remover uma questão individual de uma avaliação
+  const handleRemoveQuestionFromAssessment = (questionId: number) => {
+    if (!selectedAssessment) return;
+    
+    if (confirm('Tem certeza que deseja remover esta questão da avaliação?')) {
+      removeQuestionFromAssessmentMutation.mutate({
+        assessmentId: selectedAssessment.id,
+        questionId
+      });
+    }
+  };
+  
+  // Função para manipular a seleção/deseleção de questões para avaliação
+  const handleQuestionSelection = (questionId: number) => {
+    setSelectedQuestionIds(prev => {
+      // Se já estiver selecionada, remove; caso contrário, adiciona
+      if (prev.includes(questionId)) {
+        return prev.filter(id => id !== questionId);
+      } else {
+        return [...prev, questionId];
+      }
+    });
   };
   
   // Manipuladores de opções para questões
@@ -664,7 +1234,7 @@ export default function DisciplineContentPage() {
       <div className="flex h-screen bg-gray-50">
         <Sidebar
           items={sidebarItems}
-          user={user}
+          user={typedUser}
           portalType="admin"
           portalColor="#3451B2"
           isMobileMenuOpen={isMobileMenuOpen}
@@ -700,7 +1270,7 @@ export default function DisciplineContentPage() {
       <div className="flex h-screen bg-gray-50">
         <Sidebar
           items={sidebarItems}
-          user={user}
+          user={typedUser}
           portalType="admin"
           portalColor="#3451B2"
           isMobileMenuOpen={isMobileMenuOpen}
@@ -744,7 +1314,7 @@ export default function DisciplineContentPage() {
     <div className="flex h-screen bg-gray-50">
       <Sidebar
         items={sidebarItems}
-        user={user}
+        user={typedUser}
         portalType="admin"
         portalColor="#3451B2"
         isMobileMenuOpen={isMobileMenuOpen}
@@ -940,7 +1510,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some((a: any) => a.type === "simulado") 
+                      {assessments?.some((a: { type: string }) => a.type === "simulado") 
                         ? "Gerenciar Simulado" 
                         : "Adicionar Simulado"}
                     </Button>
@@ -982,7 +1552,7 @@ export default function DisciplineContentPage() {
                       variant="outline" 
                       className="w-full"
                     >
-                      {assessments?.some((a: any) => a.type === "avaliacao_final") 
+                      {assessments?.some((a: { type: string }) => a.type === "avaliacao_final") 
                         ? "Gerenciar Avaliação" 
                         : "Adicionar Avaliação"}
                     </Button>
@@ -1066,20 +1636,28 @@ export default function DisciplineContentPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {videos.map((video: any) => (
+                      {videos.map((video: { 
+                        id: number, 
+                        title: string, 
+                        description: string, 
+                        duration: string, 
+                        videoSource: string, 
+                        url: string,
+                        startTime?: string
+                      }) => (
                         <Card key={video.id} className="overflow-hidden">
-                          <div className="relative pb-[56.25%] bg-gray-100">
-                            {video.videoSource === "youtube" ? (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <YoutubeIcon className="h-16 w-16 text-red-600" />
-                              </div>
-                            ) : video.videoSource === "onedrive" ? (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <OneDriveIcon className="h-16 w-16 text-blue-500" />
-                              </div>
+                          <div className="relative aspect-video bg-gray-200">
+                            {video.videoSource ? (
+                              <EmbeddedVideoPlayer 
+                                url={video.url}
+                                title={video.title}
+                                source={video.videoSource as VideoSource}
+                                startTime={video.startTime}
+                                className="w-full h-full"
+                              />
                             ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <PlayIcon className="h-16 w-16 text-gray-500" />
+                              <div className="flex items-center justify-center h-full">
+                                <PlayIcon className="h-12 w-12 text-gray-400" />
                               </div>
                             )}
                           </div>
@@ -1088,25 +1666,48 @@ export default function DisciplineContentPage() {
                             <p className="text-sm text-gray-500 line-clamp-2 mt-1">
                               {video.description}
                             </p>
-                            <div className="flex items-center mt-2 text-sm text-gray-500">
+                            <div className="flex flex-col mt-2 text-sm text-gray-500">
                               <span>Duração: {video.duration}</span>
+                              {video.startTime && video.videoSource === 'youtube' && (
+                                <span className="text-emerald-600 mt-1">
+                                  <ClockIcon className="h-3 w-3 inline-block mr-1" />
+                                  Início em: {video.startTime}
+                                </span>
+                              )}
                             </div>
                           </CardContent>
                           <CardFooter className="p-4 pt-0 flex justify-between">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenVideoEditDialog(video)}
+                              >
+                                <PencilIcon className="mr-1 h-4 w-4" />
+                                Editar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteVideo(video.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <MinusIcon className="mr-1 h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </div>
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleOpenVideoEditDialog(video)}
+                              onClick={() => {
+                                // Definir o URL e tipo para preview e abrir o modal
+                                setPreviewVideoUrl(video.url);
+                                setPreviewVideoSource(video.videoSource as VideoSource);
+                                // Podemos criar um estado separado para o modal de visualização completa
+                                setIsVideoPreviewDialogOpen(true);
+                              }}
                             >
-                              <PencilIcon className="mr-1 h-4 w-4" />
-                              Editar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => window.open(video.url, "_blank")}
-                            >
-                              <LinkIcon className="mr-1 h-4 w-4" />
+                              <PlayIcon className="mr-1 h-4 w-4" />
                               Visualizar
                             </Button>
                           </CardFooter>
@@ -1163,8 +1764,19 @@ export default function DisciplineContentPage() {
                   ) : (
                     <Card>
                       <div className="p-6 flex flex-col md:flex-row gap-6">
-                        <div className="flex justify-center items-center p-8 bg-gray-100 rounded-md min-w-[200px]">
-                          <FileTextIcon className="h-20 w-20 text-gray-500" />
+                        <div className="relative aspect-[3/4] bg-gray-100 rounded-md min-w-[200px] overflow-hidden">
+                          {material.url ? (
+                            <iframe
+                              src={`${material.url}#page=1&view=FitH`}
+                              className="w-full h-full"
+                              title={material.title || 'Visualização da apostila'}
+                              sandbox="allow-scripts allow-same-origin"
+                            />
+                          ) : (
+                            <div className="flex justify-center items-center h-full w-full">
+                              <FileTextIcon className="h-20 w-20 text-gray-500" />
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold">{material.title}</h3>
@@ -1191,6 +1803,18 @@ export default function DisciplineContentPage() {
                               <PencilIcon className="mr-1 h-4 w-4" />
                               Editar
                             </Button>
+                            <Button
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja excluir esta apostila? Esta ação não pode ser desfeita.')) {
+                                  deleteMaterialMutation.mutate();
+                                }
+                              }}
+                            >
+                              <MinusIcon className="mr-1 h-4 w-4" />
+                              Excluir
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -1202,96 +1826,7 @@ export default function DisciplineContentPage() {
 
             {/* E-book Tab */}
             <TabsContent value="ebook">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <CardTitle>E-book Interativo</CardTitle>
-                      <CardDescription>
-                        Adicione um e-book interativo para complementar o aprendizado
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2 mt-4 md:mt-0">
-                      <Button
-                        asChild
-                        disabled={ebook !== null && ebook !== undefined}
-                      >
-                        <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                          <EditIcon className="mr-1 h-4 w-4" />
-                          Gerador Avançado
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        onClick={() => setIsEbookLinkDialogOpen(true)}
-                        disabled={ebook !== null && ebook !== undefined}
-                      >
-                        <LinkIcon className="mr-1 h-4 w-4" />
-                        Inserir Link
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isEbookLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-40 w-full" />
-                      <Skeleton className="h-6 w-[250px]" />
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  ) : !ebook ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <BookIcon className="h-16 w-16 text-gray-300" />
-                      <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                        Nenhum e-book interativo adicionado
-                      </h3>
-                      <p className="mt-1 text-gray-500">
-                        Adicione um e-book interativo para proporcionar uma experiência rica de aprendizado.
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                        <Button asChild>
-                          <Link href={`/admin/ebooks/generate?disciplineId=${disciplineId}`}>
-                            <EditIcon className="mr-1 h-4 w-4" />
-                            Gerador Avançado
-                          </Link>
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsEbookLinkDialogOpen(true)}>
-                          <LinkIcon className="mr-1 h-4 w-4" />
-                          Inserir Link de E-book
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Card>
-                      <div className="p-6 flex flex-col md:flex-row gap-6">
-                        <div className="flex justify-center items-center p-8 bg-gray-100 rounded-md min-w-[200px]">
-                          <BookIcon className="h-20 w-20 text-gray-500" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold">{ebook.title}</h3>
-                          <p className="mt-2 text-gray-600">{ebook.description}</p>
-                          <div className="mt-6 flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => window.open(ebook.url, "_blank")}
-                            >
-                              <LinkIcon className="mr-1 h-4 w-4" />
-                              Abrir E-book
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => navigate(`/admin/ebooks/${ebook.id}/edit`)}
-                            >
-                              <PencilIcon className="mr-1 h-4 w-4" />
-                              Editar
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
+              <EbookContentSection disciplineId={Number(disciplineId)} />
             </TabsContent>
 
             {/* Assessments Tab */}
@@ -1413,11 +1948,11 @@ export default function DisciplineContentPage() {
                           Configure o simulado com 30 questões para prática dos alunos
                         </CardDescription>
                       </div>
-                      {!assessments?.some(a => a.type === "simulado") && (
+                      {!assessments?.some((a: { type: string }) => a.type === "simulado") && (
                         <Button
                           onClick={() => handleOpenAssessmentDialog("simulado")}
                           className="mt-4 md:mt-0"
-                          disabled={!questions || questions.length < 30}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
                           Criar Simulado
@@ -1428,9 +1963,9 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     {isAssessmentsLoading ? (
                       <Skeleton className="h-40 w-full" />
-                    ) : assessments?.some(a => a.type === "simulado") ? (
+                    ) : assessments?.some((a: { type: string }) => a.type === "simulado") ? (
                       (() => {
-                        const simulado = assessments.find(a => a.type === "simulado");
+                        const simulado = assessments.find((a: { type: string }) => a.type === "simulado");
                         if (!simulado) return null;
                         
                         return (
@@ -1469,10 +2004,17 @@ export default function DisciplineContentPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {}}
+                                  onClick={() => handleEditAssessmentQuestions(simulado)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Adicionar Questões
+                                  Incluir Questões
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleViewAssessmentQuestions(simulado)}
+                                >
+                                  <ListIcon className="mr-1 h-4 w-4" />
+                                  Ver Questões
                                 </Button>
                               </div>
                             </div>
@@ -1492,17 +2034,17 @@ export default function DisciplineContentPage() {
                         </p>
                         <Button
                           onClick={() => {
-                            if (questions && questions.length >= 30) {
+                            if (questions && questions.length >= 1) { // Reduzindo o requisito
                               handleOpenAssessmentDialog("simulado");
                             } else {
                               handleOpenQuestionDialog();
                             }
                           }}
                           className="mt-4"
-                          disabled={!questions || questions.length < 30}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
-                          {!questions || questions.length < 30
+                          {!questions || questions.length < 1 // Reduzindo o requisito
                             ? "Adicionar Questão"
                             : "Criar Simulado"}
                         </Button>
@@ -1521,11 +2063,11 @@ export default function DisciplineContentPage() {
                           Configure a avaliação final com 10 questões para certificação dos alunos
                         </CardDescription>
                       </div>
-                      {!assessments?.some(a => a.type === "avaliacao_final") && (
+                      {!assessments?.some((a: { type: string }) => a.type === "avaliacao_final") && (
                         <Button
                           onClick={() => handleOpenAssessmentDialog("avaliacao_final")}
                           className="mt-4 md:mt-0"
-                          disabled={!questions || questions.length < 10}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
                           Criar Avaliação
@@ -1536,9 +2078,9 @@ export default function DisciplineContentPage() {
                   <CardContent>
                     {isAssessmentsLoading ? (
                       <Skeleton className="h-40 w-full" />
-                    ) : assessments?.some(a => a.type === "avaliacao_final") ? (
+                    ) : assessments?.some((a: { type: string }) => a.type === "avaliacao_final") ? (
                       (() => {
-                        const avaliacao = assessments.find(a => a.type === "avaliacao_final");
+                        const avaliacao = assessments.find((a: { type: string }) => a.type === "avaliacao_final");
                         if (!avaliacao) return null;
                         
                         return (
@@ -1577,10 +2119,17 @@ export default function DisciplineContentPage() {
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {}}
+                                  onClick={() => handleEditAssessmentQuestions(avaliacao)}
                                 >
                                   <PlusIcon className="mr-1 h-4 w-4" />
-                                  Adicionar Questões
+                                  Incluir Questões
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleViewAssessmentQuestions(avaliacao)}
+                                >
+                                  <ListIcon className="mr-1 h-4 w-4" />
+                                  Ver Questões
                                 </Button>
                               </div>
                             </div>
@@ -1600,17 +2149,17 @@ export default function DisciplineContentPage() {
                         </p>
                         <Button
                           onClick={() => {
-                            if (questions && questions.length >= 10) {
+                            if (questions && questions.length >= 1) { // Reduzindo o requisito
                               handleOpenAssessmentDialog("avaliacao_final");
                             } else {
                               handleOpenQuestionDialog();
                             }
                           }}
                           className="mt-4"
-                          disabled={!questions || questions.length < 10}
+                          disabled={!questions || questions.length < 1} // Reduzindo o requisito
                         >
                           <PlusIcon className="mr-1 h-4 w-4" />
-                          {!questions || questions.length < 10
+                          {!questions || questions.length < 1 // Reduzindo o requisito
                             ? "Adicionar Questão"
                             : "Criar Avaliação"}
                         </Button>
@@ -1626,7 +2175,7 @@ export default function DisciplineContentPage() {
 
       {/* Add Video Dialog */}
       <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Adicionar Vídeo-aula</DialogTitle>
             <DialogDescription>
@@ -1635,132 +2184,41 @@ export default function DisciplineContentPage() {
           </DialogHeader>
           <Form {...videoForm}>
             <form onSubmit={videoForm.handleSubmit(onVideoSubmit)} className="space-y-6">
-              <FormField
-                control={videoForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Introdução à Disciplina" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Breve descrição do conteúdo do vídeo..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="videoSource"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Origem do Vídeo</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="youtube" id="youtube" />
-                          <Label htmlFor="youtube" className="flex items-center">
-                            <YoutubeIcon className="mr-2 h-4 w-4 text-red-600" />
-                            YouTube
-                          </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <VideoFormFields 
+                    control={videoForm.control} 
+                    idSuffix="" 
+                    setPreviewVideoUrl={setPreviewVideoUrl}
+                    setPreviewVideoSource={setPreviewVideoSource}
+                    watch={videoForm.watch}
+                  />
+                </div>
+                <div className="flex flex-col space-y-4">
+                  <div className="rounded-md border p-1">
+                    <div className="text-sm font-medium mb-2 px-2">Prévia do Vídeo</div>
+                    {previewVideoUrl ? (
+                      <div className="aspect-video relative overflow-hidden rounded-md">
+                        <EmbeddedVideoPlayer 
+                          url={previewVideoUrl} 
+                          source={previewVideoSource} 
+                          title="Prévia do vídeo" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-video flex items-center justify-center bg-slate-100 rounded-md text-slate-500">
+                        <div className="text-center">
+                          <VideoIcon className="h-10 w-10 mx-auto mb-2 text-slate-400" />
+                          <p>Insira a URL do vídeo para visualizar a prévia</p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="onedrive" id="onedrive" />
-                          <Label htmlFor="onedrive" className="flex items-center">
-                            <OneDriveIcon className="mr-2 h-4 w-4 text-blue-500" />
-                            OneDrive
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="google_drive" id="google_drive" />
-                          <Label htmlFor="google_drive" className="flex items-center">
-                            <GoogleDriveIcon className="mr-2 h-4 w-4 text-green-500" />
-                            Google Drive
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="vimeo" id="vimeo" />
-                          <Label htmlFor="vimeo" className="flex items-center">
-                            <VimeoIcon className="mr-2 h-4 w-4 text-blue-600" />
-                            Vimeo
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="upload" id="upload" />
-                          <Label htmlFor="upload" className="flex items-center">
-                            <UploadIcon className="mr-2 h-4 w-4" />
-                            Upload Direto
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL do Vídeo</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {videoForm.watch("videoSource") === "youtube"
-                        ? "Cole a URL completa do vídeo no YouTube."
-                        : videoForm.watch("videoSource") === "onedrive"
-                        ? "Cole a URL de compartilhamento do OneDrive."
-                        : videoForm.watch("videoSource") === "google_drive"
-                        ? "Cole a URL de compartilhamento do Google Drive."
-                        : videoForm.watch("videoSource") === "vimeo"
-                        ? "Cole a URL completa do vídeo no Vimeo."
-                        : "Cole a URL de upload direto do vídeo."}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração (mm:ss)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Ex: 45:30"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-500 px-2">
+                    <p>Dica: Visualize o vídeo antes de adicionar para garantir que está funcionando corretamente.</p>
+                  </div>
+                </div>
+              </div>
               <DialogFooter>
                 <Button
                   type="button"
@@ -1778,7 +2236,7 @@ export default function DisciplineContentPage() {
 
       {/* Edit Video Dialog */}
       <Dialog open={isVideoEditDialogOpen} onOpenChange={setIsVideoEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Editar Vídeo-aula</DialogTitle>
             <DialogDescription>
@@ -1787,132 +2245,41 @@ export default function DisciplineContentPage() {
           </DialogHeader>
           <Form {...videoForm}>
             <form onSubmit={videoForm.handleSubmit(onVideoEditSubmit)} className="space-y-6">
-              <FormField
-                control={videoForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Introdução à Disciplina" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Breve descrição do conteúdo do vídeo..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="videoSource"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Origem do Vídeo</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="youtube" id="youtube-edit" />
-                          <Label htmlFor="youtube-edit" className="flex items-center">
-                            <YoutubeIcon className="mr-2 h-4 w-4 text-red-600" />
-                            YouTube
-                          </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <VideoFormFields 
+                    control={videoForm.control} 
+                    idSuffix="-edit" 
+                    setPreviewVideoUrl={setPreviewVideoUrl}
+                    setPreviewVideoSource={setPreviewVideoSource}
+                    watch={videoForm.watch}
+                  />
+                </div>
+                <div className="flex flex-col space-y-4">
+                  <div className="rounded-md border p-1">
+                    <div className="text-sm font-medium mb-2 px-2">Prévia do Vídeo</div>
+                    {previewVideoUrl ? (
+                      <div className="aspect-video relative overflow-hidden rounded-md">
+                        <EmbeddedVideoPlayer 
+                          url={previewVideoUrl} 
+                          source={previewVideoSource} 
+                          title="Prévia do vídeo" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-video flex items-center justify-center bg-slate-100 rounded-md text-slate-500">
+                        <div className="text-center">
+                          <VideoIcon className="h-10 w-10 mx-auto mb-2 text-slate-400" />
+                          <p>Insira a URL do vídeo para visualizar a prévia</p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="onedrive" id="onedrive-edit" />
-                          <Label htmlFor="onedrive-edit" className="flex items-center">
-                            <OneDriveIcon className="mr-2 h-4 w-4 text-blue-500" />
-                            OneDrive
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="google_drive" id="google_drive-edit" />
-                          <Label htmlFor="google_drive-edit" className="flex items-center">
-                            <GoogleDriveIcon className="mr-2 h-4 w-4 text-green-500" />
-                            Google Drive
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="vimeo" id="vimeo-edit" />
-                          <Label htmlFor="vimeo-edit" className="flex items-center">
-                            <VimeoIcon className="mr-2 h-4 w-4 text-blue-600" />
-                            Vimeo
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="upload" id="upload-edit" />
-                          <Label htmlFor="upload-edit" className="flex items-center">
-                            <UploadIcon className="mr-2 h-4 w-4" />
-                            Upload Direto
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL do Vídeo</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {videoForm.watch("videoSource") === "youtube"
-                        ? "Cole a URL completa do vídeo no YouTube."
-                        : videoForm.watch("videoSource") === "onedrive"
-                        ? "Cole a URL de compartilhamento do OneDrive."
-                        : videoForm.watch("videoSource") === "google_drive"
-                        ? "Cole a URL de compartilhamento do Google Drive."
-                        : videoForm.watch("videoSource") === "vimeo"
-                        ? "Cole a URL completa do vídeo no Vimeo."
-                        : "Cole a URL de upload direto do vídeo."}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={videoForm.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração (mm:ss)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Ex: 45:30"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-slate-500 px-2">
+                    <p>Dica: Visualize o vídeo antes de salvar para garantir que está funcionando corretamente.</p>
+                  </div>
+                </div>
+              </div>
               <DialogFooter>
                 <Button
                   type="button"
@@ -1968,25 +2335,66 @@ export default function DisciplineContentPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={materialForm.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>URL do PDF</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="https://" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Link para o arquivo PDF da apostila. Pode ser um link direto ou de serviços como Google Drive.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Escolha uma opção:</div>
+                <Tabs defaultValue="link" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="link">Link Externo</TabsTrigger>
+                    <TabsTrigger value="upload">Upload de Arquivo</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="link" className="pt-4">
+                    <FormField
+                      control={materialForm.control}
+                      name="url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>URL do PDF</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="https://" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Link para o arquivo PDF da apostila. Pode ser um link direto ou de serviços como Google Drive.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                  <TabsContent value="upload" className="pt-4">
+                    <FormField
+                      control={materialForm.control}
+                      name="file"
+                      render={({ field: { onChange, value, ...rest } }) => (
+                        <FormItem>
+                          <FormLabel>Arquivo PDF</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  onChange(file);
+                                }
+                              }}
+                              {...rest}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Selecione um arquivo PDF para upload (máximo 10MB).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+              
               <DialogFooter>
                 <Button
                   type="button"
@@ -2231,6 +2639,66 @@ export default function DisciplineContentPage() {
                   </FormItem>
                 )}
               />
+              
+              {/* Seleção de questões */}
+              <FormField
+                control={assessmentForm.control}
+                name="questionIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Selecione as questões</FormLabel>
+                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
+                      {isQuestionsLoading ? (
+                        <div className="flex justify-center py-4">
+                          <span className="animate-spin mr-2">◌</span> Carregando questões...
+                        </div>
+                      ) : questions && questions.length > 0 ? (
+                        <div className="space-y-2">
+                          {questions.map((question: any) => (
+                            <div key={question.id} className="flex items-start space-x-2">
+                              <Checkbox
+                                id={`question-${question.id}`}
+                                checked={field.value?.includes(question.id)}
+                                onCheckedChange={(checked) => {
+                                  const currentIds = [...(field.value || [])];
+                                  if (checked) {
+                                    if (!currentIds.includes(question.id)) {
+                                      field.onChange([...currentIds, question.id]);
+                                    }
+                                  } else {
+                                    field.onChange(currentIds.filter(id => id !== question.id));
+                                  }
+                                }}
+                              />
+                              <div className="grid gap-1.5 leading-none">
+                                <label
+                                  htmlFor={`question-${question.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {question.text && question.text.length > 100 
+                                    ? `${question.text.substring(0, 100)}...` 
+                                    : (question.text || question.statement || "Sem texto")}
+                                </label>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500">
+                          <p>Nenhuma questão disponível. Adicione questões primeiro.</p>
+                        </div>
+                      )}
+                    </div>
+                    <FormDescription>
+                      {selectedAssessmentType === "simulado"
+                        ? "Recomendamos selecionar pelo menos 30 questões para o simulado."
+                        : "Recomendamos selecionar pelo menos 10 questões para a avaliação final."}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <DialogFooter>
                 <Button
                   type="button"
@@ -2240,9 +2708,16 @@ export default function DisciplineContentPage() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  {selectedAssessmentType === "simulado"
-                    ? "Criar Simulado"
-                    : "Criar Avaliação"}
+                  {addAssessmentMutation.isPending ? (
+                    <>
+                      <span className="animate-spin mr-2">◌</span>
+                      Salvando...
+                    </>
+                  ) : (
+                    selectedAssessmentType === "simulado"
+                      ? "Criar Simulado"
+                      : "Criar Avaliação"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -2251,14 +2726,14 @@ export default function DisciplineContentPage() {
       </Dialog>
 
       {/* Dialog para inserir link de e-book externo */}
-      <Dialog open={isEbookLinkDialogOpen} onOpenChange={setIsEbookLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Inserir Link de E-book</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para adicionar um link para um e-book externo.
-            </DialogDescription>
-          </DialogHeader>
+      <AccessibleDialog 
+        open={isEbookLinkDialogOpen} 
+        onOpenChange={setIsEbookLinkDialogOpen}
+        title="Inserir Link de E-book"
+        description="Preencha os dados abaixo para adicionar um link para um e-book externo."
+        showTitle={true}
+        showDescription={true}
+      >
           <Form {...ebookLinkForm}>
             <form onSubmit={ebookLinkForm.handleSubmit(onEbookLinkSubmit)} className="space-y-6">
               <FormField
@@ -2328,6 +2803,277 @@ export default function DisciplineContentPage() {
               </DialogFooter>
             </form>
           </Form>
+      </AccessibleDialog>
+
+      {/* Dialog para editar questões da avaliação */}
+      <Dialog open={isEditQuestionsDialogOpen} onOpenChange={setIsEditQuestionsDialogOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Incluir Questões da Avaliação</DialogTitle>
+            <DialogDescription>
+              Selecione as questões que deseja incluir na avaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">
+                  {selectedAssessment?.title || "Avaliação"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAssessment?.type === "simulado" 
+                    ? "Selecione as questões para o simulado" 
+                    : "Selecione as questões para a avaliação final"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{selectedQuestionIds.length}</span> questões selecionadas
+              </div>
+            </div>
+            
+            <div className="border rounded-md p-4 max-h-[400px] overflow-y-auto">
+              {isAvailableQuestionsLoading ? (
+                <div className="flex justify-center py-4">
+                  <span className="animate-spin mr-2">◌</span> Carregando questões disponíveis...
+                </div>
+              ) : availableQuestions && availableQuestions.length > 0 ? (
+                <div className="space-y-2">
+                  {availableQuestions.map((question: any) => (
+                    <div key={question.id} className="flex items-start space-x-2 p-2 hover:bg-muted rounded-md">
+                      <Checkbox 
+                        id={`question-${question.id}`}
+                        checked={selectedQuestionIds.includes(question.id)}
+                        onCheckedChange={() => handleQuestionSelection(question.id)}
+                      />
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor={`question-${question.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {question.statement.substring(0, 100)}
+                          {question.statement.length > 100 ? "..." : ""}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {question.options.length} opções | Opção correta: {String.fromCharCode(65 + question.correctOption)}
+                        </p>
+                      </div>
+                      {selectedQuestionIds.includes(question.id) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleQuestionSelection(question.id);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Remover questão</span>
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">
+                    Nenhuma questão disponível. Adicione questões ao banco primeiro.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditQuestionsDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSaveAssessmentQuestions}
+                disabled={updateAssessmentQuestionsMutation.isPending}
+              >
+                {updateAssessmentQuestionsMutation.isPending ? (
+                  <>
+                    <span className="animate-spin mr-2">◌</span>
+                    Salvando...
+                  </>
+                ) : (
+                  "Salvar Questões"
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo para visualizar questões de avaliação */}
+      <Dialog open={isViewAssessmentQuestionsDialogOpen} onOpenChange={setIsViewAssessmentQuestionsDialogOpen}>
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] max-h-[800px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Questões da Avaliação</DialogTitle>
+            <DialogDescription>
+              Visualize e gerencie as questões incluídas nesta avaliação.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">
+                  {selectedAssessment?.title || "Avaliação"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAssessment?.type === "simulado" 
+                    ? "Questões incluídas no simulado" 
+                    : "Questões incluídas na avaliação final"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">{assessmentQuestionsWithDetails.length}</span> questões incluídas
+              </div>
+            </div>
+            
+            <div className="border rounded-md p-4 flex-1 overflow-y-auto">
+              {isAssessmentQuestionsLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                  <p>Carregando questões da avaliação...</p>
+                </div>
+              ) : assessmentQuestionsWithDetails && assessmentQuestionsWithDetails.length > 0 ? (
+                <div className="space-y-4">
+                  <Accordion type="multiple" className="w-full">
+                    {assessmentQuestionsWithDetails.map((question, index) => (
+                      <AccordionItem key={question.id} value={question.id.toString()}>
+                        <AccordionTrigger className="hover:bg-muted/50 px-4 -mx-4 rounded-md">
+                          <div className="flex items-center text-left w-full">
+                            <span className="font-semibold mr-2 text-primary">{index + 1}.</span>
+                            <span className="truncate flex-1 text-left">
+                              {question.statement && question.statement.length > 120
+                                ? `${question.statement.substring(0, 120)}...`
+                                : question.statement || "Sem enunciado"}
+                            </span>
+                            <Badge variant="outline" className="ml-2">
+                              {question.options ? question.options.length : 0} opções
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="border-t pt-4 mt-1">
+                          <div className="space-y-6">
+                            <div className="bg-muted/30 p-4 rounded-lg">
+                              <h4 className="font-semibold text-lg mb-2">Enunciado:</h4>
+                              <p className="mt-1 whitespace-pre-line">{question.statement}</p>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-semibold text-lg mb-3">Opções:</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {question.options && question.options.map((option: string, i: number) => (
+                                  <div key={i} className={`p-3 rounded-lg border ${i === question.correctOption ? 'border-green-500 bg-green-50' : 'border-muted'}`}>
+                                    <div className="flex items-center">
+                                      <span className="h-7 w-7 flex items-center justify-center rounded-full bg-primary text-white font-medium text-sm mr-2">
+                                        {String.fromCharCode(65 + i)}
+                                      </span>
+                                      <span className="ml-2 flex-1">{option}</span>
+                                      {i === question.correctOption && (
+                                        <Badge className="ml-2 bg-green-500">Correta</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {question.explanation && (
+                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 className="font-semibold text-lg mb-2 text-blue-700">Explicação:</h4>
+                                <p className="mt-1 whitespace-pre-line text-blue-800">{question.explanation}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-end space-x-2 pt-2">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveQuestionFromAssessment(question.id)}
+                              >
+                                <TrashIcon className="mr-1 h-4 w-4" />
+                                Remover Questão
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">
+                    Esta avaliação ainda não possui questões.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline" 
+                onClick={() => handleEditAssessmentQuestions(selectedAssessment)}
+              >
+                <PlusIcon className="mr-1 h-4 w-4" />
+                Adicionar Questões
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setIsViewAssessmentQuestionsDialogOpen(false)}
+              >
+                Fechar
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Prévia de Vídeo em Tela Cheia */}
+      <Dialog open={isVideoPreviewDialogOpen} onOpenChange={setIsVideoPreviewDialogOpen}>
+        <DialogContent className="sm:max-w-[90%] sm:h-auto">
+          <DialogHeader>
+            <DialogTitle>Visualização do Vídeo</DialogTitle>
+            <DialogDescription>
+              Assistindo ao vídeo selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            {previewVideoUrl ? (
+              <div className="aspect-video w-full overflow-hidden rounded-md bg-slate-200">
+                <EmbeddedVideoPlayer 
+                  url={previewVideoUrl} 
+                  source={previewVideoSource} 
+                  title="Visualização do vídeo" 
+                  className="w-full h-full"
+                />
+              </div>
+            ) : (
+              <div className="aspect-video flex items-center justify-center bg-slate-100 rounded-md text-slate-500">
+                <div className="text-center">
+                  <VideoIcon className="h-10 w-10 mx-auto mb-2 text-slate-400" />
+                  <p>Erro ao carregar o vídeo</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setIsVideoPreviewDialogOpen(false)}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

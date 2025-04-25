@@ -12,6 +12,7 @@ import SobrePage from "@/pages/landing/sobre-page";
 import ContatoPage from "@/pages/landing/contato-page";
 import BlogPage from "@/pages/landing/blog-page";
 import PrivacidadePage from "@/pages/institucional/privacidade-page";
+import ComponentsExamplePage from "@/pages/examples/components-example-page";
 import AdminAuthPage from "@/pages/autenticacao/admin-auth-page";
 import PoloAuthPage from "@/pages/autenticacao/polo-auth-page";
 import DisciplinesPage from "@/pages/admin/academico/disciplines-page";
@@ -100,6 +101,7 @@ import SecurityPage from "@/pages/admin/sistema/security-page";
 import SettingsPage from "@/pages/admin/sistema/settings-page";
 import InstitutionSettingsPage from "@/pages/admin/sistema/institution-settings-page";
 import PortalAccessControlPage from "@/pages/admin/sistema/portal-access-control-page";
+import SystemMaintenancePage from "@/pages/admin/maintenance/system-maintenance-page";
 // Import parcerias pages
 import PortalDoParceiroPage from "@/pages/admin/parcerias/portal-page";
 import CertificacaoAlunosPage from "@/pages/admin/parcerias/certificacao-page";
@@ -178,6 +180,7 @@ function Router() {
       <Route path="/test-page">
         {() => <div className="p-8 text-center">Página de Teste Funcionando!</div>}
       </Route>
+      <Route path="/examples/components" component={ComponentsExamplePage} />
       <Route path="/public-view/charges" component={SimpleChargesPage} />
       <Route path="/create-charge" component={PublicCreateChargePage} />
       
@@ -658,10 +661,16 @@ function Router() {
         {() => user?.portalType === "admin" ? <PortalAccessControlPage /> : <Redirect to="/admin" />}
       </Route>
       
+      <Route path="/admin/maintenance/system">
+        {() => user?.portalType === "admin" ? <SystemMaintenancePage /> : <Redirect to="/admin" />}
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );
 }
+
+// Nota: AuthErrorHandler foi removido para evitar redirecionamentos indesejados
 
 function App() {
   return (

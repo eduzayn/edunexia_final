@@ -3,6 +3,14 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Interface para dados de login
+export interface LoginData {
+  username: string;
+  password: string;
+  portalType?: string;
+  rememberMe?: boolean;
+}
+
 // Importações para exportação de tabelas de certificados
 import { 
   certificates, 
@@ -170,24 +178,34 @@ export const disciplines = pgTable("disciplines", {
   // Elementos de conteúdo
   videoAula1Url: text("video_aula1_url"), // URL do vídeo 1
   videoAula1Source: videoSourceEnum("video_aula1_source"), // Fonte do vídeo 1
+  videoAula1StartTime: text("video_aula1_start_time"), // Tempo de início do vídeo 1 (mm:ss)
   videoAula2Url: text("video_aula2_url"), // URL do vídeo 2
   videoAula2Source: videoSourceEnum("video_aula2_source"), // Fonte do vídeo 2
+  videoAula2StartTime: text("video_aula2_start_time"), // Tempo de início do vídeo 2 (mm:ss)
   videoAula3Url: text("video_aula3_url"), // URL do vídeo 3
   videoAula3Source: videoSourceEnum("video_aula3_source"), // Fonte do vídeo 3
+  videoAula3StartTime: text("video_aula3_start_time"), // Tempo de início do vídeo 3 (mm:ss)
   videoAula4Url: text("video_aula4_url"), // URL do vídeo 4
   videoAula4Source: videoSourceEnum("video_aula4_source"), // Fonte do vídeo 4
+  videoAula4StartTime: text("video_aula4_start_time"), // Tempo de início do vídeo 4 (mm:ss)
   videoAula5Url: text("video_aula5_url"), // URL do vídeo 5
   videoAula5Source: videoSourceEnum("video_aula5_source"), // Fonte do vídeo 5
+  videoAula5StartTime: text("video_aula5_start_time"), // Tempo de início do vídeo 5 (mm:ss)
   videoAula6Url: text("video_aula6_url"), // URL do vídeo 6
   videoAula6Source: videoSourceEnum("video_aula6_source"), // Fonte do vídeo 6
+  videoAula6StartTime: text("video_aula6_start_time"), // Tempo de início do vídeo 6 (mm:ss)
   videoAula7Url: text("video_aula7_url"), // URL do vídeo 7
   videoAula7Source: videoSourceEnum("video_aula7_source"), // Fonte do vídeo 7
+  videoAula7StartTime: text("video_aula7_start_time"), // Tempo de início do vídeo 7 (mm:ss)
   videoAula8Url: text("video_aula8_url"), // URL do vídeo 8
   videoAula8Source: videoSourceEnum("video_aula8_source"), // Fonte do vídeo 8
+  videoAula8StartTime: text("video_aula8_start_time"), // Tempo de início do vídeo 8 (mm:ss)
   videoAula9Url: text("video_aula9_url"), // URL do vídeo 9
   videoAula9Source: videoSourceEnum("video_aula9_source"), // Fonte do vídeo 9
+  videoAula9StartTime: text("video_aula9_start_time"), // Tempo de início do vídeo 9 (mm:ss)
   videoAula10Url: text("video_aula10_url"), // URL do vídeo 10
   videoAula10Source: videoSourceEnum("video_aula10_source"), // Fonte do vídeo 10
+  videoAula10StartTime: text("video_aula10_start_time"), // Tempo de início do vídeo 10 (mm:ss)
   apostilaPdfUrl: text("apostila_pdf_url"), // URL da apostila PDF
   ebookInterativoUrl: text("ebook_interativo_url"), // URL do e-book interativo
   
