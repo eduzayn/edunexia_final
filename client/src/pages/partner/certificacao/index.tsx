@@ -25,7 +25,8 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  Inbox
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -276,7 +277,7 @@ export default function CertificacaoPage() {
                       ) : solicitacoes.length === 0 ? (
                         <div className="p-8 text-center">
                           <div className="flex justify-center mb-4">
-                            <InboxIcon className="h-8 w-8 text-gray-400" />
+                            <Inbox className="h-8 w-8 text-gray-400" />
                           </div>
                           <p className="text-gray-500 mb-4">Nenhuma solicitação de certificação encontrada.</p>
                           <Button variant="default" size="sm" onClick={() => setLocation("/partner/certificacao/nova")}>
