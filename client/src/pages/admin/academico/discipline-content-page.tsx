@@ -686,7 +686,9 @@ export default function DisciplineContentPage() {
   // Mutation para adicionar avaliação
   const addAssessmentMutation = useMutation({
     mutationFn: async (data: AssessmentFormValues & { disciplineId: number }) => {
-      const response = await apiRequest("POST", buildApiUrl("/admin/assessments"), data);
+      // Usar o endpoint criado para avaliações
+      const disciplineId = data.disciplineId;
+      const response = await apiRequest("POST", buildApiUrl(`/api/disciplines/${disciplineId}/assessments`), data);
       
       // Verificar o tipo de conteúdo antes de tentar parsear como JSON
       const contentType = response.headers.get('content-type');
