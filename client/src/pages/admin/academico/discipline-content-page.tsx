@@ -3037,6 +3037,45 @@ export default function DisciplineContentPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de Prévia de Vídeo em Tela Cheia */}
+      <Dialog open={isVideoPreviewDialogOpen} onOpenChange={setIsVideoPreviewDialogOpen}>
+        <DialogContent className="sm:max-w-[90%] sm:h-auto">
+          <DialogHeader>
+            <DialogTitle>Visualização do Vídeo</DialogTitle>
+            <DialogDescription>
+              Assistindo ao vídeo selecionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            {previewVideoUrl ? (
+              <div className="aspect-video w-full overflow-hidden rounded-md bg-slate-200">
+                <EmbeddedVideoPlayer 
+                  url={previewVideoUrl} 
+                  source={previewVideoSource} 
+                  title="Visualização do vídeo" 
+                  className="w-full h-full"
+                />
+              </div>
+            ) : (
+              <div className="aspect-video flex items-center justify-center bg-slate-100 rounded-md text-slate-500">
+                <div className="text-center">
+                  <VideoIcon className="h-10 w-10 mx-auto mb-2 text-slate-400" />
+                  <p>Erro ao carregar o vídeo</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setIsVideoPreviewDialogOpen(false)}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
