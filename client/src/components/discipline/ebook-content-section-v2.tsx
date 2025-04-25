@@ -27,7 +27,8 @@ import {
   RefreshCw,
   CheckCircle, 
   FileText,
-  Search
+  Search,
+  File as FileIcon
 } from 'lucide-react';
 import { PdfViewer } from '@/components/pdf-viewer/pdf-viewer';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -411,27 +412,39 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
             Atualizar
           </Button>
           
-          {ebookData?.available && (
+          {ebookData?.available ? (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsManageDialogOpen(true)}
+                className="flex gap-2 items-center"
+              >
+                <Pencil className="h-4 w-4" />
+                Gerenciar
+              </Button>
+              
+              <Button 
+                variant="outline"
+                size="sm" 
+                onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                className="flex gap-2 items-center bg-blue-50 text-blue-800 hover:bg-blue-100"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir
+              </Button>
+            </>
+          ) : (
             <Button 
-              variant="outline" 
+              variant="default"
               size="sm" 
-              onClick={() => setIsManageDialogOpen(true)}
+              onClick={() => setIsAddDialogOpen(true)}
               className="flex gap-2 items-center"
             >
-              <Pencil className="h-4 w-4" />
-              Gerenciar
+              <PlusIcon className="h-4 w-4" />
+              Adicionar E-book
             </Button>
           )}
-          
-          <Button 
-            variant={ebookData?.available ? "outline" : "default"}
-            size="sm" 
-            onClick={() => setIsAddDialogOpen(true)}
-            className="flex gap-2 items-center"
-          >
-            <PlusIcon className="h-4 w-4" />
-            {ebookData?.available ? "Substituir" : "Adicionar E-book"}
-          </Button>
         </div>
       </div>
       
@@ -476,8 +489,8 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                 
                 <div className="flex space-x-2">
                   <Button 
-                    variant="default" 
-                    onClick={() => setIsViewDialogOpen(true)}
+                    variant="secondary" 
+                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
                     className="flex gap-2 items-center"
                   >
                     <Book className="h-4 w-4" />
@@ -485,7 +498,8 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                   </Button>
                   
                   <Button 
-                    variant="outline" 
+                    variant="outline"
+                    size="sm" 
                     onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
                     className="flex gap-2 items-center"
                   >
@@ -496,71 +510,23 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
               </div>
               
               <div className="h-64 w-full bg-slate-100 rounded-md overflow-hidden flex items-center justify-center">
-                {viewerUrl ? (
-                  urlType === 'google-drive' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center">
-                      <img 
-                        src={viewerUrl} 
-                        alt="Prévia do E-book" 
-                        className="max-h-full max-w-full object-contain"
-                        onError={(e) => {
-                          console.error("Erro ao carregar imagem:", e);
-                          // Fallback para um botão de visualização externa
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const container = target.parentElement;
-                          if (container) {
-                            const fallback = document.createElement('div');
-                            fallback.className = "text-center p-4";
-                            fallback.innerHTML = `
-                              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <p class="text-gray-500">Visualização prévia não disponível</p>
-                              <button class="mt-2 inline-flex items-center justify-center px-3 py-1 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                                onclick="window.open('${ebookData.ebookPdfUrl}', '_blank')">
-                                <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                                Abrir para visualizar
-                              </button>
-                            `;
-                            container.appendChild(fallback);
-                          }
-                        }}
-                      />
-                      <div className="mt-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Abrir no Google Drive
-                        </Button>
+                <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                  <div className="w-full flex-1 flex items-center justify-center bg-slate-50 rounded-lg overflow-hidden">
+                    {urlType === 'google-drive' ? (
+                      <div className="text-center">
+                        <Badge className="mb-2 bg-blue-50 text-blue-800">Google Drive</Badge>
+                        <FileIcon className="h-16 w-16 text-slate-300 mx-auto mb-2" />
+                        <p className="text-slate-500 text-xs">Visualização prévia não disponível</p>
                       </div>
-                    </div>
-                  ) : (
-                    <PdfViewer 
-                      pdfUrl={viewerUrl} 
-                      height={256}
-                    />
-                  )
-                ) : (
-                  <div className="text-center p-4">
-                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">Pré-visualização não disponível</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2"
-                      onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Abrir para visualizar
-                    </Button>
+                    ) : (
+                      <div className="text-center">
+                        <Badge className="mb-2 bg-blue-50 text-blue-800">PDF</Badge>
+                        <FileText className="h-16 w-16 text-slate-300 mx-auto mb-2" />
+                        <p className="text-slate-500 text-xs">Visualização prévia não disponível</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           ) : (
