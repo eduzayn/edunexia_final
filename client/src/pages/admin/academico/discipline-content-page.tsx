@@ -806,6 +806,7 @@ export default function DisciplineContentPage() {
       description: "",
       type: "simulado",
       passingScore: 6,
+      questionIds: [],
     },
   });
   
