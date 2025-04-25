@@ -63,6 +63,7 @@ import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
 import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
+import disciplineDetailRoute from './routes/discipline'; // Route for individual discipline by ID
 
 // Armazenamento de sessão simplificado (em memória)
 // Definição movida para shared/active-users.ts
@@ -866,6 +867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
+  app.use(disciplineDetailRoute); // Route for accessing discipline by ID
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação
