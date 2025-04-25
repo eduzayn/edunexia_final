@@ -338,8 +338,14 @@ export default function DisciplineContentPage() {
   } = useQuery({
     queryKey: [buildDisciplineEbookApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await fetchDisciplineEbook(disciplineId);
-      return response.json();
+      try {
+        const response = await fetchDisciplineEbook(disciplineId);
+        const data = await response.json();
+        return data || { ebookPdfUrl: null, ebookInterativoUrl: null, id: disciplineId };
+      } catch (error) {
+        console.error("Erro ao buscar e-book da disciplina:", error);
+        return { ebookPdfUrl: null, ebookInterativoUrl: null, id: disciplineId };
+      }
     },
   });
   
@@ -351,8 +357,15 @@ export default function DisciplineContentPage() {
   } = useQuery({
     queryKey: [buildDisciplineQuestionsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", buildDisciplineQuestionsApiUrl(disciplineId));
-      return response.json();
+      try {
+        const response = await apiRequest("GET", buildDisciplineQuestionsApiUrl(disciplineId));
+        const data = await response.json();
+        // Retorna array vazio se não houver dados ou se o formato for inválido
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar questões da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
@@ -364,8 +377,15 @@ export default function DisciplineContentPage() {
   } = useQuery({
     queryKey: [buildDisciplineAssessmentsApiUrl(disciplineId)],
     queryFn: async () => {
-      const response = await apiRequest("GET", buildDisciplineAssessmentsApiUrl(disciplineId));
-      return response.json();
+      try {
+        const response = await apiRequest("GET", buildDisciplineAssessmentsApiUrl(disciplineId));
+        const data = await response.json();
+        // Retorna array vazio se não houver dados ou se o formato for inválido
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Erro ao buscar avaliações da disciplina:", error);
+        return []; // Retorna array vazio em caso de erro
+      }
     },
   });
   
