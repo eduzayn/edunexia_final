@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { disciplines } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { 
+  disciplines, 
+  questions, 
+  assessments, 
+  assessmentQuestions 
+} from '@shared/schema';
+import { and, eq, count } from 'drizzle-orm';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
@@ -516,11 +521,115 @@ router.get('/api/disciplines/:id/questions', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
     }
     
-    // Como não temos questões no banco, retornamos um array vazio por enquanto
-    res.json([]);
+    // Buscar questões da disciplina no banco
+    const disciplineQuestions = await db
+      .select()
+      .from(questions)
+      .where(eq(questions.disciplineId, disciplineId));
+    
+    // Retornar as questões
+    res.json(disciplineQuestions || []);
   } catch (error) {
     console.error('Erro ao buscar questões da disciplina:', error);
     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para adicionar questão
+ */
+router.post('/admin/questions', async (req, res) => {
+  try {
+    const { 
+      disciplineId, 
+      statement, 
+      options, 
+      correctOption, 
+      explanation 
+    } = req.body;
+    
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID da disciplina é obrigatório' 
+      });
+    }
+    
+    // Validar o ID da disciplina
+    const numDisciplineId = parseInt(disciplineId.toString(), 10);
+    if (isNaN(numDisciplineId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Verificar se a disciplina existe
+    const discipline = await getDisciplineById(numDisciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Validar dados da requisição
+    if (!statement) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Enunciado da questão é obrigatório' 
+      });
+    }
+    
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'É necessário fornecer pelo menos 2 opções de resposta' 
+      });
+    }
+    
+    if (correctOption === undefined || correctOption === null || correctOption < 0 || correctOption >= options.length) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Opção correta inválida' 
+      });
+    }
+    
+    // Inserir a questão no banco de dados
+    const [newQuestion] = await db
+      .insert(questions)
+      .values({
+        disciplineId: numDisciplineId,
+        statement,
+        options: JSON.stringify(options),
+        correctOption,
+        explanation: explanation || null,
+        questionType: 'multiple_choice',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    if (!newQuestion) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao criar questão' 
+      });
+    }
+    
+    // Retornar a questão criada
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Questão criada com sucesso',
+      question: newQuestion
+    });
+    
+  } catch (error) {
+    console.error('Erro ao criar questão:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor ao criar questão' 
+    });
   }
 });
 
@@ -543,11 +652,159 @@ router.get('/api/disciplines/:id/assessments', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
     }
     
-    // Como não temos avaliações no banco, retornamos um array vazio por enquanto
-    res.json([]);
+    // Buscar avaliações da disciplina no banco
+    const disciplineAssessments = await db
+      .select()
+      .from(assessments)
+      .where(eq(assessments.disciplineId, disciplineId));
+    
+    // Para cada avaliação, calcular quantas questões ela possui
+    // e outras informações relevantes
+    const assessmentsWithQuestionCount = await Promise.all(
+      disciplineAssessments.map(async (assessment) => {
+        // Contar questões da avaliação
+        const questionCount = await db
+          .select({ count: count() })
+          .from(assessmentQuestions)
+          .where(eq(assessmentQuestions.assessmentId, assessment.id))
+          .then(result => result[0]?.count || 0);
+        
+        return {
+          ...assessment,
+          questionCount
+        };
+      })
+    );
+    
+    // Retornar as avaliações
+    res.json(assessmentsWithQuestionCount || []);
   } catch (error) {
     console.error('Erro ao buscar avaliações da disciplina:', error);
     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+/**
+ * Rota para adicionar uma avaliação (simulado ou avaliação final)
+ */
+router.post('/admin/assessments', async (req, res) => {
+  try {
+    const { 
+      disciplineId, 
+      title, 
+      description, 
+      type, 
+      passingScore 
+    } = req.body;
+    
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID da disciplina é obrigatório' 
+      });
+    }
+    
+    // Validar o ID da disciplina
+    const numDisciplineId = parseInt(disciplineId.toString(), 10);
+    if (isNaN(numDisciplineId)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    // Verificar se a disciplina existe
+    const discipline = await getDisciplineById(numDisciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Validar dados da requisição
+    if (!title) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Título da avaliação é obrigatório' 
+      });
+    }
+    
+    if (!type || (type !== 'simulado' && type !== 'avaliacao_final')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Tipo de avaliação inválido. Deve ser simulado ou avaliacao_final' 
+      });
+    }
+    
+    // Verificar se já existe uma avaliação do mesmo tipo para esta disciplina
+    const existingAssessment = await db
+      .select()
+      .from(assessments)
+      .where(
+        and(
+          eq(assessments.disciplineId, numDisciplineId),
+          eq(assessments.type, type)
+        )
+      )
+      .limit(1);
+    
+    if (existingAssessment.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Já existe um(a) ${type === 'simulado' ? 'simulado' : 'avaliação final'} para esta disciplina` 
+      });
+    }
+    
+    // Converter passingScore para número
+    let numPassingScore = 60; // Valor padrão
+    if (passingScore !== undefined && passingScore !== null) {
+      numPassingScore = typeof passingScore === 'number' 
+        ? passingScore 
+        : parseInt(passingScore.toString(), 10);
+      
+      if (isNaN(numPassingScore) || numPassingScore < 0 || numPassingScore > 100) {
+        numPassingScore = 60; // Valor padrão se inválido
+      }
+    }
+    
+    // Inserir a avaliação no banco de dados
+    const [newAssessment] = await db
+      .insert(assessments)
+      .values({
+        disciplineId: numDisciplineId,
+        title,
+        description: description || null,
+        type,
+        passingScore: numPassingScore,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    if (!newAssessment) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao criar avaliação' 
+      });
+    }
+    
+    // Retornar a avaliação criada
+    return res.status(201).json({ 
+      success: true, 
+      message: 'Avaliação criada com sucesso',
+      assessment: {
+        ...newAssessment,
+        questionCount: 0 // Inicialmente não tem questões
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erro ao criar avaliação:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor ao criar avaliação' 
+    });
   }
 });
 
