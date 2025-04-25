@@ -99,6 +99,7 @@ import {
   CheckIcon,
   EditIcon,
 } from "@/components/ui/icons";
+import { Clock as ClockIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -760,10 +761,11 @@ export default function DisciplineContentPage() {
       videoSource: video.videoSource,
       url: video.url,
       duration: video.duration,
+      startTime: video.startTime || "", // Incluir campo de tempo de início
     });
     // Inicializar estados de prévia com os dados do vídeo
     setPreviewVideoUrl(video.url);
-    setPreviewVideoSource(video.videoSource as any);
+    setPreviewVideoSource(video.videoSource as VideoSource);
     setIsVideoEditDialogOpen(true);
   };
   
@@ -1319,7 +1321,8 @@ export default function DisciplineContentPage() {
                             <EmbeddedVideoPlayer 
                               url={video.url}
                               title={video.title}
-                              source={video.videoSource as "youtube" | "vimeo" | "onedrive" | "google_drive" | "upload"}
+                              source={video.videoSource as VideoSource}
+                              startTime={video.startTime}
                               className="w-full"
                             />
                           </div>
@@ -1328,8 +1331,14 @@ export default function DisciplineContentPage() {
                             <p className="text-sm text-gray-500 line-clamp-2 mt-1">
                               {video.description}
                             </p>
-                            <div className="flex items-center mt-2 text-sm text-gray-500">
+                            <div className="flex flex-col mt-2 text-sm text-gray-500">
                               <span>Duração: {video.duration}</span>
+                              {video.startTime && video.videoSource === 'youtube' && (
+                                <span className="text-emerald-600 mt-1">
+                                  <ClockIcon className="h-3 w-3 inline-block mr-1" />
+                                  Início em: {video.startTime}
+                                </span>
+                              )}
                             </div>
                           </CardContent>
                           <CardFooter className="p-4 pt-0 flex justify-between">
