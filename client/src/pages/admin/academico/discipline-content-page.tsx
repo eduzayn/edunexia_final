@@ -133,18 +133,7 @@ const videoFormSchema = z.object({
   startTime: z.string().regex(/^\d+:\d+$/, { message: "Tempo de início deve estar no formato mm:ss" }).optional(),
 });
 
-const materialFormSchema = z.object({
-  title: z.string().min(3, { message: "Título deve ter pelo menos 3 caracteres" }),
-  description: z.string().min(10, { message: "Descrição deve ter pelo menos 10 caracteres" }),
-  url: z.string().url({ message: "URL inválida" }).optional(),
-  file: z.any().optional(), // Suporte para upload de arquivo PDF
-}).refine(
-  (data) => data.url || data.file, 
-  {
-    message: "Forneça um link para o PDF ou faça upload de um arquivo",
-    path: ["url"],
-  }
-);
+// Material form schema removido
 
 // Schema para inserção de link de e-book externo
 const ebookLinkFormSchema = z.object({
@@ -169,7 +158,7 @@ const assessmentFormSchema = z.object({
 });
 
 type VideoFormValues = z.infer<typeof videoFormSchema>;
-type MaterialFormValues = z.infer<typeof materialFormSchema>;
+// MaterialFormValues tipo removido
 type EbookLinkFormValues = z.infer<typeof ebookLinkFormSchema>;
 type QuestionFormValues = z.infer<typeof questionFormSchema>;
 type AssessmentFormValues = z.infer<typeof assessmentFormSchema>;
