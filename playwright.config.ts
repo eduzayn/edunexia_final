@@ -37,19 +37,17 @@ export default defineConfig({
     trace: 'off',
   },
   
-  // Apenas chromium headless para economizar recursos
+  // Usando configuração mínima para Firefox
   projects: [
     {
-      name: 'chromium',
+      name: 'firefox',
       use: { 
-        ...devices['Desktop Chrome'],
+        ...devices['Desktop Firefox'],
         launchOptions: {
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-gpu',
-            '--disable-dev-shm-usage'
-          ]
+          firefoxUserPrefs: {
+            'browser.cache.disk.enable': false,
+            'browser.cache.memory.enable': false
+          }
         }
       },
     }
