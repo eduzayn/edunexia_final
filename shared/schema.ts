@@ -11,6 +11,57 @@ export interface LoginData {
   rememberMe?: boolean;
 }
 
+// Tabelas para módulo de avaliações e questões
+export const questions = pgTable("questions", {
+  id: serial("id").primaryKey(),
+  disciplineId: integer("discipline_id").notNull(),
+  type: text("type").notNull(), // multiple_choice, true_false, essay
+  questionText: text("question_text").notNull(),
+  options: json("options").$type<string[]>(),
+  correctAnswer: text("correct_answer"),
+  explanation: text("explanation"),
+  difficulty: text("difficulty"),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const assessments = pgTable("assessments", {
+  id: serial("id").primaryKey(),
+  disciplineId: integer("discipline_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(), // simulado, avaliacao_final
+  passingScore: doublePrecision("passing_score").default(6).notNull(),
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const assessmentQuestions = pgTable("assessment_questions", {
+  id: serial("id").primaryKey(),
+  assessmentId: integer("assessment_id").notNull(),
+  questionId: integer("question_id").notNull(),
+  order: integer("order").default(0),
+  weight: doublePrecision("weight").default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Tipos para questões e avaliações
+export type Question = typeof questions.$inferSelect;
+export type InsertQuestion = typeof questions.$inferInsert;
+export type Assessment = typeof assessments.$inferSelect;
+export type InsertAssessment = typeof assessments.$inferInsert;
+export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+export type InsertAssessmentQuestion = typeof assessmentQuestions.$inferInsert;
+
+// Esquemas de inserção para questões e avaliações
+export const insertQuestionSchema = createInsertSchema(questions);
+export const insertAssessmentSchema = createInsertSchema(assessments);
+export const insertAssessmentQuestionSchema = createInsertSchema(assessmentQuestions, {
+  id: z.number().optional(),
+});
+
 // Importações para exportação de tabelas de certificados
 import { 
   certificates, 

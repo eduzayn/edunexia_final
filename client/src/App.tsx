@@ -75,13 +75,14 @@ import LogsAuditoriaPage from "@/pages/admin/auditoria/logs-auditoria-page";
 // Import student pages
 import StudentCoursesPage from "@/pages/student/courses-page";
 import CourseDetailPage from "@/pages/student/course-detail-page";
-import DisciplineVideoPage from "@/pages/student/discipline-video-page";
-import DisciplinePdfPage from "@/pages/student/discipline-pdf-page";
-import DisciplineEbookPage from "@/pages/student/discipline-ebook-page";
+// Importações com erro - arquivos não encontrados
+// import DisciplineVideoPage from "@/pages/student/discipline-video-page";
+// import DisciplinePdfPage from "@/pages/student/discipline-pdf-page";
+// import DisciplineEbookPage from "@/pages/student/discipline-ebook-page";
 import LibraryPage from "@/pages/student/library-page";
 import SecretariaPage from "@/pages/student/secretaria-page";
 import CredencialPage from "@/pages/student/credencial-page";
-import LearningPage from "@/pages/student/learning-page";
+// import LearningPage from "@/pages/student/learning-page";
 import StudentFinancialPage from "@/pages/student/financial-page";
 // Import das novas páginas do portal do aluno
 import StudentInternshipsPage from "@/pages/student/internships-page";
@@ -90,11 +91,11 @@ import StudentCalendarPage from "@/pages/student/calendar-page";
 import StudentMessagesPage from "@/pages/student/messages-page";
 import StudentProfilePage from "@/pages/student/profile-page";
 
-// Import ebooks pages
-import EbooksIndexPage from "@/pages/admin/ebooks/index";
-import EbooksGeneratePage from "@/pages/admin/ebooks/generate";
-import EbookEditPage from "@/pages/admin/ebooks/[id]/edit";
-import AdvancedGenerateEBookPage from "@/pages/admin/ebooks/advanced-generate";
+// Import ebooks pages - comentados pois não existem
+// import EbooksIndexPage from "@/pages/admin/ebooks/index";
+// import EbooksGeneratePage from "@/pages/admin/ebooks/generate";
+// import EbookEditPage from "@/pages/admin/ebooks/[id]/edit";
+// import AdvancedGenerateEBookPage from "@/pages/admin/ebooks/advanced-generate";
 // Módulo de Sistema
 import SecurityPage from "@/pages/admin/sistema/security-page";
 import SettingsPage from "@/pages/admin/sistema/settings-page";
@@ -202,6 +203,7 @@ function Router() {
       <Route path="/student/courses/:id">
         {() => user?.portalType === "student" ? <CourseDetailPage /> : <Redirect to="/auth" />}
       </Route>
+      {/* Rotas comentadas para discipline, pois os componentes não existem
       <Route path="/student/discipline/:id/video/:videoNumber">
         {() => user?.portalType === "student" ? <DisciplineVideoPage /> : <Redirect to="/auth" />}
       </Route>
@@ -211,6 +213,7 @@ function Router() {
       <Route path="/student/discipline/:id/ebook">
         {() => user?.portalType === "student" ? <DisciplineEbookPage /> : <Redirect to="/auth" />}
       </Route>
+      */}
       {/* Rotas de avaliações e simulados foram removidas */}
       <Route path="/student/library">
         {() => user?.portalType === "student" ? <LibraryPage /> : <Redirect to="/auth" />}
@@ -221,9 +224,9 @@ function Router() {
       <Route path="/student/credencial">
         {() => user?.portalType === "student" ? <CredencialPage /> : <Redirect to="/auth" />}
       </Route>
-      <Route path="/student/learning">
+      {/* <Route path="/student/learning">
         {() => user?.portalType === "student" ? <LearningPage /> : <Redirect to="/auth" />}
-      </Route>
+      </Route> */}
       <Route path="/student/financial">
         {() => user?.portalType === "student" ? <StudentFinancialPage /> : <Redirect to="/auth" />}
       </Route>
@@ -285,7 +288,8 @@ function Router() {
       {/* Novas rotas do módulo de disciplinas reconstruído em inglês */}
       <Route path="/admin/academico/disciplines">
         {() => {
-          const DisciplinesPage = React.lazy(() => import("@/pages/admin/academico/disciplines"));
+          // Usamos dynamic import com sintaxe que não precisa de React global
+          const DisciplinesPage = lazyImport(() => import("@/pages/admin/academico/disciplines"));
           return user?.portalType === "admin" 
             ? <DisciplinesPage /> 
             : <Redirect to="/admin" />;
@@ -293,7 +297,7 @@ function Router() {
       </Route>
       <Route path="/admin/academico/disciplines/new">
         {() => {
-          const NewDisciplinePage = React.lazy(() => import("@/pages/admin/academico/disciplines/new"));
+          const NewDisciplinePage = lazyImport(() => import("@/pages/admin/academico/disciplines/new"));
           return user?.portalType === "admin" 
             ? <NewDisciplinePage /> 
             : <Redirect to="/admin" />;
@@ -301,7 +305,7 @@ function Router() {
       </Route>
       <Route path="/admin/academico/disciplines/:id/edit">
         {(params) => {
-          const EditDisciplinePage = React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/edit"));
+          const EditDisciplinePage = lazyImport(() => import("@/pages/admin/academico/disciplines/[id]/edit"));
           return user?.portalType === "admin" 
             ? <EditDisciplinePage /> 
             : <Redirect to="/admin" />;
@@ -309,7 +313,7 @@ function Router() {
       </Route>
       <Route path="/admin/academico/disciplines/:id/content">
         {(params) => {
-          const ContentPage = React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/content"));
+          const ContentPage = lazyImport(() => import("@/pages/admin/academico/disciplines/[id]/content"));
           return user?.portalType === "admin" 
             ? <ContentPage /> 
             : <Redirect to="/admin" />;
@@ -339,7 +343,7 @@ function Router() {
         {() => user?.portalType === "admin" ? <CoursesPage /> : <Redirect to="/admin" />}
       </Route>
 
-      {/* Rotas de e-books */}
+      {/* Rotas de e-books - comentadas por falta dos componentes
       <Route path="/admin/ebooks">
         {() => user?.portalType === "admin" ? <EbooksIndexPage /> : <Redirect to="/admin" />}
       </Route>
@@ -352,6 +356,7 @@ function Router() {
       <Route path="/admin/ebooks/:id/edit">
         {() => user?.portalType === "admin" ? <EbookEditPage /> : <Redirect to="/admin" />}
       </Route>
+      */}
       <Route path="/admin/courses/new">
         {() => user?.portalType === "admin" ? <CourseFormPage /> : <Redirect to="/admin" />}
       </Route>
