@@ -1205,10 +1205,9 @@ export default function DisciplineContentPage() {
   // Calcula o progresso de completude
   useEffect(() => {
     let progress = 0;
-    const totalItems = 5; // 2 vídeos, 1 apostila, 1 e-book, 1 conjunto de avaliações
+    const totalItems = 4; // 2 vídeos, 1 e-book, 2 conjuntos de avaliações
     
     if (videos && videos.length >= 2) progress++; // Vídeos
-    if (material) progress++; // Apostila
     if (ebook) progress++; // E-book
     
     // Simulado com pelo menos 30 questões
@@ -1220,7 +1219,7 @@ export default function DisciplineContentPage() {
     if (avaliacao && (avaliacao.questionCount || 0) >= 10) progress++;
     
     setCompletionProgress(Math.floor((progress / totalItems) * 100));
-  }, [videos, material, ebook, assessments]);
+  }, [videos, ebook, assessments]);
 
   // Efeito para fechar menu mobile quando a tela é redimensionada
   useEffect(() => {
@@ -1420,35 +1419,7 @@ export default function DisciplineContentPage() {
                   </CardFooter>
                 </Card>
 
-                {/* Card de Apostila */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <FileTextIcon className="mr-2 h-5 w-5" />
-                      Apostila
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span>Progresso:</span>
-                        <Badge variant={material ? "default" : "outline"}>
-                          {material ? "1" : "0"}/1
-                        </Badge>
-                      </div>
-                      <Progress value={material ? 100 : 0} className="h-2" />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      onClick={() => setActiveTab("materials")} 
-                      variant="outline" 
-                      className="w-full"
-                    >
-                      {material ? "Gerenciar Apostila" : "Adicionar Apostila"}
-                    </Button>
-                  </CardFooter>
-                </Card>
+
 
                 {/* Card de E-book */}
                 <Card>
@@ -2208,120 +2179,7 @@ export default function DisciplineContentPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Material Dialog */}
-      <Dialog open={isMaterialDialogOpen} onOpenChange={setIsMaterialDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Adicionar Apostila</DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para adicionar a apostila principal da disciplina.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...materialForm}>
-            <form onSubmit={materialForm.handleSubmit(onMaterialSubmit)} className="space-y-6">
-              <FormField
-                control={materialForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Título</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Apostila Completa de Matemática" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={materialForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Descrição do conteúdo da apostila..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Escolha uma opção:</div>
-                <Tabs defaultValue="link" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="link">Link Externo</TabsTrigger>
-                    <TabsTrigger value="upload">Upload de Arquivo</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="link" className="pt-4">
-                    <FormField
-                      control={materialForm.control}
-                      name="url"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>URL do PDF</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="https://" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Link para o arquivo PDF da apostila. Pode ser um link direto ou de serviços como Google Drive.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-                  <TabsContent value="upload" className="pt-4">
-                    <FormField
-                      control={materialForm.control}
-                      name="file"
-                      render={({ field: { onChange, value, ...rest } }) => (
-                        <FormItem>
-                          <FormLabel>Arquivo PDF</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="file"
-                              accept=".pdf"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  onChange(file);
-                                }
-                              }}
-                              {...rest}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Selecione um arquivo PDF para upload (máximo 10MB).
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-                </Tabs>
-              </div>
-              
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsMaterialDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit">Adicionar Apostila</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      {/* Material Dialog Removed */}
 
       {/* Add E-book Dialog */}
       {/* Diálogo de E-book removido - usando interface completa em /admin/ebooks/generate */}
