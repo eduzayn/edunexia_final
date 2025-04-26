@@ -285,15 +285,20 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                     URL Original: {ebook.url}<br/>
                     URL Incorporada: {getEmbedUrl(ebook.url)}
                   </div>
-                  {/* Caso específico para o Google Drive */}
+                  {/* Solução direta para o Google Drive com ID fixo para teste */}
                   {ebook.url.includes('drive.google.com') ? (
-                    <iframe 
-                      src={`https://drive.google.com/file/d/${ebook.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || '16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G'}/preview`}
-                      className="w-full min-h-[600px] border-0 rounded"
-                      allowFullScreen
-                      allow="autoplay; encrypted-media"
-                      title={ebook.title || "E-book da disciplina"}
-                    />
+                    <>
+                      <div className="p-2 mb-2 bg-green-50 text-xs text-green-600 rounded">
+                        Link do Drive detectado. ID extraído: {ebook.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || 'não identificado'}
+                      </div>
+                      <iframe 
+                        src="https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/preview"
+                        className="w-full min-h-[600px] border-0 rounded"
+                        allowFullScreen
+                        allow="autoplay; encrypted-media"
+                        title={ebook.title || "E-book da disciplina"}
+                      />
+                    </>
                   ) : (
                     <iframe 
                       src={getEmbedUrl(ebook.url)}
