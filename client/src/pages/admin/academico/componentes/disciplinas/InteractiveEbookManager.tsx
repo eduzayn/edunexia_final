@@ -216,9 +216,9 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
       const normalizedEbook = {
         ...ebook,
         // Garantir que temos o campo url (pode vir como interactiveEbookUrl da API)
-        url: ebook.url || ebook.interactiveEbookUrl || "",
+        url: ebook.url || (ebook as any).interactiveEbookUrl || "",
         // Garantir que temos o campo title (pode vir como name da API)
-        title: ebook.title || ebook.name || "",
+        title: ebook.title || (ebook as any).name || "",
       };
       
       console.log("Dados do e-book recebidos:", ebook);

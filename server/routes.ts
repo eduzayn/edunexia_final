@@ -66,7 +66,7 @@ import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
 import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
-import disciplineDetailRoute from './routes/discipline'; // Route for individual discipline by ID
+// Rota antiga de disciplinas removida
 
 // Armazenamento de sessão simplificado (em memória)
 // Definição movida para shared/active-users.ts
@@ -1087,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
-  app.use(disciplineDetailRoute); // Route for accessing discipline by ID
+  // Rota antiga de disciplinas removida
   
   // Implementa diretamente as rotas de e-books interativos aqui
   // Rota para tratar e-books interativos - GET

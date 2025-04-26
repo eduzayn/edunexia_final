@@ -101,9 +101,8 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       name: "Acadêmico",
       icon: <MenuBookIcon />,
       items: [
-        // Nova versão com a estrutura refatorada
         { 
-          name: "Disciplinas (novo)", 
+          name: "Disciplinas", 
           icon: <BookIcon />, 
           href: "/admin/academico/disciplinas",
           active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/"))
@@ -117,16 +116,9 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       ]
     }, currentPath),
     items: [
-        // Versão antiga (mostrar em itálico e uma dica de "deprecated")
+
         { 
-          name: "Disciplinas (antigo)", 
-          icon: <BookIcon />, 
-          href: "/admin/academico/disciplines",
-          active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/"))
-        },
-        // Nova versão com a estrutura refatorada
-        { 
-          name: "Disciplinas (novo)", 
+          name: "Disciplinas", 
           icon: <BookIcon />, 
           href: "/admin/academico/disciplinas",
           active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/")),

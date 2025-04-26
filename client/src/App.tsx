@@ -15,10 +15,10 @@ import PrivacidadePage from "@/pages/institucional/privacidade-page";
 import ComponentsExamplePage from "@/pages/examples/components-example-page";
 import AdminAuthPage from "@/pages/autenticacao/admin-auth-page";
 import PoloAuthPage from "@/pages/autenticacao/polo-auth-page";
-import DisciplinesPage from "@/pages/admin/academico/disciplines-page";
+// import DisciplinesPage from "@/pages/admin/academico/disciplines-page"; // Removido
 import CoursesPage from "@/pages/admin/academico/courses-page";
 import CourseFormPage from "@/pages/admin/academico/course-form-page";
-import DisciplineContentPage from "@/pages/admin/academico/discipline-content-page";
+// Página antiga de disciplinas removida
 import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content";
 import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas";
 import InstitutionsPage from "@/pages/admin/institucional/institutions-page";
@@ -293,12 +293,7 @@ function Router() {
         {() => user?.portalType === "polo" ? <PoloSalesLinksPage /> : <Redirect to="/polo" />}
       </Route>
       <ProtectedRoute path="/admin/dashboard" portalType="admin" />
-      <Route path="/admin/academico/disciplines">
-        {() => user?.portalType === "admin" ? <DisciplinesPage /> : <Redirect to="/admin" />}
-      </Route>
-      <Route path="/admin/academico/disciplines/:id/content">
-        {() => user?.portalType === "admin" ? <DisciplineContentPage /> : <Redirect to="/admin" />}
-      </Route>
+      {/* As páginas antigas de disciplinas foram removidas */}
       {/* Novas rotas para o módulo pedagógico refatorado */}
       <Route path="/admin/academico/disciplinas">
         {() => user?.portalType === "admin" ? <DisciplinasPage /> : <Redirect to="/admin" />}
