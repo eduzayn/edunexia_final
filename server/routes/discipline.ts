@@ -460,8 +460,19 @@ router.delete('/api/disciplines/:id/ebook', async (req, res) => {
     console.log('Excluindo e-book para disciplina:', disciplineId);
     console.log('Tipo de e-book:', isInteractiveEbook ? 'interativo' : (isRegularEbook ? 'regular' : 'nenhum'));
     
+    if (!isInteractiveEbook && !isRegularEbook) {
+      // Se não houver e-book para excluir, apenas retornamos sucesso
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Nenhum e-book para remover nesta disciplina'
+      });
+    }
+    
     // Preparar o objeto de atualização conforme o tipo de e-book disponível
-    const updateData: any = {};
+    // Definindo um valor padrão para evitar erro "No values to set"
+    const updateData: any = {
+      updatedAt: new Date() // Garantir que sempre temos algo para atualizar
+    };
     
     if (isInteractiveEbook) {
       // Se for um e-book interativo
@@ -511,10 +522,14 @@ router.get('/api/disciplines/:id/ebook', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
     }
     
-    // Verificar se existe um ebook real ou uma apostila
+    // Verificar se existe um ebook real ou uma apostila nesta disciplina específica
     const ebookUrl = discipline.ebookInterativoUrl || discipline.apostilaPdfUrl;
     
-    // Se não tiver conteúdo real, retornamos uma estrutura indicando que não há ebook
+    console.log(`Buscando e-book para disciplina ${disciplineId}:`, 
+                `ebookInterativoUrl=${discipline.ebookInterativoUrl}`, 
+                `apostilaPdfUrl=${discipline.apostilaPdfUrl}`);
+    
+    // Se não tiver conteúdo real para esta disciplina específica, retornamos uma estrutura indicando que não há ebook
     if (!ebookUrl) {
       return res.json({
         id: disciplineId,
@@ -1082,17 +1097,24 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       });
     }
     
-    // Inicialização padrão (primeira vez)
-    // Em uma implementação real, isso viria do banco de dados
-    // Usando o link fornecido pelo usuário
-    const interactiveEbookUrl = "https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/view?usp=drive_link";
+    // Verificar se a disciplina tem um e-book interativo no banco
+    const interactiveEbookUrl = discipline.ebookInterativoUrl;
     
-    // Salvar o estado inicial
-    interactiveEbooks[disciplineId] = {
-      available: true,
-      url: interactiveEbookUrl
-    };
+    console.log(`Verificando e-book interativo para disciplina ${disciplineId}:`,
+               `ebookInterativoUrl=${interactiveEbookUrl}`);
     
+    // Se não tiver um e-book interativo, retornar como não disponível
+    if (!interactiveEbookUrl) {
+      return res.json({
+        id: disciplineId,
+        available: false,
+        name: discipline.name,
+        description: discipline.description,
+        message: "E-book interativo não disponível para esta disciplina"
+      });
+    }
+    
+    // Usar o e-book interativo do banco de dados
     return res.json({
       id: disciplineId,
       available: true,
