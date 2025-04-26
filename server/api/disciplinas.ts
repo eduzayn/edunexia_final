@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../db"; 
-import { disciplines } from "@shared/schema";
+import { disciplines, contentCompletionStatusEnum } from "@shared/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 
@@ -52,7 +52,9 @@ export async function criarDisciplina(req: Request, res: Response) {
           code: codigo,
           name: nome,
           workload: cargaHoraria ? Number(cargaHoraria) : 0, // Valor default para evitar null
-          description: descricao || ""
+          description: descricao || "",
+          syllabus: descricao || "", // Usar a descrição como syllabus temporariamente
+          contentStatus: "incomplete" // Definir status inicial como incompleto
         })
         .returning();
         
@@ -74,12 +76,6 @@ export async function criarDisciplina(req: Request, res: Response) {
         throw error; // Repassando o erro original
       }
     }
-    
-    return res.status(201).json({
-      success: true,
-      data: novaDisciplina,
-      message: "Disciplina criada com sucesso"
-    });
     
   } catch (error) {
     console.error("Erro ao criar disciplina:", error);
