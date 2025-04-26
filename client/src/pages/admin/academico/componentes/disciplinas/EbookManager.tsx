@@ -32,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getEbook, saveEbook, deleteEbook } from "@/api/pedagogico";
 import {
   FileText,
   Upload,
@@ -74,15 +75,15 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
     refetch: refetchEbook,
   } = useQuery({
     queryKey: [buildDisciplineEbookApiUrl(disciplineId)],
+    queryFn: () => getEbook(disciplineId.toString()),
     enabled: !!disciplineId,
   });
 
   // Mutation para adicionar/atualizar e-book
   const ebookMutation = useMutation({
     mutationFn: (data: EbookFormValues) => {
-      // Se já existe um e-book, faz update, senão cria
-      const method = ebook && ebook.id ? "PUT" : "POST";
-      return apiRequest(method, buildDisciplineEbookApiUrl(disciplineId), data);
+      // Usa nossa função centralizada para salvar o e-book
+      return saveEbook(disciplineId.toString(), data as Partial<Ebook>);
     },
     onSuccess: () => {
       const isUpdate = !!(ebook && ebook.id);
@@ -110,7 +111,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
   // Mutation para excluir e-book
   const deleteEbookMutation = useMutation({
     mutationFn: () => {
-      return apiRequest("DELETE", buildDisciplineEbookApiUrl(disciplineId));
+      return deleteEbook(disciplineId.toString());
     },
     onSuccess: () => {
       toast({
