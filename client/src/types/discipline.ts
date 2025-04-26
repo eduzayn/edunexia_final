@@ -49,5 +49,4 @@ export type DisciplineFormData = {
   videoAula10StartTime?: string | null;
   // Recursos adicionais
   apostilaUrl?: string | null;
-  ebookInterativoUrl?: string | null;
 };

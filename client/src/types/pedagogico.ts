@@ -15,33 +15,6 @@ export interface Video {
   order?: number;
 }
 
-// Tipos para e-books estáticos
-export type EbookUploadType = 'link' | 'upload';
-
-export interface Ebook {
-  id?: number | string;
-  disciplineId?: number | string;
-  title: string;
-  description?: string;
-  url: string;
-  fileType?: string;
-  uploadType: EbookUploadType;
-  available?: boolean; // Indica se o e-book está disponível
-}
-
-// Tipos para e-books interativos
-export type InteractiveEbookType = 'embed' | 'iframe' | 'link' | 'h5p';
-
-export interface InteractiveEbook {
-  id?: number | string;
-  disciplineId?: number | string;
-  title: string;
-  description?: string;
-  type: InteractiveEbookType;
-  url?: string;
-  embedCode?: string;
-  available?: boolean; // Indica se o e-book interativo está disponível
-}
 
 // Tipos para questões (utilizadas em simulados e avaliações)
 export interface Question {
@@ -84,8 +57,6 @@ export interface DisciplinaCompleta {
   description: string;
   workload?: number; // carga horária
   videos: Video[];
-  ebook?: Ebook;
-  interactiveEbook?: InteractiveEbook;
   simulado?: Simulado;
   avaliacaoFinal?: AvaliacaoFinal;
 }
@@ -93,8 +64,6 @@ export interface DisciplinaCompleta {
 // Status de conclusão de elementos da disciplina
 export interface CompletenessStatus {
   videos: boolean;
-  ebook: boolean;
-  interactiveEbook: boolean;
   simulado: boolean;
   avaliacaoFinal: boolean;
 }

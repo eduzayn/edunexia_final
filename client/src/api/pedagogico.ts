@@ -5,8 +5,6 @@
 
 import { 
   Video, 
-  Ebook, 
-  InteractiveEbook, 
   Simulado, 
   AvaliacaoFinal,
   Question 
@@ -44,63 +42,6 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 // Os endpoints de vídeos foram removidos como parte da limpeza de recursos de vídeo
 
-// ===== E-BOOKS =====
-
-/**
- * Busca o e-book de uma disciplina
- */
-export async function getEbook(disciplineId: string | number): Promise<Ebook> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/ebook`);
-}
-
-/**
- * Adiciona ou atualiza o e-book da disciplina
- */
-export async function saveEbook(disciplineId: string | number, ebook: Partial<Ebook>): Promise<Ebook> {
-  const method = ebook.id ? 'PUT' : 'POST';
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/ebook`, {
-    method,
-    body: JSON.stringify(ebook),
-  });
-}
-
-/**
- * Remove o e-book da disciplina
- */
-export async function deleteEbook(disciplineId: string | number): Promise<void> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/ebook`, {
-    method: 'DELETE',
-  });
-}
-
-// ===== E-BOOKS INTERATIVOS =====
-
-/**
- * Busca o e-book interativo de uma disciplina
- */
-export async function getInteractiveEbook(disciplineId: string | number): Promise<InteractiveEbook> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/interactive-ebook`);
-}
-
-/**
- * Adiciona ou atualiza o e-book interativo da disciplina
- */
-export async function saveInteractiveEbook(disciplineId: string | number, ebook: Partial<InteractiveEbook>): Promise<InteractiveEbook> {
-  const method = ebook.id ? 'PUT' : 'POST';
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/interactive-ebook`, {
-    method,
-    body: JSON.stringify(ebook),
-  });
-}
-
-/**
- * Remove o e-book interativo da disciplina
- */
-export async function deleteInteractiveEbook(disciplineId: string | number): Promise<void> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/interactive-ebook`, {
-    method: 'DELETE',
-  });
-}
 
 // ===== SIMULADOS =====
 
