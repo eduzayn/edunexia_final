@@ -58,6 +58,20 @@ function isGoogleDriveUrl(url: string): boolean {
 function convertGoogleDriveUrl(url: string): string {
   if (!isGoogleDriveUrl(url)) return url;
   
+  // Verifica se é uma pasta do Google Drive
+  if (url.includes('/drive/folders/')) {
+    // Extrai o ID da pasta
+    const folderPattern = /\/folders\/([^\/\?]+)/;
+    const folderMatch = url.match(folderPattern);
+    
+    if (folderMatch && folderMatch[1]) {
+      // Para pastas, usamos o link de navegação pública
+      // Isso abrirá a pasta em uma nova janela, não sendo possível incorporar diretamente
+      console.log("URL identificada como pasta do Google Drive, usando link externo");
+      return `https://drive.google.com/drive/folders/${folderMatch[1]}?usp=sharing`;
+    }
+  }
+  
   // Extrair o ID do arquivo
   let fileId = '';
   
@@ -86,10 +100,14 @@ function convertGoogleDriveUrl(url: string): string {
 }
 
 // Função para detectar o tipo de URL
-function detectUrlType(url: string | undefined): 'google-drive' | 'pdf' | 'unknown' {
+function detectUrlType(url: string | undefined): 'google-drive' | 'google-drive-folder' | 'pdf' | 'unknown' {
   if (!url) return 'unknown';
   
   if (isGoogleDriveUrl(url)) {
+    // Verifica se é uma pasta do Google Drive
+    if (url.includes('/drive/folders/')) {
+      return 'google-drive-folder';
+    }
     return 'google-drive';
   } else if (url.endsWith('.pdf') || url.includes('/uploads/')) {
     return 'pdf';
@@ -498,7 +516,22 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                       className="w-full h-full"
                       allow="autoplay"
                       allowFullScreen
+                      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                     ></iframe>
+                  ) : urlType === 'google-drive-folder' ? (
+                    <div className="text-center p-4">
+                      <BookMarked className="h-12 w-12 text-blue-300 mx-auto mb-2" />
+                      <p className="text-gray-700 font-medium">Pasta do Google Drive</p>
+                      <p className="text-gray-500 mb-3 text-sm">Este conteúdo é uma pasta e não pode ser visualizado diretamente aqui.</p>
+                      <Button 
+                        variant="default" 
+                        className="mt-2"
+                        onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Abrir Pasta no Google Drive
+                      </Button>
+                    </div>
                   ) : (
                     <PdfViewer 
                       pdfUrl={viewerUrl} 
@@ -831,7 +864,26 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
                   className="w-full h-full" 
                   allow="autoplay"
                   allowFullScreen
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                 ></iframe>
+              ) : urlType === 'google-drive-folder' ? (
+                <div className="text-center p-4 flex flex-col items-center justify-center h-full">
+                  <BookMarked className="h-16 w-16 text-blue-300 mx-auto mb-3" />
+                  <h3 className="text-xl font-medium mb-2">Pasta do Google Drive</h3>
+                  <p className="text-gray-600 mb-4 max-w-md">
+                    Este conteúdo é uma pasta do Google Drive e não pode ser visualizado diretamente aqui.
+                    Clique no botão abaixo para abrir a pasta em uma nova aba.
+                  </p>
+                  <Button 
+                    size="lg" 
+                    variant="default" 
+                    className="mt-2"
+                    onClick={() => window.open(ebookData.ebookPdfUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-5 w-5 mr-2" />
+                    Abrir Pasta no Google Drive
+                  </Button>
+                </div>
               ) : (
                 <PdfViewer 
                   pdfUrl={viewerUrl} 
