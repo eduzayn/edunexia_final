@@ -1089,9 +1089,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
   
   // Novas rotas do módulo pedagógico
-  import pedagogicoRoutes from './routes/pedagogico-routes';
-  app.use('/api', pedagogicoRoutes);
-  app.use('/api-json', pedagogicoRoutes); // Duplicata para rotas JSON
+  app.use('/api', require('./routes/pedagogico-routes').default);
+  app.use('/api-json', require('./routes/pedagogico-routes').default);
   // Rota antiga de disciplinas removida
   
   // Implementa diretamente as rotas de e-books interativos aqui
