@@ -20,7 +20,7 @@ import CoursesPage from "@/pages/admin/academico/courses-page";
 import CourseFormPage from "@/pages/admin/academico/course-form-page";
 import DisciplineContentPage from "@/pages/admin/academico/discipline-content-page";
 import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content";
-import DisciplinasPage from "@/pages/admin/academico/disciplinas/index";
+import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas";
 import InstitutionsPage from "@/pages/admin/institucional/institutions-page";
 // import UsersPage from "@/pages/admin/users-page";
 import PolosPage from "@/pages/admin/institucional/polos-page";
