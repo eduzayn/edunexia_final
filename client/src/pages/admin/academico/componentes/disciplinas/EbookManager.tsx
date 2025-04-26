@@ -94,9 +94,10 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
       return apiRequest(method, buildDisciplineEbookApiUrl(disciplineId), data);
     },
     onSuccess: () => {
+      const isUpdate = !!(ebook && ebook.id);
       toast({
-        title: ebook && ebook.id ? "E-book atualizado com sucesso" : "E-book adicionado com sucesso",
-        description: ebook && ebook.id ? "As alterações foram salvas." : "O e-book foi vinculado à disciplina.",
+        title: isUpdate ? "E-book atualizado com sucesso" : "E-book adicionado com sucesso",
+        description: isUpdate ? "As alterações foram salvas." : "O e-book foi vinculado à disciplina.",
         variant: "default",
       });
       setIsDialogOpen(false);
@@ -151,13 +152,13 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
   });
 
   // Para edição, atualiza o formulário com os dados do e-book selecionado
-  const handleEditEbook = (ebookData: EbookType) => {
-    setSelectedEbook(ebookData);
+  const handleEditEbook = (ebookData: EbookType | Record<string, any>) => {
+    setSelectedEbook(ebookData as EbookType);
     form.reset({
-      uploadType: ebookData.uploadType || "link",
-      url: ebookData.url || "",
-      title: ebookData.title || "",
-      description: ebookData.description || "",
+      uploadType: ebookData?.uploadType || "link",
+      url: ebookData?.url || "",
+      title: ebookData?.title || "",
+      description: ebookData?.description || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -247,7 +248,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
               <div className="flex items-center">
                 <FileText className="h-5 w-5 text-blue-500 mr-2" />
                 <span className="text-sm font-medium">
-                  {ebook.url.split('/').pop() || "Material em PDF"}
+                  {ebook.url ? ebook.url.split('/').pop() || "Material em PDF" : "Material em PDF"}
                 </span>
               </div>
               
@@ -257,7 +258,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                   size="sm" 
                   asChild
                 >
-                  <a href={ebook.url} target="_blank" rel="noopener noreferrer">
+                  <a href={ebook.url || "#"} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-1" />
                     Abrir
                   </a>
@@ -268,7 +269,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                   size="sm" 
                   asChild
                 >
-                  <a href={ebook.url} download>
+                  <a href={ebook.url || "#"} download>
                     <Download className="h-4 w-4 mr-1" />
                     Download
                   </a>
