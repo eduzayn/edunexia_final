@@ -6,6 +6,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { EbookViewer } from "@/components/EbookViewer";
 import {
   Dialog,
   DialogContent,
@@ -276,43 +277,11 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                   
                   {/* Debug info para ajudar a resolver problemas */}
                   <div className="text-xs text-blue-500 mb-2">
-                    URL Original: {ebookObj.url || ""}<br/>
-                    Tipo Detectado: {detectUrlType(ebookObj.url || "")}<br/>
-                    URL Incorporada: {getEmbedUrl(ebookObj.url || "")}
+                    URL Original: {ebookObj.url || ""}
                   </div>
                   
-                  {ebookObj.url?.toLowerCase().match(/\.(mp4|webm|ogg|ogv)$/i) ? (
-                    <video 
-                      src={ebookObj.url} 
-                      controls
-                      className="w-full min-h-[400px] rounded"
-                      playsInline
-                      controlsList="nodownload"
-                    >
-                      Seu navegador não suporta a reprodução de vídeos.
-                    </video>
-                  ) : ebookObj.url?.includes('drive.google.com') ? (
-                    <>
-                      <div className="p-2 mb-2 bg-green-50 text-xs text-green-600 rounded">
-                        Link do Drive detectado. ID extraído: {ebookObj.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || 'não identificado'}
-                      </div>
-                      <iframe 
-                        src="https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/preview"
-                        className="w-full min-h-[500px] border-0 rounded"
-                        allowFullScreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        title={ebookObj.title || "Conteúdo interativo"}
-                      />
-                    </>
-                  ) : (
-                    <iframe 
-                      src={getEmbedUrl(ebookObj.url || "")}
-                      className="w-full min-h-[500px] border-0 rounded"
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      title={ebookObj.title || "Conteúdo interativo"}
-                    />
-                  )}
+                  {/* Usando o novo componente EbookViewer para renderização dinâmica */}
+                  <EbookViewer url={ebookObj.url || ""} title={ebookObj.title || "Conteúdo interativo"} />
                 </div>
               </div>
             )}

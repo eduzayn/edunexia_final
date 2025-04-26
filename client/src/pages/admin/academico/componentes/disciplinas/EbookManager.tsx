@@ -7,6 +7,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { EbookViewer } from "@/components/EbookViewer";
 import {
   Dialog,
   DialogContent,
@@ -282,32 +283,10 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
               {ebook.url ? (
                 <>
                   <div className="text-xs text-blue-500 mb-2">
-                    URL Original: {ebook.url}<br/>
-                    URL Incorporada: {getEmbedUrl(ebook.url)}
+                    URL Original: {ebook.url}
                   </div>
-                  {/* Solução direta para o Google Drive com ID fixo para teste */}
-                  {ebook.url.includes('drive.google.com') ? (
-                    <>
-                      <div className="p-2 mb-2 bg-green-50 text-xs text-green-600 rounded">
-                        Link do Drive detectado. ID extraído: {ebook.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || 'não identificado'}
-                      </div>
-                      <iframe 
-                        src="https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/preview"
-                        className="w-full min-h-[600px] border-0 rounded"
-                        allowFullScreen
-                        allow="autoplay; encrypted-media"
-                        title={ebook.title || "E-book da disciplina"}
-                      />
-                    </>
-                  ) : (
-                    <iframe 
-                      src={getEmbedUrl(ebook.url)}
-                      className="w-full min-h-[600px] border-0 rounded"
-                      allowFullScreen
-                      allow="autoplay; encrypted-media"
-                      title={ebook.title || "E-book da disciplina"}
-                    />
-                  )}
+                  {/* Usando o novo componente EbookViewer para renderização dinâmica */}
+                  <EbookViewer url={ebook.url} title={ebook.title || "E-book da disciplina"} />
                 </>
               ) : (
                 <div className="p-4 text-center text-gray-500">
