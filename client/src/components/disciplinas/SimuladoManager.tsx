@@ -514,3 +514,300 @@ export default function SimuladoManager({ disciplineId }: SimuladoManagerProps) 
     </div>
   );
 }
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Edit, Trash, Plus, ClipboardList } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Esquema de validação para simulados
+const simuladoSchema = z.object({
+  title: z.string().min(3, 'O título deve ter pelo menos 3 caracteres'),
+  description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres'),
+  duration: z.number().min(1, 'A duração deve ser de pelo menos 1 minuto').or(
+    z.string().refine(val => !isNaN(Number(val)), {
+      message: 'A duração deve ser um número'
+    }).transform(val => Number(val))
+  ),
+  totalQuestions: z.number().min(1, 'O simulado deve ter pelo menos 1 questão').or(
+    z.string().refine(val => !isNaN(Number(val)), {
+      message: 'O número de questões deve ser um número'
+    }).transform(val => Number(val))
+  )
+});
+
+type SimuladoFormValues = z.infer<typeof simuladoSchema>;
+
+interface Simulado {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  totalQuestions: number;
+  createdAt: string;
+}
+
+interface SimuladoManagerProps {
+  disciplineId?: string;
+}
+
+export default function SimuladoManager({ disciplineId }: SimuladoManagerProps) {
+  const [simulados, setSimulados] = useState<Simulado[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingSimulado, setEditingSimulado] = useState<Simulado | null>(null);
+
+  const form = useForm<SimuladoFormValues>({
+    resolver: zodResolver(simuladoSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      duration: 30,
+      totalQuestions: 10
+    }
+  });
+
+  useEffect(() => {
+    if (disciplineId) {
+      // Aqui seria a chamada para a API para buscar os simulados da disciplina
+      // Por enquanto, vamos simular com dados fictícios
+      setTimeout(() => {
+        setSimulados([
+          {
+            id: '1',
+            title: 'Simulado de Avaliação 1',
+            description: 'Simulado com questões sobre os primeiros módulos da disciplina',
+            duration: 60,
+            totalQuestions: 20,
+            createdAt: '2023-04-10'
+          }
+        ]);
+        setIsLoading(false);
+      }, 1000);
+    }
+  }, [disciplineId]);
+
+  const handleAddSimulado = (data: SimuladoFormValues) => {
+    if (editingSimulado) {
+      // Editar simulado existente
+      const updatedSimulados = simulados.map(s => 
+        s.id === editingSimulado.id ? 
+        { 
+          ...s, 
+          title: data.title,
+          description: data.description,
+          duration: data.duration,
+          totalQuestions: data.totalQuestions
+        } : s
+      );
+      setSimulados(updatedSimulados);
+    } else {
+      // Adicionar novo simulado
+      const newSimulado: Simulado = {
+        id: Date.now().toString(),
+        title: data.title,
+        description: data.description,
+        duration: data.duration,
+        totalQuestions: data.totalQuestions,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+      setSimulados([...simulados, newSimulado]);
+    }
+    
+    setIsAddDialogOpen(false);
+    setEditingSimulado(null);
+    form.reset();
+  };
+
+  const handleEditSimulado = (simulado: Simulado) => {
+    setEditingSimulado(simulado);
+    form.reset({
+      title: simulado.title,
+      description: simulado.description,
+      duration: simulado.duration,
+      totalQuestions: simulado.totalQuestions
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleDeleteSimulado = (id: string) => {
+    // Aqui seria a chamada para a API para excluir o simulado
+    // Por enquanto, apenas atualizamos o estado local
+    const updatedSimulados = simulados.filter(s => s.id !== id);
+    setSimulados(updatedSimulados);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Carregando simulados...</div>;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erro</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Simulados da Disciplina</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => {
+              setEditingSimulado(null);
+              form.reset({
+                title: '',
+                description: '',
+                duration: 30,
+                totalQuestions: 10
+              });
+            }}>
+              <Plus className="mr-2 h-4 w-4" /> Adicionar Simulado
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+              <DialogTitle>{editingSimulado ? 'Editar Simulado' : 'Adicionar Novo Simulado'}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para {editingSimulado ? 'editar o' : 'adicionar um novo'} simulado à disciplina.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleAddSimulado)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Título do simulado" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Descrição do simulado" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Duração (minutos)</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="totalQuestions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número de Questões</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit">{editingSimulado ? 'Salvar Alterações' : 'Adicionar Simulado'}</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {simulados.length === 0 ? (
+        <Card className="text-center p-6">
+          <div className="flex flex-col items-center justify-center p-4">
+            <ClipboardList className="h-12 w-12 text-gray-400 mb-2" />
+            <h3 className="text-lg font-medium">Nenhum Simulado Cadastrado</h3>
+            <p className="text-sm text-gray-500 mb-4">Adicione simulados para esta disciplina.</p>
+            <DialogTrigger asChild>
+              <Button onClick={() => {
+                setEditingSimulado(null);
+                form.reset({
+                  title: '',
+                  description: '',
+                  duration: 30,
+                  totalQuestions: 10
+                });
+              }}>
+                <Plus className="mr-2 h-4 w-4" /> Adicionar Primeiro Simulado
+              </Button>
+            </DialogTrigger>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {simulados.map((simulado) => (
+            <Card key={simulado.id}>
+              <CardHeader>
+                <CardTitle className="text-lg">{simulado.title}</CardTitle>
+                <CardDescription>
+                  Criado em: {simulado.createdAt}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">{simulado.description}</p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="bg-gray-100 p-2 rounded-md">
+                    <span className="font-medium">Duração:</span> {simulado.duration} minutos
+                  </div>
+                  <div className="bg-gray-100 p-2 rounded-md">
+                    <span className="font-medium">Questões:</span> {simulado.totalQuestions}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" size="sm">
+                  Ver Questões
+                </Button>
+                <div className="space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEditSimulado(simulado)}>
+                    <Edit className="h-4 w-4 mr-1" /> Editar
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteSimulado(simulado.id)}>
+                    <Trash className="h-4 w-4 mr-1" /> Excluir
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

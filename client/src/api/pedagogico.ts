@@ -122,3 +122,200 @@ export async function addQuestionToAvaliacaoFinal(disciplineId: string | number,
     body: JSON.stringify(question),
   });
 }
+import { Video, Ebook, InteractiveEbook, Simulado, AvaliacaoFinal, DisciplineContent } from "@/types/pedagogico";
+import { apiUrl } from "@/lib/api-url-builder";
+
+// Função auxiliar para fazer requisições à API
+const fetchApi = async (url: string, options?: RequestInit) => {
+  const response = await fetch(apiUrl(url), {
+    ...options,
+    headers: {
+      ...options?.headers,
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+// API para gerenciamento de vídeos
+export const videoApi = {
+  getAll: async (disciplineId: string): Promise<Video[]> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/videos`);
+  },
+  
+  create: async (disciplineId: string, video: Omit<Video, 'id'>): Promise<Video> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/videos`, {
+      method: 'POST',
+      body: JSON.stringify(video)
+    });
+  },
+  
+  update: async (disciplineId: string, videoId: string, video: Partial<Video>): Promise<Video> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
+      method: 'PUT',
+      body: JSON.stringify(video)
+    });
+  },
+  
+  delete: async (disciplineId: string, videoId: string): Promise<void> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// API para gerenciamento de e-book estático
+export const ebookApi = {
+  get: async (disciplineId: string): Promise<Ebook | null> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/ebook`);
+  },
+  
+  create: async (disciplineId: string, ebook: FormData): Promise<Ebook> => {
+    const response = await fetch(apiUrl(`/api/disciplines/${disciplineId}/ebook`), {
+      method: 'POST',
+      body: ebook,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+  
+  update: async (disciplineId: string, ebook: FormData): Promise<Ebook> => {
+    const response = await fetch(apiUrl(`/api/disciplines/${disciplineId}/ebook`), {
+      method: 'PUT',
+      body: ebook,
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Erro na requisição: ${response.status} - ${response.statusText}`);
+    }
+    
+    return response.json();
+  },
+  
+  delete: async (disciplineId: string): Promise<void> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/ebook`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// API para gerenciamento de e-book interativo
+export const interactiveEbookApi = {
+  get: async (disciplineId: string): Promise<InteractiveEbook | null> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/interactive-ebook`);
+  },
+  
+  create: async (disciplineId: string, interactiveEbook: Omit<InteractiveEbook, 'id'>): Promise<InteractiveEbook> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/interactive-ebook`, {
+      method: 'POST',
+      body: JSON.stringify(interactiveEbook)
+    });
+  },
+  
+  update: async (disciplineId: string, interactiveEbook: Partial<InteractiveEbook>): Promise<InteractiveEbook> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/interactive-ebook`, {
+      method: 'PUT',
+      body: JSON.stringify(interactiveEbook)
+    });
+  },
+  
+  delete: async (disciplineId: string): Promise<void> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/interactive-ebook`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// API para gerenciamento de simulados
+export const simuladoApi = {
+  getAll: async (disciplineId: string): Promise<Simulado[]> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/simulados`);
+  },
+  
+  get: async (disciplineId: string, simuladoId: string): Promise<Simulado> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/simulados/${simuladoId}`);
+  },
+  
+  create: async (disciplineId: string, simulado: Omit<Simulado, 'id' | 'createdAt'>): Promise<Simulado> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/simulados`, {
+      method: 'POST',
+      body: JSON.stringify(simulado)
+    });
+  },
+  
+  update: async (disciplineId: string, simuladoId: string, simulado: Partial<Simulado>): Promise<Simulado> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/simulados/${simuladoId}`, {
+      method: 'PUT',
+      body: JSON.stringify(simulado)
+    });
+  },
+  
+  delete: async (disciplineId: string, simuladoId: string): Promise<void> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/simulados/${simuladoId}`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// API para gerenciamento de avaliação final
+export const avaliacaoFinalApi = {
+  get: async (disciplineId: string): Promise<AvaliacaoFinal | null> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/avaliacao-final`);
+  },
+  
+  create: async (disciplineId: string, avaliacaoFinal: Omit<AvaliacaoFinal, 'id' | 'isActive' | 'createdAt'>): Promise<AvaliacaoFinal> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/avaliacao-final`, {
+      method: 'POST',
+      body: JSON.stringify(avaliacaoFinal)
+    });
+  },
+  
+  update: async (disciplineId: string, avaliacaoFinal: Partial<AvaliacaoFinal>): Promise<AvaliacaoFinal> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/avaliacao-final`, {
+      method: 'PUT',
+      body: JSON.stringify(avaliacaoFinal)
+    });
+  },
+  
+  toggleStatus: async (disciplineId: string): Promise<AvaliacaoFinal> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/avaliacao-final/toggle-status`, {
+      method: 'PUT'
+    });
+  },
+  
+  delete: async (disciplineId: string): Promise<void> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/avaliacao-final`, {
+      method: 'DELETE'
+    });
+  }
+};
+
+// API para verificar a completude da disciplina
+export const disciplineContentApi = {
+  getCompleteness: async (disciplineId: string): Promise<{
+    items: { id: string; name: string; isCompleted: boolean }[];
+    progress: number;
+  }> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/completeness`);
+  },
+  
+  getAllContent: async (disciplineId: string): Promise<DisciplineContent> => {
+    return fetchApi(`/api/disciplines/${disciplineId}/content`);
+  }
+};

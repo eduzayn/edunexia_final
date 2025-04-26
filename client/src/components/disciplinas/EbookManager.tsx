@@ -331,3 +331,262 @@ export default function EbookManager({ disciplineId }: EbookManagerProps) {
     </div>
   );
 }
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Edit, Trash, Plus, FileText, Upload } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Esquema de validação para e-book
+const ebookSchema = z.object({
+  title: z.string().min(3, 'O título deve ter pelo menos 3 caracteres'),
+  description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres'),
+  // Por enquanto, não validamos o arquivo, pois isso seria feito no upload real
+  file: z.any().optional()
+});
+
+type EbookFormValues = z.infer<typeof ebookSchema>;
+
+interface Ebook {
+  id: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+  fileName: string;
+  uploadDate: string;
+}
+
+interface EbookManagerProps {
+  disciplineId?: string;
+}
+
+export default function EbookManager({ disciplineId }: EbookManagerProps) {
+  const [ebook, setEbook] = useState<Ebook | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const form = useForm<EbookFormValues>({
+    resolver: zodResolver(ebookSchema),
+    defaultValues: {
+      title: '',
+      description: ''
+    }
+  });
+
+  useEffect(() => {
+    if (disciplineId) {
+      // Aqui seria a chamada para a API para buscar o e-book da disciplina
+      // Por enquanto, vamos simular com dados fictícios
+      setTimeout(() => {
+        setEbook({
+          id: '1',
+          title: 'Material Completo da Disciplina',
+          description: 'Este é o material completo que cobre todos os tópicos da disciplina',
+          fileUrl: 'https://example.com/ebooks/disciplina-material.pdf',
+          fileName: 'disciplina-material.pdf',
+          uploadDate: '2023-04-15'
+        });
+        setIsLoading(false);
+      }, 1000);
+    }
+  }, [disciplineId]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleAddEbook = (data: EbookFormValues) => {
+    // Aqui seria a chamada para a API para adicionar o e-book
+    // Por enquanto, apenas atualizamos o estado local
+    const newEbook: Ebook = {
+      id: Date.now().toString(),
+      title: data.title,
+      description: data.description,
+      fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : '',
+      fileName: selectedFile ? selectedFile.name : 'arquivo.pdf',
+      uploadDate: new Date().toISOString().split('T')[0]
+    };
+
+    setEbook(newEbook);
+    setIsAddDialogOpen(false);
+    form.reset();
+    setSelectedFile(null);
+  };
+
+  const handleEditEbook = () => {
+    if (ebook) {
+      form.reset({
+        title: ebook.title,
+        description: ebook.description
+      });
+      setIsAddDialogOpen(true);
+    }
+  };
+
+  const handleDeleteEbook = () => {
+    // Aqui seria a chamada para a API para excluir o e-book
+    // Por enquanto, apenas atualizamos o estado local
+    setEbook(null);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Carregando e-book...</div>;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erro</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">E-book da Disciplina</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => {
+              if (!ebook) {
+                form.reset({
+                  title: '',
+                  description: ''
+                });
+              }
+            }}>
+              {ebook ? <Edit className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {ebook ? 'Editar E-book' : 'Adicionar E-book'}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+              <DialogTitle>{ebook ? 'Editar E-book' : 'Adicionar E-book'}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para {ebook ? 'editar o' : 'adicionar um novo'} e-book à disciplina.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleAddEbook)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Título do e-book" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Descrição do e-book" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="file"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Arquivo PDF</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleFileChange}
+                          className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Selecione um arquivo PDF para upload
+                      </FormDescription>
+                      {selectedFile && (
+                        <p className="text-sm text-blue-600">
+                          Arquivo selecionado: {selectedFile.name}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button type="submit">{ebook ? 'Salvar Alterações' : 'Adicionar E-book'}</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {!ebook ? (
+        <Card className="text-center p-6">
+          <div className="flex flex-col items-center justify-center p-4">
+            <FileText className="h-12 w-12 text-gray-400 mb-2" />
+            <h3 className="text-lg font-medium">Nenhum E-book Cadastrado</h3>
+            <p className="text-sm text-gray-500 mb-4">Adicione um e-book estático para esta disciplina.</p>
+            <DialogTrigger asChild>
+              <Button onClick={() => {
+                form.reset({
+                  title: '',
+                  description: ''
+                });
+              }}>
+                <Plus className="mr-2 h-4 w-4" /> Adicionar E-book
+              </Button>
+            </DialogTrigger>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{ebook.title}</CardTitle>
+            <CardDescription>Adicionado em: {ebook.uploadDate}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">{ebook.description}</p>
+            <div className="flex items-center p-3 rounded-md bg-gray-100">
+              <FileText className="h-8 w-8 text-blue-500 mr-3" />
+              <div>
+                <p className="font-medium">{ebook.fileName}</p>
+                <a href={ebook.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600">
+                  Visualizar arquivo
+                </a>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={handleEditEbook}>
+              <Edit className="h-4 w-4 mr-1" /> Editar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteEbook}>
+              <Trash className="h-4 w-4 mr-1" /> Excluir
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+    </div>
+  );
+}

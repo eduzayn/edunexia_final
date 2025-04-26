@@ -155,3 +155,125 @@ export default function CompletenessChecker({ disciplineId, className = '' }: Co
     </Card>
   );
 }
+import React, { useState, useEffect } from 'react';
+import { CheckCircle2, AlertCircle, FileText, Video, Layers, ClipboardList, FileSpreadsheet } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+
+interface CompletionItem {
+  id: string;
+  name: string;
+  isCompleted: boolean;
+  icon: React.ReactNode;
+}
+
+interface CompletenessCheckerProps {
+  disciplineId?: string;
+}
+
+export default function CompletenessChecker({ disciplineId }: CompletenessCheckerProps) {
+  const [completionItems, setCompletionItems] = useState<CompletionItem[]>([]);
+  const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (disciplineId) {
+      // Aqui seria a chamada para a API para buscar o estado de completude da disciplina
+      // Por enquanto, vamos simular com dados fictícios
+      setTimeout(() => {
+        const items: CompletionItem[] = [
+          {
+            id: 'videos',
+            name: 'Videoaulas',
+            isCompleted: true,
+            icon: <Video className="h-5 w-5" />
+          },
+          {
+            id: 'ebook',
+            name: 'E-book Estático',
+            isCompleted: true,
+            icon: <FileText className="h-5 w-5" />
+          },
+          {
+            id: 'interactive',
+            name: 'E-book Interativo',
+            isCompleted: false,
+            icon: <Layers className="h-5 w-5" />
+          },
+          {
+            id: 'simulados',
+            name: 'Simulados',
+            isCompleted: true,
+            icon: <ClipboardList className="h-5 w-5" />
+          },
+          {
+            id: 'avaliacao',
+            name: 'Avaliação Final',
+            isCompleted: false,
+            icon: <FileSpreadsheet className="h-5 w-5" />
+          }
+        ];
+        
+        setCompletionItems(items);
+        const completedCount = items.filter(item => item.isCompleted).length;
+        const percentage = (completedCount / items.length) * 100;
+        setProgress(percentage);
+        setIsLoading(false);
+      }, 1000);
+    }
+  }, [disciplineId]);
+
+  if (isLoading) {
+    return <div className="text-center py-4">Carregando...</div>;
+  }
+
+  return (
+    <div>
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm font-medium">Completude da Disciplina</span>
+          <span className="text-sm font-medium">{Math.round(progress)}%</span>
+        </div>
+        <Progress value={progress} className="h-2" />
+      </div>
+      
+      <div className="space-y-3">
+        {completionItems.map(item => (
+          <div 
+            key={item.id} 
+            className={`flex items-center p-2.5 rounded-md ${item.isCompleted ? 'bg-green-50' : 'bg-amber-50'}`}
+          >
+            <div className={`p-1.5 rounded-full mr-3 ${item.isCompleted ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+              {item.icon}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{item.name}</p>
+            </div>
+            <div>
+              {item.isCompleted ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {progress < 100 && (
+        <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100">
+          <p className="text-sm text-blue-700">
+            A disciplina estará pronta para publicação quando todos os itens estiverem completos.
+          </p>
+        </div>
+      )}
+      
+      {progress === 100 && (
+        <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-100">
+          <p className="text-sm text-green-700 font-medium">
+            A disciplina está completa e pronta para ser publicada!
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}

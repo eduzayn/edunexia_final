@@ -352,3 +352,359 @@ export default function InteractiveEbookManager({ disciplineId }: InteractiveEbo
     </div>
   );
 }
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Edit, Trash, Plus, Layers, ExternalLink, Code } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Esquema de validação para e-book interativo
+const interactiveEbookSchema = z.object({
+  title: z.string().min(3, 'O título deve ter pelo menos 3 caracteres'),
+  description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres'),
+  type: z.enum(['link', 'embed']),
+  url: z.string().url('Insira uma URL válida').optional().or(z.string().length(0)),
+  embedCode: z.string().min(10, 'O código de incorporação deve ter pelo menos 10 caracteres').optional().or(z.string().length(0))
+}).refine(data => {
+  if (data.type === 'link') {
+    return !!data.url;
+  } else if (data.type === 'embed') {
+    return !!data.embedCode;
+  }
+  return false;
+}, {
+  message: "Você deve fornecer uma URL ou um código de incorporação dependendo do tipo selecionado",
+  path: ['url']
+});
+
+type InteractiveEbookFormValues = z.infer<typeof interactiveEbookSchema>;
+
+interface InteractiveEbook {
+  id: string;
+  title: string;
+  description: string;
+  type: 'link' | 'embed';
+  url?: string;
+  embedCode?: string;
+}
+
+interface InteractiveEbookManagerProps {
+  disciplineId?: string;
+}
+
+export default function InteractiveEbookManager({ disciplineId }: InteractiveEbookManagerProps) {
+  const [interactiveEbook, setInteractiveEbook] = useState<InteractiveEbook | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const form = useForm<InteractiveEbookFormValues>({
+    resolver: zodResolver(interactiveEbookSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      type: 'link',
+      url: '',
+      embedCode: ''
+    }
+  });
+
+  // Observa mudanças no campo 'type' para resetar campos relacionados
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'type') {
+        if (value.type === 'link') {
+          form.setValue('embedCode', '');
+        } else if (value.type === 'embed') {
+          form.setValue('url', '');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  useEffect(() => {
+    if (disciplineId) {
+      // Aqui seria a chamada para a API para buscar o e-book interativo da disciplina
+      // Por enquanto, vamos simular com dados fictícios
+      setTimeout(() => {
+        setInteractiveEbook({
+          id: '1',
+          title: 'E-book Interativo de Exemplo',
+          description: 'Este é um e-book interativo com recursos avançados',
+          type: 'link',
+          url: 'https://example.com/interactive-ebook'
+        });
+        setIsLoading(false);
+      }, 1000);
+    }
+  }, [disciplineId]);
+
+  const handleAddInteractiveEbook = (data: InteractiveEbookFormValues) => {
+    // Aqui seria a chamada para a API para adicionar o e-book interativo
+    // Por enquanto, apenas atualizamos o estado local
+    const newEbook: InteractiveEbook = {
+      id: Date.now().toString(),
+      title: data.title,
+      description: data.description,
+      type: data.type,
+      url: data.type === 'link' ? data.url : undefined,
+      embedCode: data.type === 'embed' ? data.embedCode : undefined
+    };
+
+    setInteractiveEbook(newEbook);
+    setIsAddDialogOpen(false);
+    form.reset();
+  };
+
+  const handleEditInteractiveEbook = () => {
+    if (interactiveEbook) {
+      form.reset({
+        title: interactiveEbook.title,
+        description: interactiveEbook.description,
+        type: interactiveEbook.type,
+        url: interactiveEbook.url || '',
+        embedCode: interactiveEbook.embedCode || ''
+      });
+      setIsAddDialogOpen(true);
+    }
+  };
+
+  const handleDeleteInteractiveEbook = () => {
+    // Aqui seria a chamada para a API para excluir o e-book interativo
+    // Por enquanto, apenas atualizamos o estado local
+    setInteractiveEbook(null);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Carregando e-book interativo...</div>;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Erro</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">E-book Interativo</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => {
+              if (!interactiveEbook) {
+                form.reset({
+                  title: '',
+                  description: '',
+                  type: 'link',
+                  url: '',
+                  embedCode: ''
+                });
+              }
+            }}>
+              {interactiveEbook ? <Edit className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+              {interactiveEbook ? 'Editar E-book Interativo' : 'Adicionar E-book Interativo'}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px]">
+            <DialogHeader>
+              <DialogTitle>{interactiveEbook ? 'Editar E-book Interativo' : 'Adicionar E-book Interativo'}</DialogTitle>
+              <DialogDescription>
+                Preencha os dados para {interactiveEbook ? 'editar o' : 'adicionar um novo'} e-book interativo à disciplina.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleAddInteractiveEbook)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Título</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Título do e-book interativo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Descrição do e-book interativo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Tipo de E-book Interativo</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="link" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Link Externo
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="embed" />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              Código de Incorporação
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {form.watch('type') === 'link' && (
+                  <FormField
+                    control={form.control}
+                    name="url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>URL do E-book Interativo</FormLabel>
+                        <FormControl>
+                          <Input placeholder="https://example.com/ebook" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Insira a URL completa para o e-book interativo externo
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {form.watch('type') === 'embed' && (
+                  <FormField
+                    control={form.control}
+                    name="embedCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Código de Incorporação</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="<iframe src='...' width='100%' height='600'></iframe>"
+                            className="font-mono text-sm"
+                            rows={5}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Cole o código HTML para incorporar o e-book interativo
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                <DialogFooter>
+                  <Button type="submit">{interactiveEbook ? 'Salvar Alterações' : 'Adicionar E-book Interativo'}</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {!interactiveEbook ? (
+        <Card className="text-center p-6">
+          <div className="flex flex-col items-center justify-center p-4">
+            <Layers className="h-12 w-12 text-gray-400 mb-2" />
+            <h3 className="text-lg font-medium">Nenhum E-book Interativo Cadastrado</h3>
+            <p className="text-sm text-gray-500 mb-4">Adicione um e-book interativo para esta disciplina.</p>
+            <DialogTrigger asChild>
+              <Button onClick={() => {
+                form.reset({
+                  title: '',
+                  description: '',
+                  type: 'link',
+                  url: '',
+                  embedCode: ''
+                });
+              }}>
+                <Plus className="mr-2 h-4 w-4" /> Adicionar E-book Interativo
+              </Button>
+            </DialogTrigger>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{interactiveEbook.title}</CardTitle>
+            <CardDescription>
+              Tipo: {interactiveEbook.type === 'link' ? 'Link Externo' : 'Código Incorporado'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">{interactiveEbook.description}</p>
+            {interactiveEbook.type === 'link' && interactiveEbook.url && (
+              <div className="flex items-center p-3 rounded-md bg-gray-100">
+                <ExternalLink className="h-8 w-8 text-blue-500 mr-3" />
+                <div>
+                  <p className="font-medium">Link para E-book Interativo</p>
+                  <a href={interactiveEbook.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600">
+                    {interactiveEbook.url}
+                  </a>
+                </div>
+              </div>
+            )}
+            {interactiveEbook.type === 'embed' && interactiveEbook.embedCode && (
+              <div>
+                <div className="flex items-center p-3 rounded-md bg-gray-100 mb-3">
+                  <Code className="h-8 w-8 text-blue-500 mr-3" />
+                  <div>
+                    <p className="font-medium">Código de Incorporação</p>
+                    <p className="text-sm text-gray-500">O conteúdo será exibido abaixo</p>
+                  </div>
+                </div>
+                <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+                  <div dangerouslySetInnerHTML={{ __html: interactiveEbook.embedCode }} />
+                </div>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={handleEditInteractiveEbook}>
+              <Edit className="h-4 w-4 mr-1" /> Editar
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteInteractiveEbook}>
+              <Trash className="h-4 w-4 mr-1" /> Excluir
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+    </div>
+  );
+}

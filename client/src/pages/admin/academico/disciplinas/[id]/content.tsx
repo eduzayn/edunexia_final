@@ -1,148 +1,81 @@
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InfoIcon, BookIcon, PlayIcon, TestTubeIcon, GraduationCapIcon, CheckCircleIcon } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import VideoManager from "@/components/disciplinas/VideoManager";
-import EbookManager from "@/components/disciplinas/EbookManager";
-import InteractiveEbookManager from "@/components/disciplinas/InteractiveEbookManager";
-import SimuladoManager from "@/components/disciplinas/SimuladoManager";
-import AvaliacaoFinalManager from "@/components/disciplinas/AvaliacaoFinalManager";
-import CompletenessChecker from "@/components/disciplinas/CompletenessChecker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import VideoManager from '@/components/disciplinas/VideoManager';
+import EbookManager from '@/components/disciplinas/EbookManager';
+import InteractiveEbookManager from '@/components/disciplinas/InteractiveEbookManager';
+import SimuladoManager from '@/components/disciplinas/SimuladoManager';
+import AvaliacaoFinalManager from '@/components/disciplinas/AvaliacaoFinalManager';
+import CompletenessChecker from '@/components/disciplinas/CompletenessChecker';
+import { PageHeader } from '@/components/ui/page-header';
+import AdminBreadcrumb from '@/components/admin/admin-breadcrumb';
 
 export default function DisciplineContentPage() {
-  const { id } = useParams();
-  const [discipline, setDiscipline] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchDiscipline() {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/disciplines/${id}`);
-        if (!response.ok) {
-          throw new Error('Falha ao carregar dados da disciplina');
-        }
-        const data = await response.json();
-        setDiscipline(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar disciplina');
-        console.error('Erro ao carregar disciplina:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (id) {
-      fetchDiscipline();
-    }
-  }, [id]);
-
-  if (loading) {
-    return <div className="flex justify-center p-8">Carregando dados da disciplina...</div>;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="max-w-3xl mx-auto my-8">
-        <AlertTitle>Erro</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
+  const { id } = useParams<{ id: string }>();
+  
   return (
-    <div className="container py-6">
-      <PageHeader
-        title={discipline?.name || 'Conteúdo da Disciplina'}
-        description={`Gerencie o conteúdo pedagógico da disciplina ${discipline?.code || ''}`}
+    <div className="container mx-auto py-6">
+      <AdminBreadcrumb 
+        items={[
+          { label: 'Dashboard', href: '/admin/dashboard' },
+          { label: 'Acadêmico', href: '/admin/academico' },
+          { label: 'Disciplinas', href: '/admin/academico/disciplinas' },
+          { label: 'Conteúdo', href: `/admin/academico/disciplinas/${id}/content` }
+        ]} 
+      />
+      
+      <PageHeader 
+        title="Gerenciamento de Conteúdo" 
+        description="Gerencie os conteúdos e recursos da disciplina" 
       />
 
-      <CompletenessChecker disciplineId={id} className="mb-6" />
-
-      <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="videos" className="flex items-center gap-2">
-            <PlayIcon className="h-4 w-4" />
-            Vídeos
-          </TabsTrigger>
-          <TabsTrigger value="ebook" className="flex items-center gap-2">
-            <BookIcon className="h-4 w-4" />
-            E-book
-          </TabsTrigger>
-          <TabsTrigger value="interactive" className="flex items-center gap-2">
-            <BookIcon className="h-4 w-4" />
-            E-book Interativo
-          </TabsTrigger>
-          <TabsTrigger value="simulado" className="flex items-center gap-2">
-            <TestTubeIcon className="h-4 w-4" />
-            Simulado
-          </TabsTrigger>
-          <TabsTrigger value="avaliacao" className="flex items-center gap-2">
-            <GraduationCapIcon className="h-4 w-4" />
-            Avaliação Final
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="videos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vídeos da Disciplina</CardTitle>
-            </CardHeader>
-            <CardContent>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="videos" className="w-full">
+            <TabsList className="grid grid-cols-5">
+              <TabsTrigger value="videos">Vídeos</TabsTrigger>
+              <TabsTrigger value="ebook">E-book</TabsTrigger>
+              <TabsTrigger value="interactive">E-book Interativo</TabsTrigger>
+              <TabsTrigger value="simulados">Simulados</TabsTrigger>
+              <TabsTrigger value="avaliacao">Avaliação Final</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="videos" className="mt-4">
               <VideoManager disciplineId={id} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="ebook">
-          <Card>
-            <CardHeader>
-              <CardTitle>E-book</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </TabsContent>
+            
+            <TabsContent value="ebook" className="mt-4">
               <EbookManager disciplineId={id} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="interactive">
-          <Card>
-            <CardHeader>
-              <CardTitle>E-book Interativo</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </TabsContent>
+            
+            <TabsContent value="interactive" className="mt-4">
               <InteractiveEbookManager disciplineId={id} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="simulado">
-          <Card>
-            <CardHeader>
-              <CardTitle>Simulado</CardTitle>
-            </CardHeader>
-            <CardContent>
+            </TabsContent>
+            
+            <TabsContent value="simulados" className="mt-4">
               <SimuladoManager disciplineId={id} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="avaliacao">
+            </TabsContent>
+            
+            <TabsContent value="avaliacao" className="mt-4">
+              <AvaliacaoFinalManager disciplineId={id} />
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        <div>
           <Card>
             <CardHeader>
-              <CardTitle>Avaliação Final</CardTitle>
+              <CardTitle>Status da Disciplina</CardTitle>
+              <CardDescription>Acompanhe o status de completude da disciplina</CardDescription>
             </CardHeader>
             <CardContent>
-              <AvaliacaoFinalManager disciplineId={id} />
+              <CompletenessChecker disciplineId={id} />
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

@@ -67,3 +67,71 @@ export interface CompletenessStatus {
   simulado: boolean;
   avaliacaoFinal: boolean;
 }
+// Tipos para o Módulo Acadêmico
+
+export type Video = {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  duration: string;
+  order?: number;
+};
+
+export type Ebook = {
+  id: string;
+  title: string;
+  description: string;
+  fileUrl: string;
+  fileName: string;
+  uploadDate: string;
+};
+
+export type InteractiveEbook = {
+  id: string;
+  title: string;
+  description: string;
+  type: 'link' | 'embed';
+  url?: string;
+  embedCode?: string;
+};
+
+export type Question = {
+  id: string;
+  text: string;
+  options: {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+  }[];
+};
+
+export type Simulado = {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  totalQuestions: number;
+  questions?: Question[];
+  createdAt: string;
+};
+
+export type AvaliacaoFinal = {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  passingScore: number;
+  totalQuestions: number;
+  isActive: boolean;
+  questions?: Question[];
+  createdAt: string;
+};
+
+export type DisciplineContent = {
+  videos: Video[];
+  ebook: Ebook | null;
+  interactiveEbook: InteractiveEbook | null;
+  simulados: Simulado[];
+  avaliacaoFinal: AvaliacaoFinal | null;
+};
