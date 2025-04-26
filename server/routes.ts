@@ -1173,13 +1173,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Salvamento no banco de dados
+      // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
+      const ebookData = JSON.stringify({
+        title,
+        description,
+        url,
+        type,
+        embedCode
+      });
+      
+      // Atualizar a disciplina com os dados do e-book
       const result = await pool.query(`
         UPDATE disciplines 
-        SET ebook_interativo_url = $1
-        WHERE id = $2
+        SET 
+          ebook_interativo_url = $1,
+          ebook_interativo_data = $2
+        WHERE id = $3
         RETURNING id
-      `, [url, disciplineId]);
+      `, [url, ebookData, disciplineId]);
       
       if (result.rowCount === 0) {
         return res.status(404).json({ 
@@ -1218,21 +1229,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`PUT /api/disciplines/${disciplineId}/interactive-ebook - Atualizando e-book interativo`);
       
+      // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
+      const ebookData = JSON.stringify({
+        title,
+        description,
+        url,
+        type,
+        embedCode
+      });
+      
       // Atualizando no banco de dados
       await pool.query(`
         UPDATE disciplines 
-        SET ebook_interativo_url = $1
-        WHERE id = $2
-      `, [url, disciplineId]);
+        SET 
+          ebook_interativo_url = $1,
+          ebook_interativo_data = $2
+        WHERE id = $3
+      `, [url, ebookData, disciplineId]);
       
       return res.json({ 
         success: true, 
-        message: "E-book interativo atualizado com sucesso."
+        message: "E-book interativo atualizado com sucesso.",
+        data: {
+          id: parseInt(disciplineId),
+          title,
+          description,
+          url,
+          type,
+          embedCode
+        }
       });
       
     } catch (error) {
       console.error("Erro ao atualizar e-book interativo:", error);
-      return res.json({ 
+      return res.status(500).json({ 
         success: false, 
         error: "Erro interno ao atualizar e-book interativo." 
       });
@@ -1249,7 +1279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Limpando os campos no banco de dados
       await pool.query(`
         UPDATE disciplines 
-        SET ebook_interativo_url = NULL
+        SET 
+          ebook_interativo_url = NULL,
+          ebook_interativo_data = NULL
         WHERE id = $1
       `, [disciplineId]);
       
@@ -1262,7 +1294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error("Erro ao excluir e-book interativo:", error);
-      return res.json({ 
+      return res.status(500).json({ 
         success: false, 
         error: "Erro interno ao excluir e-book interativo." 
       });
