@@ -338,17 +338,26 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
       try {
         console.log('Iniciando exclusão do e-book regular para disciplina:', disciplineId);
         
-        // Importar dinamicamente o helper da API que tem tratamento de erro mais robusto
-        const { safeApiRequest } = await import('@/lib/api-helpers');
-        
-        // URL do endpoint
+        // Usar fetch diretamente para garantir que não há problemas com o wrapper
+        const token = localStorage.getItem('auth_token');
         const url = `/api/disciplines/${disciplineId}/ebook`;
         console.log('Enviando solicitação de exclusão para:', url);
         
-        // Usar o safeApiRequest que tem melhor tratamento de erros
-        return await safeApiRequest(url, {
-          method: 'DELETE'
+        // Fazer a requisição manualmente
+        const response = await fetch(window.location.origin + url, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         });
+        
+        if (!response.ok) {
+          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
       } catch (error) {
         console.error('Erro na mutação de exclusão do e-book:', error);
         throw error;
@@ -356,22 +365,24 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
     },
     onSuccess: (data) => {
       console.log('Resposta de sucesso na exclusão:', data);
-      queryClient.invalidateQueries({
-        queryKey: ['/api/disciplines', disciplineId, 'ebook']
-      });
+      
+      // Limpar todos os caches relacionados
+      queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId, 'ebook']});
+      queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId]});
+      queryClient.invalidateQueries({queryKey: ['/api/disciplines']});
+      
       toast({
         title: 'Sucesso',
         description: 'E-book removido com sucesso',
       });
+      
       setIsManageDialogOpen(false);
       
-      // Refetch para atualizar os dados
+      // Forçar uma atualização completa da página após um pequeno delay
       setTimeout(() => {
-        console.log('Recarregando dados do e-book após exclusão bem-sucedida');
-        // Forçar uma invalidação mais agressiva do cache
-        queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId, 'ebook']});
-        refetch();
-      }, 500);
+        console.log('Forçando atualização completa da página após exclusão');
+        window.location.reload();
+      }, 1000);
     },
     onError: (error) => {
       console.error('Erro ao excluir e-book:', error);
