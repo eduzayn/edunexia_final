@@ -1102,8 +1102,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verifique se há e-book interativo associado à disciplina
       const result = await pool.query(`
-        SELECT id, "interactiveEbookUrl" AS "url", title, description, "interactiveEbookType" AS "type", 
-               "interactiveEbookEmbedCode" as "embedCode"
+        SELECT id, ebook_interativo_url AS "url", title, description, 
+               'link' AS "type" 
         FROM disciplines 
         WHERE id = $1
       `, [disciplineId]);
@@ -1167,14 +1167,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Salvamento no banco de dados
       const result = await pool.query(`
         UPDATE disciplines 
-        SET "interactiveEbookUrl" = $1, 
-            "interactiveEbookType" = $2,
-            "interactiveEbookEmbedCode" = $3,
-            "interactiveEbookTitle" = $4,
-            "interactiveEbookDescription" = $5
-        WHERE id = $6
+        SET ebook_interativo_url = $1
+        WHERE id = $2
         RETURNING id
-      `, [url, type, embedCode, title, description, disciplineId]);
+      `, [url, disciplineId]);
       
       if (result.rowCount === 0) {
         return res.status(404).json({ 
@@ -1216,13 +1212,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Atualizando no banco de dados
       await pool.query(`
         UPDATE disciplines 
-        SET "interactiveEbookUrl" = $1, 
-            "interactiveEbookType" = $2,
-            "interactiveEbookEmbedCode" = $3,
-            "interactiveEbookTitle" = $4,
-            "interactiveEbookDescription" = $5
-        WHERE id = $6
-      `, [url, type, embedCode, title, description, disciplineId]);
+        SET ebook_interativo_url = $1
+        WHERE id = $2
+      `, [url, disciplineId]);
       
       return res.json({ 
         success: true, 
@@ -1248,11 +1240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Limpando os campos no banco de dados
       await pool.query(`
         UPDATE disciplines 
-        SET "interactiveEbookUrl" = NULL, 
-            "interactiveEbookType" = NULL,
-            "interactiveEbookEmbedCode" = NULL,
-            "interactiveEbookTitle" = NULL,
-            "interactiveEbookDescription" = NULL
+        SET ebook_interativo_url = NULL
         WHERE id = $1
       `, [disciplineId]);
       
