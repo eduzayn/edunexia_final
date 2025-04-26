@@ -118,7 +118,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import VideoFormFields, { VideoSource } from "@/components/disciplinas/video-form-fields";
+import VideoFormFields from "@/components/disciplinas/video-form-fields";
+import { VideoSource } from "@/lib/video-utils";
 
 // Schema para validação dos formulários
 const videoFormSchema = z.object({

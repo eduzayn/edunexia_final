@@ -19,35 +19,11 @@ import {
   VimeoIcon,
   UploadIcon,
 } from "@/components/ui/icons";
-
-export type VideoSource = "youtube" | "vimeo" | "onedrive" | "google_drive" | "upload";
-
-// Detecta automaticamente o tipo de fonte de vídeo baseado na URL
-function detectVideoSource(url: string): VideoSource | null {
-  if (!url) return null;
-  
-  // Detecta URLs do YouTube
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    return 'youtube';
-  }
-  
-  // Detecta URLs do Vimeo
-  if (url.includes('vimeo.com') || url.includes('player.vimeo.com')) {
-    return 'vimeo';
-  }
-  
-  // Detecta URLs do Google Drive
-  if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
-    return 'google_drive';
-  }
-  
-  // Detecta URLs do OneDrive
-  if (url.includes('onedrive.live.com') || url.includes('1drv.ms')) {
-    return 'onedrive';
-  }
-  
-  return null;
-}
+import { 
+  VideoSource, 
+  detectVideoSource,
+  processVideoUrl
+} from "@/lib/video-utils";
 
 interface VideoFormFieldsProps {
   control: Control<any>;
@@ -64,29 +40,36 @@ const VideoFormFields: React.FC<VideoFormFieldsProps> = ({
   setPreviewVideoSource,
   watch
 }) => {
-  // Cria uma função para detectar a fonte de vídeo
+  // Função para detectar e atualizar a fonte de vídeo
   const detectAndUpdateSource = (url: string) => {
     if (!url) return;
     
-    const detectedSource = detectVideoSource(url);
-    const currentSource = watch("videoSource");
-    
-    // Somente atualiza se detectou uma fonte e é diferente da atual
-    if (detectedSource && detectedSource !== currentSource) {
-      // Atualiza o estado no componente pai para a prévia
-      if (setPreviewVideoSource) {
-        setPreviewVideoSource(detectedSource);
-      }
+    try {
+      // Usar nosso detector centralizado
+      const detectedSource = detectVideoSource(url);
+      const currentSource = watch("videoSource");
       
-      console.log(`Fonte de vídeo detectada automaticamente: ${detectedSource}`);
+      // Só atualiza se for diferente
+      if (detectedSource && detectedSource !== currentSource) {
+        console.log(`Fonte de vídeo detectada: ${detectedSource} para URL: ${url}`);
+        
+        // Atualiza o estado no componente pai para a prévia
+        if (setPreviewVideoSource) {
+          setPreviewVideoSource(detectedSource);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao detectar fonte de vídeo:", error);
     }
   };
   
   // Observa mudanças na URL para atualizar tipo de vídeo
   useEffect(() => {
     const url = watch("url");
-    detectAndUpdateSource(url);
-  }, [watch]);
+    if (url) {
+      detectAndUpdateSource(url);
+    }
+  }, [watch("url")]);
   
   return (
     <div className="space-y-6">
@@ -193,8 +176,33 @@ const VideoFormFields: React.FC<VideoFormFieldsProps> = ({
                 {...field} 
                 onChange={(e) => {
                   field.onChange(e);
-                  if (setPreviewVideoUrl) {
-                    setPreviewVideoUrl(e.target.value);
+                  // Usar nosso processador centralizado
+                  const url = e.target.value;
+                  if (url && setPreviewVideoUrl) {
+                    try {
+                      // Detectar a fonte atual selecionada
+                      const currentSource = watch("videoSource") as VideoSource;
+                      console.log(`Processando URL: ${url} com fonte: ${currentSource}`);
+                      
+                      // Se for uma URL válida, processá-la para criar a prévia
+                      if (url.startsWith('http')) {
+                        // Atualizar a URL de prévia diretamente 
+                        setPreviewVideoUrl(url);
+                        
+                        // Processar a URL para detectar automaticamente a fonte
+                        const videoInfo = processVideoUrl(url);
+                        console.log('Informações do vídeo:', videoInfo);
+                        
+                        // Se a fonte for diferente da atual e detectada automaticamente, atualizá-la
+                        if (videoInfo.source !== currentSource) {
+                          detectAndUpdateSource(url);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Erro ao processar URL do vídeo:', error);
+                      // Mesmo com erro, mantemos o comportamento atual
+                      setPreviewVideoUrl(url);
+                    }
                   }
                 }}
               />
