@@ -108,7 +108,7 @@ export function VideoManager({ disciplineId, discipline }: VideoManagerProps) {
       toast({
         title: "Vídeo adicionado com sucesso",
         description: "O vídeo foi adicionado à disciplina.",
-        variant: "success",
+        variant: "default",
       });
       setIsVideoDialogOpen(false);
       // Recarrega a lista de vídeos
