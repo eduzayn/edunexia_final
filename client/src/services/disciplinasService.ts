@@ -13,6 +13,13 @@ interface EbookData {
   description?: string;
 }
 
+interface QuestaoSimulado {
+  id?: string;
+  enunciado: string;
+  alternativas: string[];
+  respostaCorreta: number;
+}
+
 export const disciplinasService = {
   // Buscar disciplina por ID
   async buscarDisciplina(id: string) {
@@ -83,5 +90,43 @@ export const disciplinasService = {
       console.error("Erro ao buscar conteúdo interativo:", error);
       return null;
     }
+  },
+
+  // ==================== Funções para gerenciamento de simulados ====================
+
+  // Listar questões do simulado
+  async listarSimulado(disciplinaId: string): Promise<QuestaoSimulado[]> {
+    try {
+      const response = await apiRequest(`/api/disciplines/${disciplinaId}/simulado`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Erro ao listar questões do simulado:", error);
+      return [];
+    }
+  },
+
+  // Adicionar questão ao simulado
+  async adicionarQuestaoSimulado(disciplinaId: string, questao: Omit<QuestaoSimulado, "id">) {
+    const response = await apiRequest(`/api/disciplines/${disciplinaId}/simulado`, {
+      method: "POST",
+      data: questao
+    });
+    return response.data;
+  },
+
+  // Remover questão do simulado
+  async removerQuestaoSimulado(disciplinaId: string, questaoId: string) {
+    await apiRequest(`/api/disciplines/${disciplinaId}/simulado/${questaoId}`, {
+      method: "DELETE"
+    });
+  },
+
+  // Atualizar questão do simulado
+  async atualizarQuestaoSimulado(disciplinaId: string, questaoId: string, questao: Omit<QuestaoSimulado, "id">) {
+    const response = await apiRequest(`/api/disciplines/${disciplinaId}/simulado/${questaoId}`, {
+      method: "PUT",
+      data: questao
+    });
+    return response.data;
   }
 };

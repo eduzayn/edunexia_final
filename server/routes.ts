@@ -1747,6 +1747,290 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ==================== APIs para gerenciamento de simulados ====================
+  
+  // Listar questões do simulado
+  app.get('/api/disciplines/:id/simulado', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/simulado - Listando questões do simulado`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Verificar se a tabela discipline_simulado_questoes existe
+        const result = await pool.query(`
+          SELECT id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+          FROM discipline_simulado_questoes 
+          WHERE discipline_id = $1
+          ORDER BY created_at DESC
+        `, [disciplineId])
+          .catch(err => {
+            console.log("Simulado ainda não possui questões ou tabela não existe:", err.message);
+            return { rows: [] };
+          });
+        
+        return res.json({
+          success: true,
+          data: result.rows || []
+        });
+      } catch (dbError) {
+        console.error('Erro ao consultar questões do simulado:', dbError);
+        return res.json({
+          success: true,
+          data: []
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao listar questões do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar questões do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar questão ao simulado
+  app.post('/api/disciplines/:id/simulado', async (req, res) => {
+    try {
+      console.log(`POST /api/disciplines/${req.params.id}/simulado - Adicionando questão ao simulado`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Criar a tabela se não existir
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_simulado_questoes (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL,
+            enunciado TEXT NOT NULL,
+            alternativas TEXT[] NOT NULL,
+            resposta_correta INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Inserir a questão
+        const result = await pool.query(`
+          INSERT INTO discipline_simulado_questoes (discipline_id, enunciado, alternativas, resposta_correta)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [disciplineId, enunciado, alternativas, respostaCorreta]);
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Questão adicionada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao inserir questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao adicionar questão ao simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao adicionar questão ao simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Atualizar questão do simulado
+  app.put('/api/disciplines/:disciplineId/simulado/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Atualizar a questão
+        const result = await pool.query(`
+          UPDATE discipline_simulado_questoes
+          SET enunciado = $1, alternativas = $2, resposta_correta = $3, updated_at = NOW()
+          WHERE id = $4 AND discipline_id = $5
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [enunciado, alternativas, respostaCorreta, questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão atualizada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao atualizar questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao atualizar questão do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao atualizar questão do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover questão do simulado
+  app.delete('/api/disciplines/:disciplineId/simulado/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover a questão
+        const result = await pool.query(`
+          DELETE FROM discipline_simulado_questoes
+          WHERE id = $1 AND discipline_id = $2
+          RETURNING id
+        `, [questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão removida com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover questão do banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover questão do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover questão do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
   // Remover e-book de uma disciplina
   app.delete('/api/disciplines/:id/ebook', async (req, res) => {
     try {

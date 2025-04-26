@@ -2,6 +2,7 @@ import React from "react";
 import { useParams } from "wouter";
 import { EbookManager } from "./EbookManager";
 import { VideoManager } from "./VideoManager";
+import { SimuladoManager } from "./SimuladoManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -24,10 +25,11 @@ export function DisciplineContentManager() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="videos" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="videos">Vídeo-aulas</TabsTrigger>
               <TabsTrigger value="ebooks">E-book Estático</TabsTrigger>
               <TabsTrigger value="interactive">Conteúdo Interativo</TabsTrigger>
+              <TabsTrigger value="simulado">Simulado</TabsTrigger>
             </TabsList>
             <TabsContent value="videos" className="pt-4">
               <VideoManager disciplinaId={disciplineId} />
@@ -45,6 +47,9 @@ export function DisciplineContentManager() {
                   </p>
                 </div>
               </div>
+            </TabsContent>
+            <TabsContent value="simulado" className="pt-4">
+              <SimuladoManager />
             </TabsContent>
           </Tabs>
         </CardContent>
