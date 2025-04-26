@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   Table,
@@ -13,17 +13,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Book, Edit, Trash2, File, FileText } from "lucide-react";
+import { PlusCircle, Book, Edit, Trash2, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function DisciplinasPage() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isNewDisciplineDialogOpen, setIsNewDisciplineDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [disciplineToDelete, setDisciplineToDelete] = useState<any>(null);
+  const [formState, setFormState] = useState({
+    name: "",
+    description: "",
+    workload: "30",
+    syllabus: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Consulta para buscar todas as disciplinas
   const { 
     data: disciplines,
-    isLoading
+    isLoading,
+    refetch
   } = useQuery({
     queryKey: ["/api/admin/disciplines"],
   });
@@ -41,6 +60,116 @@ export default function DisciplinasPage() {
       discipline.description?.toLowerCase().includes(query)
     );
   });
+
+  // Funções para manipular os modais
+  const openNewDisciplineDialog = () => {
+    setFormState({
+      name: "",
+      description: "",
+      workload: "30",
+      syllabus: ""
+    });
+    setIsNewDisciplineDialogOpen(true);
+  };
+
+  const closeNewDisciplineDialog = () => {
+    setIsNewDisciplineDialogOpen(false);
+  };
+
+  const openDeleteDialog = (discipline: any) => {
+    setDisciplineToDelete(discipline);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setDisciplineToDelete(null);
+  };
+
+  // Função para criar nova disciplina
+  const handleCreateDiscipline = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Validar campos
+      if (!formState.name || !formState.description || !formState.workload || !formState.syllabus) {
+        toast({
+          title: "Campos incompletos",
+          description: "Preencha todos os campos obrigatórios",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Enviar para API
+      const response = await apiRequest('/api/admin/disciplines', {
+        method: 'POST',
+        data: {
+          name: formState.name,
+          description: formState.description,
+          workload: parseInt(formState.workload),
+          syllabus: formState.syllabus
+        }
+      });
+
+      // Atualizar cache do React Query
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] });
+      
+      toast({
+        title: "Disciplina criada",
+        description: "A disciplina foi criada com sucesso"
+      });
+
+      // Fechar modal
+      closeNewDisciplineDialog();
+      
+    } catch (error) {
+      console.error("Erro ao criar disciplina:", error);
+      toast({
+        title: "Erro ao criar disciplina",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Função para excluir disciplina
+  const handleDeleteDiscipline = async () => {
+    if (!disciplineToDelete) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Enviar para API
+      await apiRequest(`/api/admin/disciplines/${disciplineToDelete.id}`, {
+        method: 'DELETE'
+      });
+
+      // Atualizar cache do React Query
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] });
+      
+      toast({
+        title: "Disciplina excluída",
+        description: "A disciplina foi excluída com sucesso"
+      });
+
+      // Fechar modal
+      closeDeleteDialog();
+      
+    } catch (error) {
+      console.error("Erro ao excluir disciplina:", error);
+      toast({
+        title: "Erro ao excluir disciplina",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Navegar para a página de conteúdo da disciplina
   const handleManageContent = (disciplineId: number | string) => {
@@ -62,7 +191,7 @@ export default function DisciplinasPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-64"
           />
-          <Button>
+          <Button onClick={openNewDisciplineDialog}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Nova Disciplina
           </Button>

@@ -171,3 +171,45 @@ export async function updateDiscipline(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * Exclui uma disciplina
+ */
+export async function deleteDiscipline(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    
+    // Verificar se a disciplina existe
+    const existingDiscipline = await db.select()
+      .from(disciplineTable)
+      .where(eq(disciplineTable.id, parseInt(id)))
+      .limit(1);
+    
+    if (existingDiscipline.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Disciplina não encontrada'
+      });
+    }
+    
+    // Excluir a disciplina
+    const [deletedDiscipline] = await db.delete(disciplineTable)
+      .where(eq(disciplineTable.id, parseInt(id)))
+      .returning();
+    
+    console.log('Disciplina excluída com sucesso:', deletedDiscipline);
+    
+    return res.json({
+      success: true,
+      message: 'Disciplina excluída com sucesso',
+      data: deletedDiscipline
+    });
+  } catch (error) {
+    console.error('Erro ao excluir disciplina:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao excluir disciplina',
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+}
