@@ -120,11 +120,93 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   }
 
   // Consulta para buscar dados do ebook
-  const { data: ebookData, isLoading, refetch } = useQuery<EbookData>({
+  const { data: rawEbookResponse, isLoading, refetch } = useQuery<any>({
     queryKey: ['/api/disciplines', disciplineId, 'ebook'],
     refetchOnWindowFocus: false,
-    // Usar o queryFn padrão que já está configurado para lidar com autenticação
+    staleTime: 0,
+    // Usar uma função de fallback que retorna um objeto vazio quando o endpoint ainda não existe
+    queryFn: async () => {
+      try {
+        // Importar dinamicamente o helper da API
+        const { safeApiRequest } = await import('@/lib/api-helpers');
+        
+        // URL do endpoint
+        const url = `/api/disciplines/${disciplineId}/ebook`;
+        console.log("Buscando e-book diretamente da API com URL:", url);
+        
+        // Usar o helper de API para fazer a requisição segura
+        const data = await safeApiRequest(url);
+        console.log("Dados recebidos da API:", data);
+        return data;
+      } catch (error) {
+        console.error("Erro ao buscar ebook:", error);
+        // Criar uma estrutura que indica que o recurso não está disponível
+        return { 
+          id: disciplineId, 
+          available: false,
+          message: "Recurso não disponível" 
+        };
+      }
+    }
   });
+  
+  // Processamento da resposta para extrair os dados corretos
+  const ebookData = React.useMemo(() => {
+    if (!rawEbookResponse) return null;
+    
+    // Se temos uma resposta com a mensagem indicando que o endpoint não existe
+    if (rawEbookResponse.message && rawEbookResponse.message.includes("não disponível")) {
+      return {
+        id: disciplineId,
+        available: false,
+        message: rawEbookResponse.message
+      } as EbookData;
+    }
+    
+    // Verificar se a resposta está no formato esperado
+    if (typeof rawEbookResponse === 'object') {
+      // Verificação de formatos como no componente original
+      if (
+        'id' in rawEbookResponse && 
+        'available' in rawEbookResponse && 
+        rawEbookResponse.available === true &&
+        'ebookPdfUrl' in rawEbookResponse
+      ) {
+        return {
+          id: rawEbookResponse.id,
+          available: true,
+          name: rawEbookResponse.name || "E-book da Disciplina",
+          description: rawEbookResponse.description || "",
+          ebookPdfUrl: rawEbookResponse.ebookPdfUrl
+        } as EbookData;
+      }
+      
+      // Caso 1: Formato direto com available=false
+      if ('id' in rawEbookResponse && 'available' in rawEbookResponse && !rawEbookResponse.available) {
+        return {
+          id: rawEbookResponse.id,
+          available: false
+        } as EbookData;
+      }
+      
+      // Caso 2: Formato {success: true, data: {...}}
+      if ('success' in rawEbookResponse && 'data' in rawEbookResponse) {
+        const data = rawEbookResponse.data;
+        if (data && typeof data === 'object') {
+          if ('id' in data && 'available' in data) {
+            return data as EbookData;
+          }
+        }
+      }
+    }
+    
+    // Se não conseguimos processar a resposta, retornar um objeto com available=false
+    return {
+      id: disciplineId,
+      available: false,
+      message: "Formato de resposta desconhecido"
+    } as EbookData;
+  }, [rawEbookResponse, disciplineId]);
   
   // Usado para preparar a URL para visualização
   useEffect(() => {
@@ -164,28 +246,45 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   // Mutação para adicionar/atualizar ebook
   const addEbookMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      // Para uploads de arquivo, precisamos usar uma abordagem especial
-      // já que apiRequest não suporta FormData diretamente
-      const url = `/api/disciplines/${disciplineId}/ebook`;
-      
-      // Obter o token de autenticação do localStorage
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        body: data,
-        headers: {
-          // Não podemos definir Content-Type com FormData,
-          // o navegador fará isso automaticamente com o boundary correto
-          'Authorization': token ? `Bearer ${token}` : ''
+      try {
+        // Para uploads de arquivo, precisamos usar uma abordagem especial
+        // já que apiRequest não suporta FormData diretamente
+        const url = `/api/disciplines/${disciplineId}/ebook`;
+        
+        console.log('Enviando dados para:', url);
+        
+        // Obter o token de autenticação do localStorage
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          body: data,
+          headers: {
+            // Não podemos definir Content-Type com FormData,
+            // o navegador fará isso automaticamente com o boundary correto
+            'Authorization': token ? `Bearer ${token}` : ''
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Erro ao adicionar ebook. Status:', response.status);
+          const errorText = await response.text();
+          console.error('Detalhes do erro:', errorText);
+          throw new Error(`Erro ao adicionar ebook: ${response.status} ${errorText}`);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao adicionar ebook');
+        
+        try {
+          const jsonResponse = await response.json();
+          console.log('Resposta do servidor ao adicionar ebook:', jsonResponse);
+          return jsonResponse;
+        } catch (jsonError) {
+          console.error('Erro ao processar JSON da resposta:', jsonError);
+          throw new Error('A resposta não é um JSON válido');
+        }
+      } catch (error) {
+        console.error('Erro completo na mutação:', error);
+        throw error;
       }
-      
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -205,6 +304,7 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
       }, 500);
     },
     onError: (error) => {
+      console.error('Erro na mutação de adição do ebook:', error);
       toast({
         title: 'Erro',
         description: `Falha ao adicionar e-book: ${error.message}`,
@@ -244,27 +344,44 @@ export default function EbookContentSection({ disciplineId }: EbookContentSectio
   });
   
   const onSubmit = (values: EbookFormValues) => {
-    const formData = new FormData();
-    
-    if (selectedFile) {
-      formData.append('file', selectedFile);
-    } else if (values.url) {
-      formData.append('url', values.url);
-    } else {
+    try {
+      const formData = new FormData();
+      
+      if (selectedFile) {
+        console.log('Enviando arquivo:', selectedFile.name, selectedFile.type, selectedFile.size);
+        formData.append('file', selectedFile);
+      } else if (values.url) {
+        console.log('Enviando URL:', values.url);
+        formData.append('url', values.url);
+      } else {
+        toast({
+          title: 'Aviso',
+          description: 'É necessário fornecer um arquivo ou uma URL para o e-book',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      console.log('Enviando título:', values.title);
+      formData.append('title', values.title);
+      
+      if (values.description) {
+        console.log('Enviando descrição:', values.description);
+        formData.append('description', values.description);
+      }
+      
+      // Verificar se formData contém os dados esperados
+      console.log('FormData criado com sucesso, enviando para mutação...');
+      
+      addEbookMutation.mutate(formData);
+    } catch (error) {
+      console.error('Erro ao preparar dados para upload:', error);
       toast({
-        title: 'Aviso',
-        description: 'É necessário fornecer um arquivo ou uma URL para o e-book',
+        title: 'Erro',
+        description: 'Falha ao preparar dados para upload. Verifique o console para mais detalhes.',
         variant: 'destructive',
       });
-      return;
     }
-    
-    formData.append('title', values.title);
-    if (values.description) {
-      formData.append('description', values.description);
-    }
-    
-    addEbookMutation.mutate(formData);
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
