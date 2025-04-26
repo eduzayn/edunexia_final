@@ -10,9 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { getDisciplineContent, checkDisciplineCompleteness } from "@/api/disciplines";
-import { VideoManager } from "@/components/disciplines/video-manager";
-import { InteractiveEbookManager } from "@/components/disciplines/interactive-ebook-manager";
-import { ApostilaManager } from "@/components/disciplines/apostila-manager";
 
 export default function DisciplineContentPage() {
   const [, params] = useRoute<{ id: string }>("/admin/academico/disciplines/:id/content");
@@ -159,26 +156,36 @@ export default function DisciplineContentPage() {
           
           {/* Conteúdo da aba Vídeos */}
           <TabsContent value="videos" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <VideoManager discipline={discipline} videoNumber={1} />
-              <VideoManager discipline={discipline} videoNumber={2} />
-              <VideoManager discipline={discipline} videoNumber={3} />
-              <VideoManager discipline={discipline} videoNumber={4} />
-              <VideoManager discipline={discipline} videoNumber={5} />
-              <VideoManager discipline={discipline} videoNumber={6} />
-              <VideoManager discipline={discipline} videoNumber={7} />
-              <VideoManager discipline={discipline} videoNumber={8} />
-              <VideoManager discipline={discipline} videoNumber={9} />
-              <VideoManager discipline={discipline} videoNumber={10} />
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="rounded-full bg-primary/10 p-4 mb-4">
+                    <AlertCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Módulo de Vídeo-aulas</h3>
+                  <p className="text-muted-foreground text-center max-w-md mb-6">
+                    O módulo de vídeo-aulas está em implementação. Aqui você poderá gerenciar todos os vídeos desta disciplina.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           {/* Conteúdo da aba E-books */}
           <TabsContent value="ebooks" className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InteractiveEbookManager discipline={discipline} />
-              <ApostilaManager discipline={discipline} />
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="rounded-full bg-primary/10 p-4 mb-4">
+                    <AlertCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Módulo de E-books</h3>
+                  <p className="text-muted-foreground text-center max-w-md mb-6">
+                    O módulo de e-books está em implementação. Aqui você poderá gerenciar e-books estáticos e interativos para esta disciplina.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           
           {/* Conteúdo da aba Avaliações (será implementado posteriormente) */}
