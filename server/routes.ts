@@ -3738,6 +3738,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Registre outras rotas conforme necessário
+  
+  // Registrar rotas simplificadas para disciplinas - sem necessidade de autenticação para desenvolvimento
+  app.use('/api', disciplinasRoutes);
 
   return server;
 }
