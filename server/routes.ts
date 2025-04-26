@@ -843,6 +843,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota para criar disciplinas na API principal
+  app.post('/api/admin/disciplines', async (req, res) => {
+    console.log('POST /api/admin/disciplines - Redirecionando para /api-json/admin/disciplines');
+    
+    try {
+      // Garantir que o body do request foi lido corretamente
+      const bodyData = req.body;
+      console.log('Dados recebidos:', bodyData);
+      
+      // Fazer uma requisição para a rota JSON
+      const response = await fetch(`${req.protocol}://${req.get('host')}/api-json/admin/disciplines`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers.authorization || ''
+        },
+        body: JSON.stringify(bodyData)
+      });
+      
+      const jsonResponse = await response.json();
+      return res.status(response.status).json(jsonResponse);
+    } catch (error) {
+      console.error('Erro ao processar requisição para criar disciplina:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro interno do servidor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // Rota para criar disciplinas
+  app.post('/api-json/admin/disciplines', async (req, res) => {
+    console.log('POST /api-json/admin/disciplines - Criando nova disciplina');
+    console.log('Dados recebidos:', req.body);
+    
+    try {
+      const { code, name, description, workload } = req.body;
+      
+      // Validação básica
+      if (!code || !name || !description || !workload) {
+        return res.status(400).json({
+          success: false,
+          message: 'Todos os campos obrigatórios devem ser preenchidos',
+          requiredFields: ['code', 'name', 'description', 'workload']
+        });
+      }
+      
+      // Verificar se já existe uma disciplina com o mesmo código
+      const existingDiscipline = await storage.getDisciplineByCode(code);
+      if (existingDiscipline) {
+        return res.status(400).json({
+          success: false,
+          message: 'Já existe uma disciplina com este código',
+          code
+        });
+      }
+      
+      // Criar a disciplina
+      const newDiscipline = await storage.createDiscipline({
+        code,
+        name,
+        description,
+        workload: parseInt(workload),
+        syllabus: req.body.syllabus || '', // Ementa opcional
+        contentStatus: 'incomplete',
+        createdById: (req as any).auth?.userId || null
+      });
+      
+      console.log('Nova disciplina criada com sucesso:', newDiscipline);
+      return res.status(201).json({
+        success: true,
+        message: 'Disciplina criada com sucesso',
+        data: newDiscipline
+      });
+    } catch (error) {
+      console.error('Erro ao criar disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao criar disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
   // Rota específica para /api-json/admin/disciplines/:id
   app.get('/api-json/admin/disciplines/:id', requireAuth, async (req, res) => {
     try {
