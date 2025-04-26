@@ -186,7 +186,7 @@ export default function DisciplineContentPage() {
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isVideoEditDialogOpen, setIsVideoEditDialogOpen] = useState(false);
   const [isVideoPreviewDialogOpen, setIsVideoPreviewDialogOpen] = useState(false);
-  const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
+  // Estado do diálogo de material removido
   const [isEbookLinkDialogOpen, setIsEbookLinkDialogOpen] = useState(false);
   // Estado isEbookDialogOpen removido - usando interface completa em /admin/ebooks/generate
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
@@ -336,24 +336,7 @@ export default function DisciplineContentPage() {
     },
   });
   
-  // Consulta para obter apostila da disciplina
-  const { 
-    data: material, 
-    isLoading: isMaterialLoading,
-    refetch: refetchMaterial
-  } = useQuery({
-    queryKey: [buildDisciplineMaterialApiUrl(disciplineId)],
-    queryFn: async () => {
-      try {
-        const response = await fetchDisciplineMaterial(disciplineId);
-        const data = await response.json();
-        return data || { apostilaPdfUrl: null, id: disciplineId };
-      } catch (error) {
-        console.error("Erro ao buscar material da disciplina:", error);
-        return { apostilaPdfUrl: null, id: disciplineId };
-      }
-    },
-  });
+  // Consulta para obter apostila da disciplina removida
   
   // Consulta para obter e-book da disciplina
   const { 
@@ -521,98 +504,9 @@ export default function DisciplineContentPage() {
     },
   });
   
-  // Mutation para adicionar apostila
-  const addMaterialMutation = useMutation({
-    mutationFn: async (data: MaterialFormValues) => {
-      // Verificar se é upload de arquivo ou URL
-      if (data.file) {
-        // Criar FormData para upload de arquivo
-        const formData = new FormData();
-        formData.append('title', data.title);
-        formData.append('description', data.description);
-        formData.append('file', data.file);
-        
-        const response = await fetch(buildDisciplineMaterialApiUrl(disciplineId), {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erro ao fazer upload da apostila: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } else {
-        // Envio de URL
-        const response = await apiRequest("POST", buildDisciplineMaterialApiUrl(disciplineId), data);
-        
-        // Verificar o tipo de conteúdo antes de tentar parsear como JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Resposta do servidor não está no formato JSON');
-        }
-        
-        try {
-          return await response.json();
-        } catch (error) {
-          console.error('Erro ao parsear resposta como JSON:', error);
-          throw new Error('Formato de resposta inválido');
-        }
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Apostila adicionada com sucesso!",
-        description: "A apostila foi vinculada à disciplina.",
-      });
-      refetchMaterial();
-      setIsMaterialDialogOpen(false);
-      materialForm.reset();
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao adicionar apostila",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Mutation para adicionar apostila removida
   
-  // Mutation para excluir apostila
-  const deleteMaterialMutation = useMutation({
-    mutationFn: async () => {
-      const materialUrl = buildApiUrl(`/api/disciplines/${disciplineId}/material`);
-      const response = await apiRequest("DELETE", materialUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao excluir apostila: ${response.statusText}`);
-      }
-      
-      try {
-        return await response.json();
-      } catch (error) {
-        console.error('Erro ao parsear resposta como JSON:', error);
-        throw new Error('Formato de resposta inválido');
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Apostila excluída com sucesso!",
-        description: "A apostila foi removida da disciplina.",
-      });
-      refetchMaterial();
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro ao excluir apostila",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Mutation para excluir apostila removida
   
   // Mutation para adicionar link de e-book externo
   const addEbookLinkMutation = useMutation({
@@ -907,14 +801,7 @@ export default function DisciplineContentPage() {
     },
   });
   
-  const materialForm = useForm<MaterialFormValues>({
-    resolver: zodResolver(materialFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      url: "",
-    },
-  });
+  // Formulário de material removido
   
   // Formulário para inserir link de e-book externo
   const ebookLinkForm = useForm<EbookLinkFormValues>({
@@ -981,10 +868,7 @@ export default function DisciplineContentPage() {
     }
   };
   
-  const handleOpenMaterialDialog = () => {
-    materialForm.reset();
-    setIsMaterialDialogOpen(true);
-  };
+  // Handler para abrir diálogo de material removido
   
   // Manipulador para abrir o diálogo de link de e-book
   const handleOpenEbookLinkDialog = () => {
@@ -1097,9 +981,7 @@ export default function DisciplineContentPage() {
     }
   };
   
-  const onMaterialSubmit = (data: MaterialFormValues) => {
-    addMaterialMutation.mutate(data);
-  };
+  // Função onMaterialSubmit removida
   
   // Função para submeter o formulário de link de e-book
   const onEbookLinkSubmit = (data: EbookLinkFormValues) => {
