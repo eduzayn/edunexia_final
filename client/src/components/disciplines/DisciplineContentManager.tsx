@@ -4,6 +4,7 @@ import { EbookManager } from "./EbookManager";
 import { VideoManager } from "./VideoManager";
 import { SimuladoManager } from "./SimuladoManager";
 import { AvaliacaoFinalManager } from "./AvaliacaoFinalManager";
+import { InteractiveEbookManager } from "./InteractiveEbookManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -40,21 +41,13 @@ export function DisciplineContentManager() {
               <EbookManager disciplinaId={disciplineId} />
             </TabsContent>
             <TabsContent value="interactive" className="pt-4">
-              <div className="border rounded-md p-6">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium mb-2">Conteúdo Interativo</h3>
-                  <p className="text-muted-foreground">
-                    Aqui você poderá criar e gerenciar o conteúdo interativo da disciplina.
-                    Esta funcionalidade será implementada em breve.
-                  </p>
-                </div>
-              </div>
+              <InteractiveEbookManager disciplinaId={disciplineId} />
             </TabsContent>
             <TabsContent value="simulado" className="pt-4">
-              <SimuladoManager />
+              <SimuladoManager disciplinaId={disciplineId} />
             </TabsContent>
             <TabsContent value="avaliacao-final" className="pt-4">
-              <AvaliacaoFinalManager />
+              <AvaliacaoFinalManager disciplinaId={disciplineId} />
             </TabsContent>
           </Tabs>
         </CardContent>
