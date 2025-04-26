@@ -1,51 +1,74 @@
-import React, { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { disciplinasService } from "@/services/disciplinasService";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import {
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  BookText,
-  Video,
-  FileQuestion,
-  Clipboard,
-  DownloadCloud
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
-interface CompletenessCheckerProps {
-  disciplineId: string;
-  refreshOnUpdate?: boolean;
+// Interface para os resultados da verificação de completude
+interface CompletenessResult {
+  isComplete: boolean;
+  components: {
+    videos: ComponentStatus;
+    ebooks: ComponentStatus;
+    simulado: ComponentStatus;
+    avaliacao: ComponentStatus;
+  };
 }
 
-const CompletenessChecker: React.FC<CompletenessCheckerProps> = ({ 
-  disciplineId,
-  refreshOnUpdate = false 
-}) => {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+// Interface para o status de cada componente
+interface ComponentStatus {
+  status: boolean;
+  count: number;
+  required: number;
+  message: string;
+}
 
+// Props do componente
+interface CompletenessCheckerProps {
+  disciplineId: number;
+  onStatusChange?: (isComplete: boolean) => void;
+  collapsed?: boolean;
+}
+
+// Componente principal
+export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = false }: CompletenessCheckerProps) {
+  const [completeness, setCompleteness] = useState<CompletenessResult | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState<boolean>(!collapsed);
+  const { toast } = useToast();
+
+  // Função para verificar a completude
   const checkCompleteness = async () => {
-    if (!disciplineId) return;
-    
     setLoading(true);
     setError(null);
-    
+
     try {
-      const data = await disciplinasService.verificarCompletude(disciplineId);
-      setResult(data);
+      const response = await fetch(`/api/disciplinas/${disciplineId}/completeness`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao verificar completude: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setCompleteness(data.data);
+        if (onStatusChange) {
+          onStatusChange(data.data.isComplete);
+        }
+      } else {
+        throw new Error(data.message || 'Erro ao verificar completude');
+      }
     } catch (err) {
-      setError("Erro ao verificar completude da disciplina");
-      console.error("Erro ao verificar completude:", err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
       toast({
         title: "Erro",
-        description: "Não foi possível verificar a completude da disciplina.",
+        description: "Não foi possível verificar a completude da disciplina",
         variant: "destructive",
       });
     } finally {
@@ -53,174 +76,173 @@ const CompletenessChecker: React.FC<CompletenessCheckerProps> = ({
     }
   };
 
+  // Carregar dados ao montar o componente
   useEffect(() => {
-    checkCompleteness();
+    if (disciplineId) {
+      checkCompleteness();
+    }
   }, [disciplineId]);
 
-  // Calcula a porcentagem de completude
-  const calculateProgress = () => {
-    if (!result || !result.components) return 0;
+  // Calcular a porcentagem de completude
+  const calculateProgress = (): number => {
+    if (!completeness) return 0;
     
-    const componentsList = Object.values(result.components) as any[];
-    const completedComponents = componentsList.filter(comp => comp.status).length;
+    const components = [
+      completeness.components.videos.status,
+      completeness.components.ebooks.status,
+      completeness.components.simulado.status,
+      completeness.components.avaliacao.status
+    ];
     
-    return Math.round((completedComponents / componentsList.length) * 100);
+    const completedCount = components.filter(Boolean).length;
+    return (completedCount / components.length) * 100;
   };
 
-  const progressValue = result ? calculateProgress() : 0;
-  
-  // Determina o status geral da disciplina
-  const isComplete = result?.isComplete;
-
-  const getComponentIcon = (key: string) => {
-    switch (key) {
-      case 'videos':
-        return <Video className="h-5 w-5" />;
-      case 'ebooks':
-        return <BookText className="h-5 w-5" />;
-      case 'simulado':
-        return <FileQuestion className="h-5 w-5" />;
-      case 'avaliacaoFinal':
-        return <Clipboard className="h-5 w-5" />;
-      default:
-        return <BookText className="h-5 w-5" />;
-    }
+  // Renderizar badge de status para cada componente
+  const renderStatusBadge = (status: boolean) => {
+    return status ? (
+      <Badge variant="success" className="ml-2">
+        <CheckCircle className="h-3 w-3 mr-1" /> Completo
+      </Badge>
+    ) : (
+      <Badge variant="warning" className="ml-2">
+        <AlertCircle className="h-3 w-3 mr-1" /> Pendente
+      </Badge>
+    );
   };
 
-  const getStatusIcon = (status: boolean) => {
-    return status ? 
-      <CheckCircle2 className="h-5 w-5 text-green-500" /> : 
-      <AlertCircle className="h-5 w-5 text-amber-500" />;
+  // Renderizar o toggle do acordeão
+  const toggleAccordion = () => {
+    setIsOpen(!isOpen);
   };
 
-  const getStatusBadge = (status: boolean) => {
-    return status ? 
-      <Badge variant="success">Concluído</Badge> : 
-      <Badge variant="warning">Pendente</Badge>;
-  };
-
-  const getComponentLabel = (key: string) => {
-    switch (key) {
-      case 'videos':
-        return 'Vídeo-aulas';
-      case 'ebooks':
-        return 'E-books';
-      case 'simulado':
-        return 'Simulado';
-      case 'avaliacaoFinal':
-        return 'Avaliação Final';
-      default:
-        return key;
-    }
-  };
+  // Calcular o progresso
+  const progress = calculateProgress();
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Verificação de Completude</CardTitle>
-            <CardDescription>
-              Verifique se a disciplina possui todos os elementos necessários
-            </CardDescription>
-          </div>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">Status de Completude</CardTitle>
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            onClick={checkCompleteness}
-            disabled={loading}
+            onClick={toggleAccordion}
+            className="h-8 w-8 p-0"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Verificar
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
+        <CardDescription>
+          Verifica se a disciplina possui todos os conteúdos obrigatórios
+        </CardDescription>
       </CardHeader>
-      
-      <CardContent>
-        {error ? (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Erro</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : loading ? (
-          <div className="flex flex-col items-center justify-center p-6">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Verificando componentes...</p>
-          </div>
-        ) : result ? (
-          <>
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  {isComplete ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
-                  )}
-                  <span className="font-medium">
-                    Status da disciplina: {isComplete ? 'Completa' : 'Incompleta'}
-                  </span>
-                </div>
-                <Badge 
-                  variant={isComplete ? "success" : "warning"}
-                  className="px-3 py-1"
-                >
-                  {progressValue}% Concluído
-                </Badge>
+
+      {isOpen && (
+        <>
+          <CardContent className="pb-3">
+            {loading ? (
+              <div className="flex justify-center items-center py-4">
+                <RefreshCw className="animate-spin h-5 w-5 mr-2" />
+                <span>Verificando...</span>
               </div>
-              <Progress value={progressValue} className="h-2" />
-            </div>
-
-            <div className="space-y-3">
-              {result.components && Object.entries(result.components).map(([key, component]: [string, any]) => (
-                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center">
-                    {getComponentIcon(key)}
-                    <div className="ml-3">
-                      <div className="font-medium">{getComponentLabel(key)}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {component.count} / {component.required} {key === 'avaliacaoFinal' ? 'questões (exato)' : 'mínimo'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(component.status)}
-                    {getStatusIcon(component.status)}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {!isComplete && (
-              <Alert variant="warning" className="mt-4">
+            ) : error ? (
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Atenção</AlertTitle>
-                <AlertDescription>
-                  Para que a disciplina esteja completa, é necessário:
-                  <ul className="list-disc pl-5 mt-2 text-sm">
-                    {result.components && Object.values(result.components)
-                      .filter((c: any) => !c.status)
-                      .map((c: any, index: number) => (
-                        <li key={index}>{c.message}</li>
-                      ))}
-                  </ul>
-                </AlertDescription>
+                <AlertTitle>Erro</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
+            ) : completeness ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Progresso</span>
+                    <span className="text-sm font-medium">{progress.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" variant={progress === 100 ? "success" : "warning"} />
+                </div>
+
+                <Accordion type="single" collapsible className="w-full" defaultValue="components">
+                  <AccordionItem value="components">
+                    <AccordionTrigger className="py-2">
+                      Componentes Obrigatórios
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Vídeos (mín. 1)</span>
+                          {renderStatusBadge(completeness.components.videos.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground pl-2">
+                          {completeness.components.videos.message}
+                          <span className="font-semibold ml-1">
+                            ({completeness.components.videos.count}/{completeness.components.videos.required})
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">E-books (mín. 1)</span>
+                          {renderStatusBadge(completeness.components.ebooks.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground pl-2">
+                          {completeness.components.ebooks.message}
+                          <span className="font-semibold ml-1">
+                            ({completeness.components.ebooks.count}/{completeness.components.ebooks.required})
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Simulado (mín. 5 questões)</span>
+                          {renderStatusBadge(completeness.components.simulado.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground pl-2">
+                          {completeness.components.simulado.message}
+                          <span className="font-semibold ml-1">
+                            ({completeness.components.simulado.count}/{completeness.components.simulado.required})
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Avaliação Final (10 questões)</span>
+                          {renderStatusBadge(completeness.components.avaliacao.status)}
+                        </div>
+                        <div className="text-xs text-muted-foreground pl-2">
+                          {completeness.components.avaliacao.message}
+                          <span className="font-semibold ml-1">
+                            ({completeness.components.avaliacao.count}/{completeness.components.avaliacao.required})
+                          </span>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                Nenhuma informação disponível
+              </div>
             )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-6 text-center">
-            <DownloadCloud className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Não foi possível obter informações de completude.<br />
-              Clique em "Verificar" para tentar novamente.
-            </p>
-          </div>
-        )}
-      </CardContent>
+          </CardContent>
+
+          <CardFooter>
+            <Button
+              onClick={checkCompleteness}
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+            >
+              {loading ? (
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Verificar novamente
+            </Button>
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
-};
+}
 
 export default CompletenessChecker;

@@ -384,16 +384,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async checkDisciplineCompleteness(id: number): Promise<boolean> {
-    const discipline = await this.getDiscipline(id);
-    if (!discipline) return false;
+    try {
+      const discipline = await this.getDiscipline(id);
+      if (!discipline) return false;
 
-    // Verificar se todos os campos obrigatórios estão preenchidos
-    return Boolean(
-      discipline.name && 
-      discipline.description && 
-      discipline.syllabus && 
-      discipline.workload > 0
-    );
+      // Verificar se todos os campos obrigatórios estão preenchidos
+      const hasBasicInfo = Boolean(
+        discipline.name && 
+        discipline.description && 
+        discipline.syllabus && 
+        discipline.workload > 0
+      );
+
+      if (!hasBasicInfo) return false;
+
+      // Obter o conteúdo da disciplina
+      const content = await this.getDisciplineContent(id);
+      if (!content) return false;
+
+      // Verificar vídeos (necessário pelo menos 1)
+      const hasVideos = Array.isArray(content.videos) && content.videos.length >= 1;
+      
+      // Verificar e-books (necessário pelo menos 1 estático ou interativo)
+      const hasEbooks = (
+        (Array.isArray(content.materials) && content.materials.length >= 1) || 
+        (Array.isArray(content.ebooks) && content.ebooks.length >= 1) || 
+        (Array.isArray(content.interactiveEbooks) && content.interactiveEbooks.length >= 1)
+      );
+      
+      // Verificar simulado (necessário pelo menos 5 questões)
+      const hasSimulado = (
+        Array.isArray(content.assessments) && 
+        content.assessments.some(a => 
+          a.type === 'simulado' && 
+          Array.isArray(a.questions) && 
+          a.questions.length >= 5
+        )
+      );
+      
+      // Verificar avaliação final (necessário exatamente 10 questões)
+      const hasFinalAssessment = (
+        Array.isArray(content.assessments) && 
+        content.assessments.some(a => 
+          a.type === 'avaliacao_final' && 
+          Array.isArray(a.questions) && 
+          a.questions.length === 10
+        )
+      );
+
+      // Atualizar o status de completude se necessário
+      const isComplete = hasVideos && hasEbooks && hasSimulado && hasFinalAssessment;
+      
+      if (isComplete && discipline.contentStatus !== 'complete') {
+        await this.updateDiscipline(id, { contentStatus: 'complete' });
+      } else if (!isComplete && discipline.contentStatus !== 'incomplete') {
+        await this.updateDiscipline(id, { contentStatus: 'incomplete' });
+      }
+
+      return isComplete;
+    } catch (error) {
+      console.error("Erro ao verificar completude da disciplina:", error);
+      return false;
+    }
   }
 
   // ==================== Cursos ====================
