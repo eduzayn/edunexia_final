@@ -1654,12 +1654,17 @@ export default function DisciplineContentPage() {
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative aspect-video bg-gray-200">
                             {video.videoSource ? (
-                              <EmbeddedVideoPlayer 
+                              <VideoThumbnail
                                 url={video.url}
                                 title={video.title}
                                 source={video.videoSource as VideoSource}
-                                startTime={video.startTime}
                                 className="w-full h-full"
+                                onClick={() => {
+                                  // Quando clica na miniatura, abre o vídeo em tela cheia
+                                  setPreviewVideoUrl(video.url);
+                                  setPreviewVideoSource(video.videoSource as VideoSource);
+                                  setIsVideoPreviewDialogOpen(true);
+                                }}
                               />
                             ) : (
                               <div className="flex items-center justify-center h-full">
