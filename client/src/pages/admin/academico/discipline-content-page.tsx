@@ -1520,7 +1520,7 @@ export default function DisciplineContentPage() {
                             </p>
                             <div className="flex flex-col mt-2 text-sm text-gray-500">
                               <span>Duração: {video.duration}</span>
-                              {video.startTime && (video.videoSource === 'youtube' || video.source === 'youtube') && (
+                              {video.startTime && video.videoSource === 'youtube' && (
                                 <span className="text-emerald-600 mt-1">
                                   <ClockIcon className="h-3 w-3 inline-block mr-1" />
                                   Início em: {video.startTime}
@@ -1552,8 +1552,8 @@ export default function DisciplineContentPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                // Solução para garantir compatibilidade, usando source de onde estiver disponível
-                                const source = video.videoSource || video.source || "youtube";
+                                // Utilizando videoSource com fallback para "youtube" se nenhum for especificado
+                                const source = video.videoSource || "youtube";
                                 console.log("Abrindo vídeo:", video.url, "Fonte:", source);
                                 
                                 setPreviewVideoUrl(video.url);
