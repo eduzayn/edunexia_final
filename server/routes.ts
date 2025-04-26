@@ -1101,15 +1101,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verifique se há e-book interativo associado à disciplina
+      // Busca tanto a URL quanto os dados JSON
       const result = await pool.query(`
-        SELECT id, ebook_interativo_url AS "url", title, description, 
-               'link' AS "type" 
+        SELECT id, ebook_interativo_url AS "url", 
+               ebook_interativo_data AS "ebookData",
+               title, description
         FROM disciplines 
         WHERE id = $1
       `, [disciplineId]);
       
-      const ebook = result.rows[0];
-      const hasInteractiveEbook = ebook && ebook.url;
+      const dbResult = result.rows[0];
+      let ebook = dbResult;
+      
+      // Verificar se temos dados JSON para o e-book
+      if (dbResult && dbResult.ebookData) {
+        try {
+          // Tentar parsear os dados JSON armazenados
+          const ebookData = JSON.parse(dbResult.ebookData);
+          console.log(`Dados JSON do e-book interativo encontrados:`, ebookData);
+          
+          // Mesclar os dados do JSON com os resultados da consulta
+          ebook = {
+            ...dbResult,
+            ...ebookData
+          };
+        } catch (jsonError) {
+          console.error(`Erro ao parsear dados JSON do e-book:`, jsonError);
+        }
+      }
+      
+      const hasInteractiveEbook = (ebook && (ebook.url || ebook.embedCode));
       
       // Registrar no console
       console.log(`Verificando e-book interativo para disciplina ${disciplineId}: ` +
@@ -1124,13 +1145,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({
         id: parseInt(disciplineId),
         available: !!hasInteractiveEbook,
-        url: hasInteractiveEbook ? ebook.url : null,
+        url: ebook?.url || null,
         title: ebook?.title || ebook?.name || null,
         description: ebook?.description || null,
         type: ebook?.type || "link",
         embedCode: ebook?.embedCode || null,
         // Adicionar campo também no formato original para compatibilidade
-        interactiveEbookUrl: hasInteractiveEbook ? ebook.url : null,
+        interactiveEbookUrl: ebook?.url || null,
         name: ebook?.title || ebook?.name || null
       });
     } catch (error) {
