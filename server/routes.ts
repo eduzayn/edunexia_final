@@ -2608,6 +2608,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Verificar completude da disciplina
+  app.get('/api/disciplines/:id/completeness', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/completeness - Verificando completude da disciplina`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Verificar vídeos
+      const videosResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_videos 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const videoCount = parseInt(videosResult.rows[0]?.count || '0');
+      
+      // Verificar e-book estático
+      const ebookResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_ebooks 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const ebookCount = parseInt(ebookResult.rows[0]?.count || '0');
+      
+      // Verificar e-book interativo
+      const interactiveEbookResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_interactive_ebooks 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const interactiveEbookCount = parseInt(interactiveEbookResult.rows[0]?.count || '0');
+      
+      // Verificar simulado
+      const simuladoResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_simulado_questoes 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const simuladoCount = parseInt(simuladoResult.rows[0]?.count || '0');
+      
+      // Verificar avaliação final
+      const avaliacaoFinalResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_avaliacao_final_questoes 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const avaliacaoFinalCount = parseInt(avaliacaoFinalResult.rows[0]?.count || '0');
+      
+      // Verificar requisitos mínimos:
+      // - Pelo menos 1 vídeo
+      // - Um e-book (estático ou interativo)
+      // - Pelo menos 5 questões no simulado
+      // - Exatamente 10 questões na avaliação final
+      
+      const hasVideos = videoCount > 0;
+      const hasEbook = ebookCount > 0 || interactiveEbookCount > 0;
+      const hasSimulado = simuladoCount >= 5;
+      const hasAvaliacaoFinal = avaliacaoFinalCount === 10;
+      
+      const isComplete = hasVideos && hasEbook && hasSimulado && hasAvaliacaoFinal;
+      
+      const result = {
+        isComplete,
+        components: {
+          videos: {
+            status: hasVideos,
+            count: videoCount,
+            required: 1,
+            message: hasVideos ? 'OK' : 'É necessário ao menos 1 vídeo-aula'
+          },
+          ebooks: {
+            status: hasEbook,
+            count: ebookCount + interactiveEbookCount,
+            required: 1,
+            message: hasEbook ? 'OK' : 'É necessário ao menos 1 e-book (estático ou interativo)'
+          },
+          simulado: {
+            status: hasSimulado,
+            count: simuladoCount,
+            required: 5,
+            message: hasSimulado ? 'OK' : 'O simulado deve ter no mínimo 5 questões'
+          },
+          avaliacaoFinal: {
+            status: hasAvaliacaoFinal,
+            count: avaliacaoFinalCount,
+            required: 10,
+            message: hasAvaliacaoFinal ? 'OK' : 'A avaliação final deve ter exatamente 10 questões'
+          }
+        }
+      };
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+      
+    } catch (error) {
+      console.error('Erro ao verificar completude da disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao verificar completude da disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Rota para listar todas as disciplinas (adicionado para resolver erro 404)
   app.get('/api/disciplines', requireAuth, async (req, res) => {
     try {
