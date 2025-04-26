@@ -290,17 +290,171 @@ function Router() {
       <Route path="/admin/academico/disciplines">
         {() => {
           console.log("Rota /admin/academico/disciplines");
-          return user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />;
+          return user?.portalType === "admin" ? (
+            <div className="container py-10">
+              <h1 className="text-3xl font-bold mb-8">Gerenciamento de Disciplinas</h1>
+              <p className="text-lg mb-4">Este módulo permite gerenciar todas as disciplinas da plataforma.</p>
+              
+              <div className="grid gap-6 mt-8">
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                  <h2 className="text-xl font-semibold mb-4">Funcionalidades</h2>
+                  <ul className="list-disc pl-5 space-y-2">
+                    <li>Cadastro de novas disciplinas</li>
+                    <li>Edição de informações das disciplinas</li>
+                    <li>Gerenciamento de conteúdo</li>
+                    <li>Associação com cursos</li>
+                  </ul>
+                </div>
+                
+                <div className="flex gap-4 mt-6">
+                  <a href="/admin/academico/disciplines/new" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Nova Disciplina
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : <Redirect to="/admin" />;
         }}
       </Route>
       <Route path="/admin/academico/disciplines/new">
-        {() => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
+        {() => user?.portalType === "admin" ? (
+          <div className="container py-10">
+            <h1 className="text-3xl font-bold mb-6">Nova Disciplina</h1>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 mt-4">
+                  <div>
+                    <label className="text-gray-700 font-medium">Código da Disciplina</label>
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: MAT101" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Nome da Disciplina</label>
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: Matemática Básica" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Carga Horária</label>
+                    <input type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: 60" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Descrição</label>
+                    <textarea className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" rows={4} placeholder="Descreva a disciplina..."></textarea>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <a href="/admin/academico/disciplines" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancelar</a>
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar Disciplina</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : <Redirect to="/admin" />}
       </Route>
       <Route path="/admin/academico/disciplines/:id/edit">
-        {(params) => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
+        {(params) => user?.portalType === "admin" ? (
+          <div className="container py-10">
+            <h1 className="text-3xl font-bold mb-6">Editar Disciplina</h1>
+            <p className="mb-6 text-gray-600">ID: {params?.id}</p>
+            <div className="flex justify-between mb-6">
+              <a href="/admin/academico/disciplines" className="text-blue-600 hover:underline flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+                Voltar para disciplinas
+              </a>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 gap-6 mt-4">
+                  <div>
+                    <label className="text-gray-700 font-medium">Código da Disciplina</label>
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: MAT101" defaultValue="DISC123" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Nome da Disciplina</label>
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: Matemática Básica" defaultValue="Exemplo de Disciplina" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Carga Horária</label>
+                    <input type="number" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" placeholder="Ex: 60" defaultValue="80" />
+                  </div>
+                  <div>
+                    <label className="text-gray-700 font-medium">Descrição</label>
+                    <textarea className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" rows={4} placeholder="Descreva a disciplina..." defaultValue="Esta é uma disciplina de exemplo para mostrar como o formulário de edição funciona."></textarea>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-4">
+                  <a href="/admin/academico/disciplines" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Cancelar</a>
+                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Atualizar Disciplina</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : <Redirect to="/admin" />}
       </Route>
       <Route path="/admin/academico/disciplines/:id/content">
-        {(params) => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
+        {(params) => user?.portalType === "admin" ? (
+          <div className="container py-10">
+            <h1 className="text-3xl font-bold mb-6">Conteúdo da Disciplina</h1>
+            <p className="mb-6 text-gray-600">ID: {params?.id}</p>
+            <div className="flex justify-between mb-6">
+              <a href="/admin/academico/disciplines" className="text-blue-600 hover:underline flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+                Voltar para disciplinas
+              </a>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="grid gap-8">
+                <div>
+                  <h2 className="text-xl font-bold mb-4">Gerenciamento de Conteúdo</h2>
+                  <p className="text-gray-600 mb-6">Adicione e organize o conteúdo da disciplina</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
+                      <h3 className="font-bold text-blue-800 mb-2">Videoaulas</h3>
+                      <p className="text-sm text-gray-600 mb-4">Gerencie as videoaulas da disciplina</p>
+                      <a href="#" className="text-blue-600 hover:underline text-sm flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Ver videoaulas
+                      </a>
+                    </div>
+                    
+                    <div className="bg-green-50 p-5 rounded-lg border border-green-100">
+                      <h3 className="font-bold text-green-800 mb-2">E-books</h3>
+                      <p className="text-sm text-gray-600 mb-4">Gerencie os e-books da disciplina</p>
+                      <a href="#" className="text-green-600 hover:underline text-sm flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Ver e-books
+                      </a>
+                    </div>
+                    
+                    <div className="bg-purple-50 p-5 rounded-lg border border-purple-100">
+                      <h3 className="font-bold text-purple-800 mb-2">Avaliações</h3>
+                      <p className="text-sm text-gray-600 mb-4">Gerencie as avaliações da disciplina</p>
+                      <a href="#" className="text-purple-600 hover:underline text-sm flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        Ver avaliações
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : <Redirect to="/admin" />}
       </Route>
 
       {/* Redirecionamentos das rotas antigas em português */}
