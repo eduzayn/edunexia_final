@@ -128,5 +128,43 @@ export const disciplinasService = {
       data: questao
     });
     return response.data;
+  },
+
+  // ==================== Funções para gerenciamento de avaliação final ====================
+
+  // Listar questões da avaliação final
+  async listarAvaliacaoFinal(disciplinaId: string): Promise<QuestaoSimulado[]> {
+    try {
+      const response = await apiRequest(`/api/disciplines/${disciplinaId}/avaliacao-final`);
+      return response.data || [];
+    } catch (error) {
+      console.error("Erro ao listar questões da avaliação final:", error);
+      return [];
+    }
+  },
+
+  // Adicionar questão à avaliação final
+  async adicionarQuestaoAvaliacaoFinal(disciplinaId: string, questao: Omit<QuestaoSimulado, "id">) {
+    const response = await apiRequest(`/api/disciplines/${disciplinaId}/avaliacao-final`, {
+      method: "POST",
+      data: questao
+    });
+    return response.data;
+  },
+
+  // Remover questão da avaliação final
+  async removerQuestaoAvaliacaoFinal(disciplinaId: string, questaoId: string) {
+    await apiRequest(`/api/disciplines/${disciplinaId}/avaliacao-final/${questaoId}`, {
+      method: "DELETE"
+    });
+  },
+
+  // Atualizar questão da avaliação final
+  async atualizarQuestaoAvaliacaoFinal(disciplinaId: string, questaoId: string, questao: Omit<QuestaoSimulado, "id">) {
+    const response = await apiRequest(`/api/disciplines/${disciplinaId}/avaliacao-final/${questaoId}`, {
+      method: "PUT",
+      data: questao
+    });
+    return response.data;
   }
 };

@@ -2031,6 +2031,305 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ==================== APIs para gerenciamento de avaliação final ====================
+  
+  // Listar questões da avaliação final
+  app.get('/api/disciplines/:id/avaliacao-final', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/avaliacao-final - Listando questões da avaliação final`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Verificar se a tabela discipline_avaliacao_final_questoes existe
+        const result = await pool.query(`
+          SELECT id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+          FROM discipline_avaliacao_final_questoes 
+          WHERE discipline_id = $1
+          ORDER BY created_at DESC
+        `, [disciplineId])
+          .catch(err => {
+            console.log("Avaliação Final ainda não possui questões ou tabela não existe:", err.message);
+            return { rows: [] };
+          });
+        
+        return res.json({
+          success: true,
+          data: result.rows || []
+        });
+      } catch (dbError) {
+        console.error('Erro ao consultar questões da avaliação final:', dbError);
+        return res.json({
+          success: true,
+          data: []
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao listar questões da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar questões da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar questão à avaliação final
+  app.post('/api/disciplines/:id/avaliacao-final', async (req, res) => {
+    try {
+      console.log(`POST /api/disciplines/${req.params.id}/avaliacao-final - Adicionando questão à avaliação final`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Verificar o limite de 10 questões
+        const countResult = await pool.query(`
+          SELECT COUNT(*) FROM discipline_avaliacao_final_questoes
+          WHERE discipline_id = $1
+        `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+        
+        const questoesCount = parseInt(countResult.rows[0]?.count || '0');
+        
+        if (questoesCount >= 10) {
+          return res.status(400).json({
+            success: false,
+            message: 'Limite de 10 questões para a avaliação final alcançado'
+          });
+        }
+        
+        // Criar a tabela se não existir
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_avaliacao_final_questoes (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL,
+            enunciado TEXT NOT NULL,
+            alternativas TEXT[] NOT NULL,
+            resposta_correta INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Inserir a questão
+        const result = await pool.query(`
+          INSERT INTO discipline_avaliacao_final_questoes (discipline_id, enunciado, alternativas, resposta_correta)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [disciplineId, enunciado, alternativas, respostaCorreta]);
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Questão adicionada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao inserir questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao adicionar questão à avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao adicionar questão à avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Atualizar questão da avaliação final
+  app.put('/api/disciplines/:disciplineId/avaliacao-final/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Atualizar a questão
+        const result = await pool.query(`
+          UPDATE discipline_avaliacao_final_questoes
+          SET enunciado = $1, alternativas = $2, resposta_correta = $3, updated_at = NOW()
+          WHERE id = $4 AND discipline_id = $5
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [enunciado, alternativas, respostaCorreta, questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão atualizada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao atualizar questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao atualizar questão da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao atualizar questão da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover questão da avaliação final
+  app.delete('/api/disciplines/:disciplineId/avaliacao-final/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover a questão
+        const result = await pool.query(`
+          DELETE FROM discipline_avaliacao_final_questoes
+          WHERE id = $1 AND discipline_id = $2
+          RETURNING id
+        `, [questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão removida com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover questão do banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover questão da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
   // Remover e-book de uma disciplina
   app.delete('/api/disciplines/:id/ebook', async (req, res) => {
     try {
