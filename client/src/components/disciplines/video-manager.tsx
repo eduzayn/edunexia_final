@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { Discipline } from "@shared/schema";
+import { VideoSource, videoSourceLabels } from "@/types/discipline";
+import { updateDisciplineVideo, removeDisciplineVideo } from "@/api/disciplines";
 import { 
   Card, 
   CardContent, 
@@ -9,171 +14,181 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import {
+import { 
   Form,
   FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
+  FormMessage
 } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2, Upload, Video } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  videoFormSchema, 
-  VideoSource, 
-  Discipline,
-  VideoContent
-} from "@/types/discipline";
-import { z } from "zod";
-import { addVideo, removeVideo } from "@/api/disciplines";
 import { queryClient } from "@/lib/queryClient";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Film, Plus, Trash2, Video } from "lucide-react";
 
-type VideoManagerProps = {
+interface VideoManagerProps {
   discipline: Discipline;
   videoNumber: number;
-};
+}
+
+// Schema de validação para o vídeo
+const videoSchema = z.object({
+  url: z.string().url("Informe uma URL válida"),
+  source: z.enum(["youtube", "vimeo", "onedrive", "google_drive", "upload"], {
+    required_error: "Selecione a fonte do vídeo",
+  }),
+  startTime: z.string().optional(),
+});
 
 export function VideoManager({ discipline, videoNumber }: VideoManagerProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
-  // Determinar se o vídeo já existe para esta posição
-  const getCurrentVideoData = (): {exists: boolean, url?: string, source?: VideoSource, startTime?: string} => {
-    const urlKey = `videoAula${videoNumber}Url` as keyof Discipline;
-    const sourceKey = `videoAula${videoNumber}Source` as keyof Discipline;
-    const startTimeKey = `videoAula${videoNumber}StartTime` as keyof Discipline;
-    
-    const url = discipline[urlKey] as string | undefined;
-    const source = discipline[sourceKey] as VideoSource | undefined;
-    const startTime = discipline[startTimeKey] as string | undefined;
-    
-    return {
-      exists: !!url,
-      url,
-      source,
-      startTime
-    };
-  };
-  
-  const currentVideo = getCurrentVideoData();
-  
-  const form = useForm<z.infer<typeof videoFormSchema>>({
-    resolver: zodResolver(videoFormSchema),
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  // Determina o nome do campo com base no número do vídeo
+  const urlField = `videoAula${videoNumber}Url` as keyof Discipline;
+  const sourceField = `videoAula${videoNumber}Source` as keyof Discipline;
+  const startTimeField = `videoAula${videoNumber}StartTime` as keyof Discipline;
+
+  // Verifica se o vídeo existe
+  const hasVideo = Boolean(discipline[urlField]);
+
+  // Inicializa o formulário
+  const form = useForm<z.infer<typeof videoSchema>>({
+    resolver: zodResolver(videoSchema),
     defaultValues: {
-      url: currentVideo.url || "",
-      source: currentVideo.source || VideoSource.YOUTUBE,
-      startTime: currentVideo.startTime || "",
+      url: (discipline[urlField] as string) || "",
+      source: (discipline[sourceField] as VideoSource) || "youtube",
+      startTime: (discipline[startTimeField] as string) || "",
     },
   });
-  
-  // Função para adicionar vídeo
-  const handleAddVideo = async (data: z.infer<typeof videoFormSchema>) => {
-    setIsSubmitting(true);
+
+  // Função para adicionar/atualizar vídeo
+  const handleSaveVideo = async (values: z.infer<typeof videoSchema>) => {
+    setIsLoading(true);
     try {
-      await addVideo(discipline.id, videoNumber, data);
+      await updateDisciplineVideo(discipline.id.toString(), videoNumber, {
+        url: values.url,
+        source: values.source,
+        startTime: values.startTime
+      });
+
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}/content`] });
       
       toast({
-        title: "Vídeo adicionado",
-        description: `O vídeo ${videoNumber} foi adicionado com sucesso à disciplina.`,
+        title: "Vídeo salvo",
+        description: "O vídeo foi salvo com sucesso.",
         variant: "default",
       });
-      
-      // Atualizar os dados no cache
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}/content`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}`] });
     } catch (error) {
-      console.error("Erro ao adicionar vídeo:", error);
+      console.error("Erro ao salvar vídeo:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível adicionar o vídeo. Tente novamente.",
+        description: "Ocorreu um erro ao salvar o vídeo. Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-  
+
   // Função para remover vídeo
   const handleRemoveVideo = async () => {
-    setIsSubmitting(true);
+    if (!window.confirm("Tem certeza que deseja remover este vídeo?")) {
+      return;
+    }
+
+    setIsRemoving(true);
     try {
-      await removeVideo(discipline.id, videoNumber);
+      await removeDisciplineVideo(discipline.id.toString(), videoNumber);
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}/content`] });
       
       toast({
         title: "Vídeo removido",
-        description: `O vídeo ${videoNumber} foi removido da disciplina.`,
+        description: "O vídeo foi removido com sucesso.",
         variant: "default",
       });
-      
-      // Resetar formulário
+
+      // Reseta o formulário
       form.reset({
         url: "",
-        source: VideoSource.YOUTUBE,
+        source: "youtube",
         startTime: "",
       });
-      
-      // Atualizar os dados no cache
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}/content`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/disciplines/${discipline.id}`] });
     } catch (error) {
       console.error("Erro ao remover vídeo:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover o vídeo. Tente novamente.",
+        description: "Ocorreu um erro ao remover o vídeo. Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsRemoving(false);
     }
   };
-  
-  const renderSourceHelp = () => {
-    const source = form.watch("source") as VideoSource;
-    
-    switch (source) {
-      case VideoSource.YOUTUBE:
-        return "Cole o link completo do vídeo do YouTube (ex: https://www.youtube.com/watch?v=XXXX)";
-      case VideoSource.ONEDRIVE:
-        return "Cole o link de compartilhamento do OneDrive";
-      case VideoSource.GOOGLE_DRIVE:
-        return "Cole o link de compartilhamento público do Google Drive";
-      case VideoSource.VIMEO:
-        return "Cole o link completo do vídeo do Vimeo";
-      case VideoSource.UPLOAD:
-        return "Cole o link do vídeo após fazer upload para o servidor";
-      default:
-        return "Insira o URL do vídeo";
-    }
-  };
-  
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Video className="h-5 w-5" />
-          Vídeo Aula {videoNumber}
+    <Card className={hasVideo ? "border-green-200" : ""}>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg flex items-center">
+          <Film className="h-5 w-5 mr-2" />
+          Vídeo {videoNumber}
+          {hasVideo && (
+            <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+              Adicionado
+            </span>
+          )}
         </CardTitle>
         <CardDescription>
-          {currentVideo.exists 
-            ? "Configure ou substitua o vídeo para esta aula"
-            : "Adicione um vídeo para esta aula"}
+          {hasVideo
+            ? "Edite ou remova este vídeo"
+            : "Adicione um novo vídeo para esta aula"}
         </CardDescription>
       </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleAddVideo)}>
-          <CardContent className="space-y-4">
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSaveVideo)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="source"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fonte do Vídeo</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a fonte do vídeo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.entries(videoSourceLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Selecione de onde o vídeo será carregado
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="url"
@@ -181,122 +196,81 @@ export function VideoManager({ discipline, videoNumber }: VideoManagerProps) {
                 <FormItem>
                   <FormLabel>URL do Vídeo</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://" {...field} />
+                    <Input placeholder="https://..." {...field} />
                   </FormControl>
                   <FormDescription>
-                    {renderSourceHelp()}
+                    Link completo para o vídeo
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="source"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fonte do Vídeo</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a fonte" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={VideoSource.YOUTUBE}>YouTube</SelectItem>
-                        <SelectItem value={VideoSource.ONEDRIVE}>OneDrive</SelectItem>
-                        <SelectItem value={VideoSource.GOOGLE_DRIVE}>Google Drive</SelectItem>
-                        <SelectItem value={VideoSource.VIMEO}>Vimeo</SelectItem>
-                        <SelectItem value={VideoSource.UPLOAD}>Upload</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Plataforma onde o vídeo está hospedado
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tempo de Início (opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="00:00" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Formato: mm:ss (ex: 01:30 para 1 minuto e 30 segundos)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            {currentVideo.exists ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    type="button"
-                    className="text-destructive"
-                    disabled={isSubmitting}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Remover Vídeo
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação removerá o vídeo {videoNumber} da disciplina. 
-                      Esta ação pode afetar o status de completude da disciplina.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={handleRemoveVideo}
-                    >
-                      Remover
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <div></div> // Espaçador para manter o layout
-            )}
-            
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  {currentVideo.exists ? "Atualizar Vídeo" : "Adicionar Vídeo"}
-                </>
+
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tempo Inicial (opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="00:00" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Formato: mm:ss ou hh:mm:ss
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
               )}
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
+            />
+
+            <div className="flex justify-end space-x-2 pt-2">
+              {hasVideo && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRemoveVideo}
+                  disabled={isRemoving || isLoading}
+                >
+                  {isRemoving ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                      Removendo...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remover
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button type="submit" size="sm" disabled={isLoading || isRemoving}>
+                {isLoading ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    {hasVideo ? (
+                      <>
+                        <Video className="h-4 w-4 mr-1" />
+                        Atualizar
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Adicionar
+                      </>
+                    )}
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
     </Card>
   );
 }

@@ -1,196 +1,169 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
   Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
   TableBody, 
-  TableCell 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from "@/components/ui/table";
-import {
+import { Button } from "@/components/ui/button";
+import { 
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, BookOpen, Clock } from "lucide-react";
-import { listDisciplines } from "@/api/disciplines";
-import { Discipline } from "@/types/discipline";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { Input } from "@/components/ui/input";
+import { Plus, FileText, Search, Edit, Pencil, BookOpen } from "lucide-react";
+import { getDisciplines } from "@/api/disciplines";
+import { Discipline } from "@shared/schema";
 
 export function DisciplineList() {
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const { data: disciplines, isLoading, error } = useQuery({
     queryKey: ['/api/admin/disciplines'],
-    queryFn: listDisciplines,
+    queryFn: getDisciplines
   });
-  
-  const { toast } = useToast();
 
-  const handleDelete = async (id: number) => {
-    try {
-      // A função de exclusão será implementada posteriormente
-      // await deleteDiscipline(id);
-      toast({
-        title: "Disciplina excluída",
-        description: "A disciplina foi excluída com sucesso.",
-        variant: "default",
-      });
-      
-      // Invalidar a consulta para atualizar a lista
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] });
-    } catch (error) {
-      toast({
-        title: "Erro ao excluir disciplina",
-        description: "Não foi possível excluir a disciplina. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (isLoading) {
+  // Filtra as disciplinas com base no termo de busca
+  const filteredDisciplines = disciplines?.filter((discipline) => {
+    const searchLower = searchTerm.toLowerCase();
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Disciplinas</CardTitle>
-          <CardDescription>Carregando disciplinas...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-24 flex items-center justify-center">
-            <svg className="animate-spin h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-        </CardContent>
-      </Card>
+      discipline.name.toLowerCase().includes(searchLower) ||
+      discipline.code.toLowerCase().includes(searchLower) ||
+      discipline.description.toLowerCase().includes(searchLower)
     );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Disciplinas</CardTitle>
-          <CardDescription>Erro ao carregar disciplinas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-destructive/10 p-4 rounded-md">
-            <p className="text-destructive">Ocorreu um erro ao carregar a lista de disciplinas. Tente novamente.</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  });
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center">
-        <div className="flex-1">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
           <CardTitle>Disciplinas</CardTitle>
-          <CardDescription>Gerencie as disciplinas do seu catálogo acadêmico.</CardDescription>
+          <CardDescription>
+            Gerencie as disciplinas oferecidas pela instituição.
+          </CardDescription>
         </div>
-        <Button asChild>
-          <Link to="/admin/academico/disciplines/new">
-            <Plus className="mr-2 h-4 w-4" /> Nova Disciplina
-          </Link>
-        </Button>
+        <Link href="/admin/academico/disciplines/new">
+          <Button className="ml-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Disciplina
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent>
-        {disciplines && disciplines.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Carga Horária</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {disciplines.map((discipline: Discipline) => (
-                <TableRow key={discipline.id}>
-                  <TableCell className="font-mono text-xs">{discipline.code}</TableCell>
-                  <TableCell>{discipline.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Clock className="mr-1 h-4 w-4 text-muted-foreground" />
-                      <span>{discipline.workload}h</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={discipline.contentStatus === "complete" ? "default" : "outline"}
-                    >
-                      {discipline.contentStatus === "complete" ? "Completa" : "Incompleta"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        asChild
-                      >
-                        <Link to={`/admin/academico/disciplines/${discipline.id}/content`}>
-                          <BookOpen className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        asChild
-                      >
-                        <Link to={`/admin/academico/disciplines/${discipline.id}/edit`}>
-                          <Pencil className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="icon" className="text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso excluirá permanentemente a disciplina <strong>{discipline.name}</strong> e todos os seus conteúdos associados.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() => handleDelete(discipline.id)}
-                            >
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="text-center p-8 border rounded-lg">
-            <h3 className="font-semibold mb-2">Nenhuma disciplina encontrada</h3>
-            <p className="text-muted-foreground mb-4">Crie sua primeira disciplina para começar a organizar o conteúdo acadêmico.</p>
-            <Button asChild>
-              <Link to="/admin/academico/disciplines/new">
-                <Plus className="mr-2 h-4 w-4" /> Criar Disciplina
+        <div className="flex items-center mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar por nome, código ou descrição..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="mt-4 text-sm text-muted-foreground">Carregando disciplinas...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-500 mb-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium">Erro ao carregar disciplinas</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Ocorreu um erro ao buscar as disciplinas. Tente novamente mais tarde.
+              </p>
+              <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+                Tentar novamente
+              </Button>
+            </div>
+          </div>
+        ) : disciplines && disciplines.length === 0 ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-500 mb-4">
+                <FileText className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-medium">Nenhuma disciplina encontrada</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Ainda não há disciplinas cadastradas. Clique no botão acima para criar uma nova.
+              </p>
+              <Link href="/admin/academico/disciplines/new">
+                <Button className="mt-4">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Disciplina
+                </Button>
               </Link>
-            </Button>
+            </div>
+          </div>
+        ) : filteredDisciplines && filteredDisciplines.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Search className="h-6 w-6 text-gray-500" />
+            </div>
+            <h3 className="text-lg font-medium">Nenhum resultado encontrado</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Não encontramos disciplinas com o termo "{searchTerm}". Tente outra busca.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDisciplines?.map((discipline: Discipline) => (
+                  <TableRow key={discipline.id}>
+                    <TableCell className="font-medium">{discipline.code}</TableCell>
+                    <TableCell>{discipline.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={discipline.contentStatus === 'complete' ? 'default' : 'outline'}>
+                        {discipline.contentStatus === 'complete' ? 'Completa' : 'Incompleta'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Link href={`/admin/academico/disciplines/${discipline.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                        </Link>
+                        <Link href={`/admin/academico/disciplines/${discipline.id}/content`}>
+                          <Button variant="default" size="sm">
+                            <BookOpen className="h-4 w-4 mr-1" />
+                            Conteúdo
+                          </Button>
+                        </Link>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>

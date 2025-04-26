@@ -1,223 +1,174 @@
-// API de disciplinas para o front-end
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Discipline, 
-  VideoContent, 
-  EbookContent, 
-  Assessment,
-  Question,
-  VideoSource
-} from "@/types/discipline";
+import { Discipline } from "@shared/schema";
 
-const API_BASE = "/api/admin/disciplines";
-
-// Função para listar todas as disciplinas
-export async function listDisciplines(): Promise<Discipline[]> {
-  const response = await apiRequest(API_BASE);
-  return response.data || [];
+// Interface para verificação de completude da disciplina
+export interface DisciplineCompleteness {
+  isComplete: boolean;
+  hasVideos: boolean;
+  hasEbook: boolean;
+  hasAssessments: boolean;
 }
 
-// Função para obter uma disciplina específica
-export async function getDiscipline(id: number | string): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${id}`);
+// Interface de opções de vídeo
+export interface VideoOptions {
+  url: string;
+  source: 'youtube' | 'vimeo' | 'onedrive' | 'google_drive' | 'upload';
+  startTime?: string;
+}
+
+/**
+ * Busca todas as disciplinas
+ * @returns Lista de disciplinas
+ */
+export const getDisciplines = async (): Promise<Discipline[]> => {
+  const response = await apiRequest("/api/admin/disciplines");
+  return response.data;
+};
+
+/**
+ * Busca uma disciplina pelo ID
+ * @param id ID da disciplina
+ * @returns Detalhes da disciplina
+ */
+export const getDiscipline = async (id: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}`);
   return response;
-}
+};
 
-// Função para obter o conteúdo completo de uma disciplina
-export async function getDisciplineContent(id: number | string): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${id}/content`);
+/**
+ * Busca o conteúdo completo de uma disciplina (incluindo vídeos, ebooks, etc)
+ * @param id ID da disciplina
+ * @returns Disciplina com conteúdo completo
+ */
+export const getDisciplineContent = async (id: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/content`);
   return response;
-}
+};
 
-// Função para criar uma disciplina
-export async function createDiscipline(data: Omit<Discipline, "id" | "createdAt" | "updatedAt" | "contentStatus">): Promise<Discipline> {
-  const response = await apiRequest(API_BASE, {
+/**
+ * Verifica a completude da disciplina (se possui vídeos, ebooks, avaliações)
+ * @param id ID da disciplina
+ * @returns Status de completude da disciplina
+ */
+export const checkDisciplineCompleteness = async (id: string): Promise<DisciplineCompleteness> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/check-completeness`);
+  return response;
+};
+
+/**
+ * Cria uma nova disciplina
+ * @param discipline Dados da disciplina a ser criada
+ * @returns Disciplina criada
+ */
+export const createDiscipline = async (discipline: Omit<Discipline, 'id' | 'createdAt' | 'updatedAt' | 'contentStatus'>): Promise<Discipline> => {
+  const response = await apiRequest("/api/admin/disciplines", {
     method: "POST",
-    data
+    data: discipline
   });
   return response;
-}
+};
 
-// Função para atualizar uma disciplina
-export async function updateDiscipline(id: number | string, data: Partial<Discipline>): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${id}`, {
+/**
+ * Atualiza uma disciplina existente
+ * @param id ID da disciplina
+ * @param discipline Dados atualizados da disciplina
+ * @returns Disciplina atualizada
+ */
+export const updateDiscipline = async (id: string, discipline: Partial<Omit<Discipline, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}`, {
+    method: "PATCH",
+    data: discipline
+  });
+  return response;
+};
+
+/**
+ * Exclui uma disciplina
+ * @param id ID da disciplina a ser excluída
+ * @returns void
+ */
+export const deleteDiscipline = async (id: string): Promise<void> => {
+  await apiRequest(`/api/admin/disciplines/${id}`, {
+    method: "DELETE"
+  });
+};
+
+/**
+ * Atualiza o vídeo de uma disciplina
+ * @param id ID da disciplina
+ * @param videoNumber Número do vídeo (1-10)
+ * @param options Opções do vídeo
+ * @returns Disciplina atualizada
+ */
+export const updateDisciplineVideo = async (id: string, videoNumber: number, options: VideoOptions): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/videos/${videoNumber}`, {
     method: "PUT",
-    data
+    data: options
   });
   return response;
-}
+};
 
-// Função para excluir uma disciplina
-export async function deleteDiscipline(id: number | string): Promise<void> {
-  await apiRequest(`${API_BASE}/${id}`, {
-    method: "DELETE"
-  });
-}
-
-// ===== APIs para vídeos =====
-
-// Função para adicionar um vídeo
-export async function addVideo(
-  disciplineId: number | string, 
-  videoNumber: number,
-  videoData: { url: string; source: VideoSource; startTime?: string }
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/videos/${videoNumber}`, {
-    method: "POST",
-    data: videoData
-  });
-  return response;
-}
-
-// Função para remover um vídeo
-export async function removeVideo(
-  disciplineId: number | string,
-  videoNumber: number
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/videos/${videoNumber}`, {
+/**
+ * Remove um vídeo da disciplina
+ * @param id ID da disciplina
+ * @param videoNumber Número do vídeo (1-10)
+ * @returns Disciplina atualizada
+ */
+export const removeDisciplineVideo = async (id: string, videoNumber: number): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/videos/${videoNumber}`, {
     method: "DELETE"
   });
   return response;
-}
+};
 
-// ===== APIs para e-book interativo =====
-
-// Função para adicionar um e-book interativo
-export async function addInteractiveEbook(
-  disciplineId: number | string,
-  ebookData: { url: string }
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/ebook-interativo`, {
-    method: "POST",
-    data: ebookData
-  });
-  return response;
-}
-
-// Função para remover um e-book interativo
-export async function removeInteractiveEbook(
-  disciplineId: number | string
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/ebook-interativo`, {
-    method: "DELETE"
-  });
-  return response;
-}
-
-// ===== APIs para apostila PDF =====
-
-// Função para adicionar uma apostila PDF
-export async function addPdfApostila(
-  disciplineId: number | string,
-  apostilaData: { url: string }
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/apostila`, {
-    method: "POST",
-    data: apostilaData
-  });
-  return response;
-}
-
-// Função para remover uma apostila PDF
-export async function removePdfApostila(
-  disciplineId: number | string
-): Promise<Discipline> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/apostila`, {
-    method: "DELETE"
-  });
-  return response;
-}
-
-// ===== APIs para avaliações (simulados e avaliações finais) =====
-
-// Função para listar avaliações de uma disciplina
-export async function listAssessments(
-  disciplineId: number | string,
-  type?: "simulado" | "avaliacao_final"
-): Promise<Assessment[]> {
-  const url = type 
-    ? `${API_BASE}/${disciplineId}/assessments?type=${type}` 
-    : `${API_BASE}/${disciplineId}/assessments`;
-  
-  const response = await apiRequest(url);
-  return response.data || [];
-}
-
-// Função para obter uma avaliação específica
-export async function getAssessment(
-  disciplineId: number | string,
-  assessmentId: number | string
-): Promise<Assessment> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/assessments/${assessmentId}`);
-  return response;
-}
-
-// Função para criar uma avaliação
-export async function createAssessment(
-  disciplineId: number | string,
-  data: Omit<Assessment, "id" | "disciplineId" | "createdAt" | "updatedAt">
-): Promise<Assessment> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/assessments`, {
-    method: "POST",
-    data
-  });
-  return response;
-}
-
-// Função para atualizar uma avaliação
-export async function updateAssessment(
-  disciplineId: number | string,
-  assessmentId: number | string,
-  data: Partial<Assessment>
-): Promise<Assessment> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/assessments/${assessmentId}`, {
+/**
+ * Atualiza o e-book interativo da disciplina
+ * @param id ID da disciplina
+ * @param url URL do e-book interativo
+ * @returns Disciplina atualizada
+ */
+export const updateInteractiveEbook = async (id: string, url: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/ebook-interativo`, {
     method: "PUT",
-    data
+    data: { url }
   });
   return response;
-}
+};
 
-// Função para excluir uma avaliação
-export async function deleteAssessment(
-  disciplineId: number | string,
-  assessmentId: number | string
-): Promise<void> {
-  await apiRequest(`${API_BASE}/${disciplineId}/assessments/${assessmentId}`, {
-    method: "DELETE"
-  });
-}
-
-// ===== APIs para questões =====
-
-// Função para adicionar uma questão a uma avaliação
-export async function addQuestionToAssessment(
-  disciplineId: number | string,
-  assessmentId: number | string,
-  data: Omit<Question, "id" | "disciplineId" | "createdAt" | "updatedAt">
-): Promise<Assessment> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/assessments/${assessmentId}/questions`, {
-    method: "POST",
-    data
-  });
-  return response;
-}
-
-// Função para remover uma questão de uma avaliação
-export async function removeQuestionFromAssessment(
-  disciplineId: number | string,
-  assessmentId: number | string,
-  questionId: number | string
-): Promise<Assessment> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/assessments/${assessmentId}/questions/${questionId}`, {
+/**
+ * Remove o e-book interativo da disciplina
+ * @param id ID da disciplina
+ * @returns Disciplina atualizada
+ */
+export const removeInteractiveEbook = async (id: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/ebook-interativo`, {
     method: "DELETE"
   });
   return response;
-}
+};
 
-// Função para verificar se uma disciplina está completa
-export async function checkDisciplineCompleteness(
-  disciplineId: number | string
-): Promise<{ isComplete: boolean; hasVideos: boolean; hasEbook: boolean; hasAssessments: boolean }> {
-  const response = await apiRequest(`${API_BASE}/${disciplineId}/check-completeness`);
+/**
+ * Atualiza a apostila (PDF) da disciplina
+ * @param id ID da disciplina
+ * @param url URL da apostila
+ * @returns Disciplina atualizada
+ */
+export const updateApostila = async (id: string, url: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/apostila`, {
+    method: "PUT",
+    data: { url }
+  });
   return response;
-}
+};
+
+/**
+ * Remove a apostila (PDF) da disciplina
+ * @param id ID da disciplina
+ * @returns Disciplina atualizada
+ */
+export const removeApostila = async (id: string): Promise<Discipline> => {
+  const response = await apiRequest(`/api/admin/disciplines/${id}/apostila`, {
+    method: "DELETE"
+  });
+  return response;
+};
