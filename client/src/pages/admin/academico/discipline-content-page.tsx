@@ -119,7 +119,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import VideoFormFields from "@/components/disciplinas/video-form-fields";
-import { VideoSource } from "@/lib/video-utils";
+import { VideoSource, detectVideoSource, processVideoUrl } from "@/lib/video-utils";
 
 // Schema para validação dos formulários
 const videoFormSchema = z.object({
@@ -1705,10 +1705,27 @@ export default function DisciplineContentPage() {
                               size="sm"
                               onClick={() => {
                                 // Definir o URL e tipo para preview e abrir o modal
-                                setPreviewVideoUrl(video.url);
-                                setPreviewVideoSource(video.videoSource as VideoSource);
-                                // Podemos criar um estado separado para o modal de visualização completa
-                                setIsVideoPreviewDialogOpen(true);
+                                console.log('Abrindo visualização do vídeo:', {
+                                  url: video.url,
+                                  source: video.videoSource || 'youtube'
+                                });
+                                
+                                // Usar o detector de fonte se não tiver uma fonte definida
+                                const videoSource = video.videoSource || detectVideoSource(video.url);
+                                console.log('Fonte detectada:', videoSource);
+                                
+                                // Limpar os valores atuais primeiro para garantir nova renderização
+                                setPreviewVideoUrl('');
+                                setPreviewVideoSource('youtube');
+                                
+                                // Aguardar o próximo ciclo de renderização
+                                setTimeout(() => {
+                                  // Atualizar com os valores reais
+                                  setPreviewVideoUrl(video.url);
+                                  setPreviewVideoSource(videoSource as VideoSource);
+                                  // Abrir o modal de visualização depois de definir os estados
+                                  setIsVideoPreviewDialogOpen(true);
+                                }, 50);
                               }}
                             >
                               <PlayIcon className="mr-1 h-4 w-4" />
@@ -3063,6 +3080,7 @@ export default function DisciplineContentPage() {
                   source={previewVideoSource} 
                   title="Visualização do vídeo" 
                   className="w-full h-full"
+                  key={`video-player-${previewVideoUrl}`} // Forçar nova renderização quando a URL mudar
                 />
               </div>
             ) : (
@@ -3077,7 +3095,14 @@ export default function DisciplineContentPage() {
           <DialogFooter>
             <Button
               type="button"
-              onClick={() => setIsVideoPreviewDialogOpen(false)}
+              onClick={() => {
+                setIsVideoPreviewDialogOpen(false);
+                // Limpar os estados após fechar
+                setTimeout(() => {
+                  setPreviewVideoUrl('');
+                  setPreviewVideoSource('youtube');
+                }, 300);
+              }}
             >
               Fechar
             </Button>
