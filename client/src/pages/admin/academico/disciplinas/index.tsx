@@ -251,7 +251,11 @@ export default function DisciplinasPage() {
                             <Edit className="h-4 w-4 mr-1" />
                             Editar
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => openDeleteDialog(discipline)}
+                          >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
@@ -274,6 +278,113 @@ export default function DisciplinasPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal para criar nova disciplina */}
+      <Dialog open={isNewDisciplineDialogOpen} onOpenChange={setIsNewDisciplineDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nova Disciplina</DialogTitle>
+            <DialogDescription>
+              Preencha os campos abaixo para criar uma nova disciplina.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nome da Disciplina</Label>
+              <Input
+                id="name"
+                placeholder="Ex: Didática do Ensino Superior"
+                value={formState.name}
+                onChange={(e) => setFormState({...formState, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                placeholder="Breve descrição da disciplina..."
+                value={formState.description}
+                onChange={(e) => setFormState({...formState, description: e.target.value})}
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="workload">Carga Horária (horas)</Label>
+              <Input
+                id="workload"
+                placeholder="Ex: 30"
+                value={formState.workload}
+                onChange={(e) => setFormState({...formState, workload: e.target.value})}
+                type="number"
+                min="1"
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="syllabus">Ementa da Disciplina</Label>
+              <Textarea
+                id="syllabus"
+                placeholder="Conteúdo programático da disciplina..."
+                value={formState.syllabus}
+                onChange={(e) => setFormState({...formState, syllabus: e.target.value})}
+                rows={5}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline" 
+              onClick={closeNewDisciplineDialog}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateDiscipline}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Salvando..." : "Salvar Disciplina"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para confirmar exclusão de disciplina */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Você está prestes a excluir a disciplina{" "}
+              <span className="font-semibold text-black">
+                {disciplineToDelete?.name}
+              </span>
+              . Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button
+              variant="outline" 
+              onClick={closeDeleteDialog}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDeleteDiscipline}
+              disabled={isSubmitting}
+              variant="destructive"
+            >
+              {isSubmitting ? "Excluindo..." : "Excluir Disciplina"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
