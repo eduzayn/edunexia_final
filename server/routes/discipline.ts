@@ -453,12 +453,34 @@ router.delete('/api/disciplines/:id/ebook', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
     }
 
-    // Atualizar disciplina removendo o e-book
+    // Identificar se usamos ebookInterativoUrl ou apostilaPdfUrl
+    const isInteractiveEbook = !!discipline.ebookInterativoUrl;
+    const isRegularEbook = !!discipline.apostilaPdfUrl;
+    
+    console.log('Excluindo e-book para disciplina:', disciplineId);
+    console.log('Tipo de e-book:', isInteractiveEbook ? 'interativo' : (isRegularEbook ? 'regular' : 'nenhum'));
+    
+    // Preparar o objeto de atualização conforme o tipo de e-book disponível
+    const updateData: any = {};
+    
+    if (isInteractiveEbook) {
+      // Se for um e-book interativo
+      console.log('Limpando campo ebookInterativoUrl');
+      updateData.ebookInterativoUrl = null;
+    }
+    
+    if (isRegularEbook) {
+      // Se for um e-book regular (apostila)
+      console.log('Limpando campo apostilaPdfUrl');
+      updateData.apostilaPdfUrl = null;
+    }
+    
+    // Atualizar a disciplina removendo o e-book correto
     await db.update(disciplines)
-      .set({ 
-        ebookInterativoUrl: null
-      })
+      .set(updateData)
       .where(eq(disciplines.id, disciplineId));
+    
+    console.log('E-book excluído com sucesso, campos atualizados:', updateData);
     
     res.status(200).json({ 
       success: true, 
