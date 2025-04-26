@@ -65,7 +65,8 @@ import {
 import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
-import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
+import disciplineRoutes from './routes/discipline-routes'; // Rotas com restrições de permissão
+import disciplinasRoutes from './routes/disciplinas-routes'; // Nova implementação direta para o frontend
 // Rota antiga de disciplinas removida
 
 // Armazenamento de sessão simplificado (em memória)
