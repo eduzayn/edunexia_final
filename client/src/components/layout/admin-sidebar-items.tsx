@@ -101,13 +101,6 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       name: "Acadêmico",
       icon: <MenuBookIcon />,
       items: [
-        // Versão antiga (mostrar em itálico e uma dica de "deprecated")
-        { 
-          name: "Disciplinas (antigo)", 
-          icon: <BookIcon />, 
-          href: "/admin/academico/disciplines",
-          active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/"))
-        },
         // Nova versão com a estrutura refatorada
         { 
           name: "Disciplinas (novo)", 
