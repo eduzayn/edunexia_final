@@ -413,10 +413,12 @@ router.post('/api/disciplines/:id/ebook', upload.single('file'), async (req, res
     // Atualizar disciplina com o e-book
     await db.update(disciplines)
       .set({ 
-        ebookInterativoUrl: fileUrl,
+        apostilaPdfUrl: fileUrl,
         updatedAt: new Date()
       })
       .where(eq(disciplines.id, disciplineId));
+    
+    console.log(`E-book regular atualizado no banco para disciplina ${disciplineId}:`, fileUrl);
     
     res.status(200).json({ 
       success: true, 
