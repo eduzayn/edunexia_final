@@ -78,7 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api-json/login', (req, res) => {
     // Definir o tipo de conteúdo como JSON para evitar problemas
     res.setHeader('Content-Type', 'application/json');
-
+    
     try {
       const { username, password, portalType } = req.body;
 
@@ -194,16 +194,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api-json/logout', (req, res) => {
     // Definir o tipo de conteúdo como JSON para evitar problemas
     res.setHeader('Content-Type', 'application/json');
-
+    
     try {
       // Verificar o token no header de Authorization
       const authHeader = req.headers.authorization;
       const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
-
+  
       if (token) {
         removeActiveUser(token);
       }
-
+  
       res.status(200).json({
         success: true,
         message: "Logout realizado com sucesso"
@@ -389,7 +389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           systemMessages: []
         }
       };
-
+      
       res.status(200).json(dashboardData);
     } catch (error) {
       console.error('Erro ao obter dados do dashboard admin:', error);
@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/user', (req, res) => {
     console.log('Acessando diretamente /api/user (implementação unificada)');
     console.log('Headers na requisição /api/user:', JSON.stringify(req.headers));
-
+    
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
 
@@ -498,24 +498,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
-
+  
   // Rota para obter um curso específico pelo ID
   app.get('/api/admin/courses/:id', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ message: "ID do curso inválido" });
       }
-
+      
       // Buscar o curso pelo ID
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ message: "Curso não encontrado" });
       }
-
+      
       console.log(`GET /api/admin/courses/${courseId} - Curso encontrado`);
       return res.json(course);
     } catch (error) {
@@ -526,13 +526,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para atualizar um curso específico pelo ID
   app.put('/api/admin/courses/:id', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ 
@@ -540,7 +540,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "ID do curso inválido" 
         });
       }
-
+      
       // Verificar se o curso existe
       const existingCourse = await storage.getCourse(courseId);
       if (!existingCourse) {
@@ -549,11 +549,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Curso não encontrado" 
         });
       }
-
+      
       // Atualizar o curso
       console.log(`PUT /api/admin/courses/${courseId} - Atualizando curso:`, req.body);
       const updatedCourse = await storage.updateCourse(courseId, req.body);
-
+      
       console.log(`PUT /api/admin/courses/${courseId} - Curso atualizado com sucesso`);
       return res.json({ 
         success: true,
@@ -591,12 +591,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para obter um curso específico pelo ID (formato JSON-API)
   app.get('/api-json/courses/:id', async (req, res) => {
     console.log(`Buscando curso ID ${req.params.id} (API JSON)`);
     res.setHeader('Content-Type', 'application/json');
-
+    
     try {
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "ID do curso inválido"
         });
       }
-
+      
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({
@@ -613,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Curso não encontrado"
         });
       }
-
+      
       console.log(`GET /api-json/courses/${courseId} - Curso encontrado`);
       return res.status(200).json({
         success: true,
@@ -634,28 +634,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api-json/dashboard/student', requireStudent, async (req, res) => {
     console.log('Buscando dados do dashboard do aluno');
     res.setHeader('Content-Type', 'application/json');
-
+    
     try {
       const userId = (req as any).user.id;
-
+      
       if (!userId) {
         return res.status(400).json({
           success: false,
           message: 'ID do usuário não encontrado'
         });
       }
-
+      
       // Obter matrículas do aluno
       const enrollments = await storage.getStudentEnrollments(userId);
-
+      
       // Mapear para o formato esperado pelo frontend
       const studentCourses = await Promise.all(enrollments.map(async (enrollment) => {
         const course = await storage.getCourse(enrollment.courseId);
-
+        
         if (!course) {
           return null;
         }
-
+        
         return {
           id: course.id,
           code: course.code,
@@ -669,24 +669,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: enrollment.updatedAt || enrollment.createdAt
         };
       }));
-
+      
       // Filtrar valores nulos (cursos não encontrados)
       const validCourses = studentCourses.filter(course => course !== null);
-
+      
       // Contadores para o dashboard
       const totalCourses = validCourses.length;
       const coursesInProgress = validCourses.filter(course => (course?.progress || 0) > 0 && (course?.progress || 0) < 100).length;
       const coursesNotStarted = validCourses.filter(course => (course?.progress || 0) === 0).length;
-
+      
       // Poderíamos buscar eventos reais do aluno no futuro
       const upcomingEvents: { title: string; date: string; time: string }[] = [];
-
+      
       // Poderíamos buscar avisos reais do sistema
       const announcements: { title: string; content: string; date: string }[] = [];
-
+      
       // Poderíamos buscar atividades pendentes do aluno
       const pendingActivities = validCourses.length > 0 ? 2 : 0;
-
+      
       // Construir resposta do dashboard
       const dashboardData = {
         studentInfo: {
@@ -699,7 +699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         upcomingEvents,
         announcements
       };
-
+      
       console.log(`Retornando dashboard para o aluno ${userId} com ${validCourses.length} cursos`);
       return res.status(200).json(dashboardData);
     } catch (error) {
@@ -715,28 +715,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api-json/student/courses', requireStudent, async (req, res) => {
     console.log('Buscando cursos do aluno (API JSON)');
     res.setHeader('Content-Type', 'application/json');
-
+    
     try {
       const userId = (req as any).user.id;
-
+      
       if (!userId) {
         return res.status(400).json({
           success: false,
           message: 'ID do usuário não encontrado'
         });
       }
-
+      
       // Obter matrículas do aluno
       const enrollments = await storage.getStudentEnrollments(userId);
-
+      
       // Mapear para o formato esperado pelo frontend
       const studentCourses = await Promise.all(enrollments.map(async (enrollment) => {
         const course = await storage.getCourse(enrollment.courseId);
-
+        
         if (!course) {
           return null;
         }
-
+        
         return {
           id: course.id,
           code: course.code,
@@ -749,10 +749,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: enrollment.updatedAt || enrollment.createdAt
         };
       }));
-
+      
       // Filtrar valores nulos (cursos não encontrados)
       const validCourses = studentCourses.filter(course => course !== null);
-
+      
       console.log(`Retornando ${validCourses.length} cursos para o aluno ${userId}`);
       return res.status(200).json(validCourses);
     } catch (error) {
@@ -763,13 +763,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Redirecionar rota tradicional para a rota JSON
   app.get('/api/student/courses', (req, res) => {
     console.log('Redirecionando /api/student/courses para /api-json/student/courses');
     res.redirect(307, req.url.replace('/api/', '/api-json/'));
   });
-
+  
   // Redirecionar rota tradicional de contratos para a rota JSON
   app.get('/api/student/contracts', (req, res) => {
     console.log('Redirecionando /api/student/contracts para /api-json/student/contracts');
@@ -842,14 +842,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   });
-
+  
   // Rota específica para /api-json/admin/disciplines/:id
   app.get('/api-json/admin/disciplines/:id', requireAuth, async (req, res) => {
     try {
       console.log(`GET /api-json/admin/disciplines/${req.params.id} - Obtendo disciplina específica`);
       // Garantir que a resposta seja JSON
       res.setHeader('Content-Type', 'application/json');
-
+      
       const id = parseInt(req.params.id);
       const discipline = await storage.getDiscipline(id);
 
@@ -866,25 +866,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para obter o conteúdo de uma disciplina
   app.get('/api-json/admin/disciplines/:id/content', requireAuth, async (req, res) => {
     try {
       console.log(`GET /api-json/admin/disciplines/${req.params.id}/content - Obtendo conteúdo da disciplina`);
       // Garantir que a resposta seja JSON
       res.setHeader('Content-Type', 'application/json');
-
+      
       const id = parseInt(req.params.id);
       // Verificar se a disciplina existe
       const discipline = await storage.getDiscipline(id);
-
+      
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-
+      
       // Obter o conteúdo da disciplina
       const content = await storage.getDisciplineContent(id);
-
+      
       return res.json(content || {
         videos: [],
         materials: [],
@@ -899,29 +899,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para obter o status de completude de uma disciplina
   app.get('/api-json/admin/disciplines/:id/completeness', requireAuth, async (req, res) => {
     try {
       console.log(`GET /api-json/admin/disciplines/${req.params.id}/completeness - Obtendo status de completude`);
       // Garantir que a resposta seja JSON
       res.setHeader('Content-Type', 'application/json');
-
+      
       const id = parseInt(req.params.id);
       // Verificar se a disciplina existe
       const discipline = await storage.getDiscipline(id);
-
+      
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-
+      
       // Calcular completude (simplificado)
       const content = await storage.getDisciplineContent(id);
       const hasVideos = content?.videos?.length > 0;
       const hasMaterials = content?.materials?.length > 0;
       const hasEbooks = content?.ebooks?.length > 0;
       const hasAssessments = content?.assessments?.length > 0;
-
+      
       const completenessItems = [
         { id: "info", label: "Informações básicas", status: discipline ? "completed" : "pending" },
         { id: "videos", label: "Vídeo-aulas", status: hasVideos ? "completed" : "pending" },
@@ -929,12 +929,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { id: "ebooks", label: "E-books", status: hasEbooks ? "completed" : "pending" },
         { id: "assessments", label: "Avaliações", status: hasAssessments ? "completed" : "pending" },
       ];
-
+      
       // Calcular porcentagem de completude
       const completedItems = completenessItems.filter(item => item.status === "completed").length;
       const totalItems = completenessItems.length;
       const completionPercentage = Math.round((completedItems / totalItems) * 100);
-
+      
       return res.json({
         items: completenessItems,
         completionPercentage
@@ -1088,18 +1088,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
   // Rota antiga de disciplinas removida
-
+  
   // Implementa diretamente as rotas de e-books interativos aqui
   // Rota para tratar e-books interativos - GET
   app.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
     try {
       const disciplineId = req.params.id;
       const discipline = await storage.getDiscipline(Number(disciplineId));
-
+      
       if (!discipline) {
         return res.status(404).json({ success: false, error: "Disciplina não encontrada" });
       }
-
+      
       // Verifique se há e-book interativo associado à disciplina
       // Busca tanto a URL quanto os dados JSON
       const result = await pool.query(`
@@ -1109,17 +1109,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         FROM disciplines 
         WHERE id = $1
       `, [disciplineId]);
-
+      
       const dbResult = result.rows[0];
       let ebook = dbResult;
-
+      
       // Verificar se temos dados JSON para o e-book
       if (dbResult && dbResult.ebookData) {
         try {
           // Tentar parsear os dados JSON armazenados
           const ebookData = JSON.parse(dbResult.ebookData);
           console.log(`Dados JSON do e-book interativo encontrados:`, ebookData);
-
+          
           // Mesclar os dados do JSON com os resultados da consulta
           ebook = {
             ...dbResult,
@@ -1129,18 +1129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Erro ao parsear dados JSON do e-book:`, jsonError);
         }
       }
-
+      
       const hasInteractiveEbook = (ebook && (ebook.url || ebook.embedCode));
-
+      
       // Registrar no console
       console.log(`Verificando e-book interativo para disciplina ${disciplineId}: ` +
                   `ebookInterativoUrl=${hasInteractiveEbook ? ebook.url : 'null'}`);
-
+      
       // Informações adicionais para facilitar o debug
       if (hasInteractiveEbook) {
         console.log(`E-book interativo encontrado para disciplina ${disciplineId}:`, ebook);
       }
-
+      
       // Retornar campos no formato esperado pelo frontend
       return res.json({
         id: parseInt(disciplineId),
@@ -1168,17 +1168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const disciplineId = req.params.id;
       const { title, description, url, type, embedCode } = req.body;
-
+      
       console.log(`POST /api/disciplines/${disciplineId}/interactive-ebook - Salvando e-book interativo:`, 
                 { title, type, url: url?.substring(0, 50) + '...' });
-
+      
       if (!disciplineId) {
         return res.status(400).json({ 
           success: false, 
           error: "ID da disciplina é obrigatório." 
         });
       }
-
+      
       // Validação básica
       if (type === 'link' && !url) {
         return res.status(400).json({ 
@@ -1186,14 +1186,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "URL é obrigatória para e-books interativos do tipo link." 
         });
       }
-
+      
       if ((type === 'embed' || type === 'iframe') && !embedCode) {
         return res.status(400).json({ 
           success: false, 
           error: "Código de incorporação é obrigatório para e-books do tipo embed/iframe." 
         });
       }
-
+      
       // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
       const ebookData = JSON.stringify({
         title,
@@ -1202,7 +1202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type,
         embedCode
       });
-
+      
       // Atualizar a disciplina com os dados do e-book
       const result = await pool.query(`
         UPDATE disciplines 
@@ -1212,14 +1212,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $3
         RETURNING id
       `, [url, ebookData, disciplineId]);
-
+      
       if (result.rowCount === 0) {
         return res.status(404).json({ 
           success: false, 
           error: "Disciplina não encontrada." 
         });
       }
-
+      
       return res.json({ 
         success: true, 
         message: "E-book interativo salvo com sucesso.",
@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           embedCode
         }
       });
-
+      
     } catch (error) {
       console.error("Erro ao salvar e-book interativo:", error);
       return res.status(500).json({ 
@@ -1247,9 +1247,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const disciplineId = req.params.id;
       const { title, description, url, type, embedCode } = req.body;
-
+      
       console.log(`PUT /api/disciplines/${disciplineId}/interactive-ebook - Atualizando e-book interativo`);
-
+      
       // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
       const ebookData = JSON.stringify({
         title,
@@ -1258,7 +1258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type,
         embedCode
       });
-
+      
       // Atualizando no banco de dados
       await pool.query(`
         UPDATE disciplines 
@@ -1267,7 +1267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ebook_interativo_data = $2
         WHERE id = $3
       `, [url, ebookData, disciplineId]);
-
+      
       return res.json({ 
         success: true, 
         message: "E-book interativo atualizado com sucesso.",
@@ -1280,7 +1280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           embedCode
         }
       });
-
+      
     } catch (error) {
       console.error("Erro ao atualizar e-book interativo:", error);
       return res.status(500).json({ 
@@ -1289,14 +1289,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para excluir e-book interativo - DELETE
   app.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
     try {
       const disciplineId = req.params.id;
-
+      
       console.log(`DELETE /api/disciplines/${disciplineId}/interactive-ebook - Removendo e-book interativo`);
-
+      
       // Limpando os campos no banco de dados
       await pool.query(`
         UPDATE disciplines 
@@ -1305,14 +1305,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ebook_interativo_data = NULL
         WHERE id = $1
       `, [disciplineId]);
-
+      
       console.log(`E-book interativo excluído para disciplina ${disciplineId}`);
-
+      
       return res.json({ 
         success: true, 
         message: "E-book interativo removido com sucesso."
       });
-
+      
     } catch (error) {
       console.error("Erro ao excluir e-book interativo:", error);
       return res.status(500).json({ 
@@ -1321,7 +1321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rota para listar todas as disciplinas (adicionado para resolver erro 404)
   app.get('/api/disciplines', requireAuth, async (req, res) => {
     try {
@@ -1338,11 +1338,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação
-
+  
   // Webhooks para integrações externas (não requerem autenticação)
   app.use('/api/webhooks/asaas', asaasWebhookRoutes); // Webhooks do Asaas
   app.use('/api/student', studentChargesRoutes); // Rotas para aluno acessar suas cobranças
@@ -1350,7 +1350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(contractRoutes); // Rotas para contratos educacionais
   app.use(contractApiJsonRoutes); // Novas rotas JSON para contratos educacionais
   app.use('/api/enrollment-integration', enrollmentIntegrationRoutes); // Rotas para integração de matrículas
-
+  
   // Rota para buscar avaliações do aluno
   app.get('/api-json/student/assessments', requireStudent, async (req, res) => {
     try {
@@ -1361,28 +1361,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Usuário não autenticado'
         });
       }
-
+      
       // Buscar matrículas do aluno
       const studentEnrollments = await storage.getStudentEnrollments(user.id);
-
+      
       if (!studentEnrollments || studentEnrollments.length === 0) {
         return res.json({
           success: true,
           assessments: []
         });
       }
-
+      
       // Buscar cursos das matrículas
       const courseIds = studentEnrollments.map(enrollment => enrollment.courseId);
       const coursesPromises = courseIds.map(id => storage.getCourse(id));
       const courses = await Promise.all(coursesPromises);
-
+      
       // Obter disciplinas dos cursos
       let allDisciplineIds: number[] = [];
       const courseDisciplinesPromises = courses.map(course => 
         course ? storage.getCourseDisciplines(course.id) : []
       );
-
+      
       const courseDisciplinesArrays = await Promise.all(courseDisciplinesPromises);
       courseDisciplinesArrays.forEach(disciplineRelations => {
         if (disciplineRelations.length > 0) {
@@ -1390,24 +1390,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           allDisciplineIds = [...allDisciplineIds, ...disciplineIds];
         }
       });
-
+      
       // Remover IDs duplicados usando Array.from e Set
       allDisciplineIds = Array.from(new Set(allDisciplineIds));
-
+      
       // Buscar avaliações para estas disciplinas
       const assessmentsPromises = allDisciplineIds.map(disciplineId => 
         storage.getAssessmentsByDiscipline(disciplineId)
       );
-
+      
       const assessmentsArrays = await Promise.all(assessmentsPromises);
       let allAssessments: any[] = [];
-
+      
       assessmentsArrays.forEach(assessments => {
         if (assessments.length > 0) {
           allAssessments = [...allAssessments, ...assessments];
         }
       });
-
+      
       // Buscar disciplinas para exibir os nomes
       const disciplinePromises = allDisciplineIds.map(id => storage.getDiscipline(id));
       const disciplines = await Promise.all(disciplinePromises);
@@ -1417,13 +1417,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         return map;
       }, {} as Record<number, any>);
-
+      
       // Preparar resposta com informações das avaliações
       const assessmentsWithDetails = allAssessments.map(assessment => ({
         ...assessment,
         disciplineName: disciplineMap[assessment.disciplineId]?.name || 'Disciplina desconhecida'
       }));
-
+      
       return res.json({
         success: true,
         assessments: assessmentsWithDetails
@@ -1436,24 +1436,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Rotas para gerenciamento de disciplinas de cursos
   app.get('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ message: "ID do curso inválido" });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ message: "Curso não encontrado" });
       }
-
+      
       // Buscar disciplinas vinculadas ao curso
       // Consulta direta evitando a coluna is_required que pode não existir
       const result = await db
@@ -1466,9 +1466,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(courseDisciplines)
         .where(eq(courseDisciplines.courseId, courseId))
         .orderBy(asc(courseDisciplines.order));
-
+      
       console.log(`GET /api/admin/courses/${courseId}/disciplines - Encontradas ${result.length} disciplinas`);
-
+      
       return res.json(result);
     } catch (error) {
       console.error(`Erro ao buscar disciplinas do curso: ${error}`);
@@ -1478,27 +1478,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.delete('/api/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ message: "ID do curso inválido" });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ message: "Curso não encontrado" });
       }
-
+      
       // Remover todas as disciplinas do curso
       await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
       console.log(`DELETE /api/admin/courses/${courseId}/disciplines - Disciplinas removidas`);
-
+      
       return res.json({ success: true, message: "Todas as disciplinas foram removidas do curso" });
     } catch (error) {
       console.error(`Erro ao remover disciplinas do curso: ${error}`);
@@ -1508,14 +1508,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.post('/api/admin/course-disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const { courseId, disciplineId, order } = req.body;
-
+      
       // Validar dados de entrada
       if (!courseId || !disciplineId || !order) {
         return res.status(400).json({ 
@@ -1523,19 +1523,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           required: ["courseId", "disciplineId", "order"]
         });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ message: "Curso não encontrado" });
       }
-
+      
       // Verificar se a disciplina existe
       const discipline = await storage.getDiscipline(disciplineId);
       if (!discipline) {
         return res.status(404).json({ message: "Disciplina não encontrada" });
       }
-
+      
       // Adicionar disciplina ao curso
       const courseDiscipline = await storage.addDisciplineToCourse({
         courseId,
@@ -1543,9 +1543,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         order,
         isRequired: true
       });
-
+      
       console.log(`POST /api/admin/course-disciplines - Disciplina ${disciplineId} adicionada ao curso ${courseId} na posição ${order}`);
-
+      
       return res.status(201).json(courseDiscipline);
     } catch (error) {
       console.error(`Erro ao adicionar disciplina ao curso: ${error}`);
@@ -1555,19 +1555,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Adicionar redirecionamento entre a rota admin e a rota JSON comum para curso específico
   app.get('/api-json/admin/courses/:id', requireAuth, (req, res) => {
     console.log(`Redirecionando /api-json/admin/courses/${req.params.id} para /api-json/courses/${req.params.id}`);
     res.redirect(`/api-json/courses/${req.params.id}`);
   });
-
+  
   // Rota para atualizar curso (formato JSON-API)
   app.put('/api-json/admin/courses/:id', requireAuth, async (req, res) => {
     try {
       console.log(`PUT /api-json/admin/courses/${req.params.id} - Atualizando curso (API JSON)`);
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({
@@ -1575,7 +1575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "ID do curso inválido"
         });
       }
-
+      
       const existingCourse = await storage.getCourse(courseId);
       if (!existingCourse) {
         return res.status(404).json({
@@ -1583,11 +1583,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Curso não encontrado"
         });
       }
-
+      
       // Atualizar o curso
       console.log(`Dados de atualização:`, req.body);
       const updatedCourse = await storage.updateCourse(courseId, req.body);
-
+      
       return res.status(200).json({
         success: true,
         message: "Curso atualizado com sucesso",
@@ -1602,24 +1602,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Também fornecer suporte para rotas em formato JSON-JSON
   app.get('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ success: false, message: "ID do curso inválido" });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ success: false, message: "Curso não encontrado" });
       }
-
+      
       // Buscar disciplinas vinculadas ao curso usando consulta direta para evitar erros de coluna
       const result = await db
         .select({
@@ -1631,7 +1631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .from(courseDisciplines)
         .where(eq(courseDisciplines.courseId, courseId))
         .orderBy(asc(courseDisciplines.order));
-
+      
       return res.json({
         success: true,
         data: result
@@ -1645,26 +1645,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.delete('/api-json/admin/courses/:id/disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const courseId = parseInt(req.params.id);
       if (isNaN(courseId)) {
         return res.status(400).json({ success: false, message: "ID do curso inválido" });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ success: false, message: "Curso não encontrado" });
       }
-
+      
       // Remover todas as disciplinas do curso
       await db.delete(courseDisciplines).where(eq(courseDisciplines.courseId, courseId));
-
+      
       return res.json({ 
         success: true, 
         message: "Todas as disciplinas foram removidas do curso" 
@@ -1678,14 +1678,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   app.post('/api-json/admin/course-disciplines', requireAuth, async (req, res) => {
     try {
       // Definir tipo de conteúdo para uniformidade
       res.setHeader('Content-Type', 'application/json');
-
+      
       const { courseId, disciplineId, order } = req.body;
-
+      
       // Validar dados de entrada
       if (!courseId || !disciplineId || !order) {
         return res.status(400).json({ 
@@ -1694,19 +1694,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           required: ["courseId", "disciplineId", "order"]
         });
       }
-
+      
       // Verificar se o curso existe
       const course = await storage.getCourse(courseId);
       if (!course) {
         return res.status(404).json({ success: false, message: "Curso não encontrado" });
       }
-
+      
       // Verificar se a disciplina existe
       const discipline = await storage.getDiscipline(disciplineId);
       if (!discipline) {
         return res.status(404).json({ success: false, message: "Disciplina não encontrada" });
       }
-
+      
       // Adicionar disciplina ao curso
       const courseDiscipline = await storage.addDisciplineToCourse({
         courseId,
@@ -1714,8 +1714,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         order,
         isRequired: true
       });
-
-      return res.status201).json({
+      
+      return res.status(201).json({
         success: true,
         data: courseDiscipline
       });
@@ -1763,7 +1763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage.getQuestion(relation.questionId)
       );
       const questionsResults = await Promise.all(questionPromises);
-
+      
       // Filtrar possíveis questões nulas e associar com ordem e peso
       const questions = questionsResults
         .map((question, index) => {
@@ -1812,7 +1812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validar o corpo da requisição
       const { questionId, order = 1, weight = 1 } = req.body;
-
+      
       if (!questionId || isNaN(parseInt(questionId))) {
         return res.status(400).json({ 
           success: false, 
@@ -1832,7 +1832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verificar se a questão já está associada à avaliação
       const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
       const alreadyExists = existingQuestions.some(q => q.questionId === parseInt(questionId));
-
+      
       if (alreadyExists) {
         return res.status(400).json({ 
           success: false, 
@@ -1884,7 +1884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validar o corpo da requisição
       const { questionIds } = req.body;
-
+      
       if (!Array.isArray(questionIds) || questionIds.length === 0) {
         return res.status(400).json({ 
           success: false, 
@@ -1895,7 +1895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Obter as questões já associadas
       const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
       const existingQuestionIds = existingQuestions.map(q => q.questionId);
-
+      
       // Filtrar apenas os novos IDs
       const newQuestionIds = questionIds
         .map(id => parseInt(id))
@@ -1911,10 +1911,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verificar se as questões existem
       const questionPromises = newQuestionIds.map(id => storage.getQuestion(id));
       const questionsResults = await Promise.all(questionPromises);
-
+      
       // Filtrar apenas questões válidas
       const validQuestionIds = newQuestionIds.filter((_, index) => questionsResults[index] !== undefined);
-
+      
       if (validQuestionIds.length === 0) {
         return res.status(404).json({ 
           success: false, 
@@ -1926,7 +1926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nextOrder = existingQuestions.length > 0 
         ? Math.max(...existingQuestions.map(q => q.order)) + 1 
         : 1;
-
+      
       const results = [];
       for (let i = 0; i < validQuestionIds.length; i++) {
         const assessmentQuestion = await storage.addQuestionToAssessment({
@@ -1951,12 +1951,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Endpoint para obter questões disponíveis (não usadas) para uma avaliação
   app.get('/api/assessments/:id/available-questions', requireAuth, async (req, res) => {
     try {
       const assessmentId = parseInt(req.params.id);
-
+      
       if (isNaN(assessmentId)) {
         return res.status(400).json({ 
           success: false, 
@@ -1976,14 +1976,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Obter todas as questões da disciplina
       const disciplineId = assessment.disciplineId;
       const allQuestions = await storage.getQuestionsByDiscipline(disciplineId);
-
+      
       // Obter questões já associadas à avaliação
       const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
       const usedQuestionIds = assessmentQuestions.map(q => q.questionId);
-
+      
       // Filtrar apenas questões não utilizadas
       const availableQuestions = allQuestions.filter(q => !usedQuestionIds.includes(q.id));
-
+      
       return res.status(200).json({
         success: true,
         data: availableQuestions
@@ -1997,41 +1997,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint para obter questões detalhadas de uma avaliação
-  app.get('/api/assessments/:id/questions', requireAuth, async (req, res) => {
-    try {
-      const assessmentId = parseInt(req.params.id);
-      if (isNaN(assessmentId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'ID de avaliação inválido' 
-        });
-      }
-
-      // Verificar se a avaliação existe
-      const assessment = await storage.getAssessment(assessmentId);
-      if (!assessment) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Avaliação não encontrada' 
-        });
-      }
-
-      // Buscar as relações entre avaliação e questões
-      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
-      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
-        return res.json({ 
-          success: true, 
-          data: [] 
-        });
-      }
-
-      // Buscar as questões completas
-      const questionPromises = assessmentQuestionRelations.map((relation) => 
-        storage.getQuestion(relation.questionId)
-      );
-      const questionsResults = await Promise.all(questionPromises);
-
+  // Endpoint para questões e avaliações removido
+      
       // Filtrar possíveis questões nulas e associar com ordem e peso
       const questions = questionsResults
         .map((question, index) => {
@@ -2057,13 +2024,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Endpoint para remover uma questão específica de uma avaliação
   app.delete('/api/assessments/:id/questions/:questionId', requireAuth, async (req, res) => {
     try {
       const assessmentId = parseInt(req.params.id);
       const questionId = parseInt(req.params.questionId);
-
+      
       if (isNaN(assessmentId) || isNaN(questionId)) {
         return res.status(400).json({ 
           success: false, 
@@ -2100,7 +2067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/assessments/:id/questions', requireAuth, async (req, res) => {
     try {
       const assessmentId = parseInt(req.params.id);
-
+      
       if (isNaN(assessmentId)) {
         return res.status(400).json({ 
           success: false, 
@@ -2110,7 +2077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validar o corpo da requisição
       const { questionIds } = req.body;
-
+      
       if (!Array.isArray(questionIds)) {
         return res.status(400).json({ 
           success: false, 
@@ -2120,22 +2087,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Obter as questões já associadas
       const existingQuestions = await storage.getAssessmentQuestions(assessmentId);
-
+      
       // Remover todas as questões existentes
       for (const question of existingQuestions) {
         await storage.removeQuestionFromAssessment(assessmentId, question.questionId);
       }
-
+      
       // Adicionar as novas questões selecionadas
       const results = [];
       for (let i = 0; i < questionIds.length; i++) {
         const questionId = parseInt(questionIds[i]);
         if (isNaN(questionId)) continue;
-
+        
         // Verificar se a questão existe
         const question = await storage.getQuestion(questionId);
         if (!question) continue;
-
+        
         const assessmentQuestion = await storage.addQuestionToAssessment({
           assessmentId,
           questionId,
@@ -2164,7 +2131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const assessmentId = parseInt(req.params.assessmentId);
       const questionId = parseInt(req.params.questionId);
-
+      
       if (isNaN(assessmentId) || isNaN(questionId)) {
         return res.status(400).json({ 
           success: false, 
@@ -2175,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verificar se a relação existe
       const assessmentQuestions = await storage.getAssessmentQuestions(assessmentId);
       const exists = assessmentQuestions.some(aq => aq.questionId === questionId);
-
+      
       if (!exists) {
         return res.status(404).json({ 
           success: false, 
@@ -2185,7 +2152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Remover a questão da avaliação
       const success = await storage.removeQuestionFromAssessment(assessmentId, questionId);
-
+      
       if (!success) {
         return res.status(500).json({ 
           success: false, 
@@ -2219,7 +2186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validar o corpo da requisição
       const { questionOrder } = req.body;
-
+      
       if (!Array.isArray(questionOrder) || questionOrder.length === 0) {
         return res.status(400).json({ 
           success: false, 
@@ -2231,7 +2198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValidFormat = questionOrder.every(item => 
         item && typeof item.questionId === 'number' && typeof item.order === 'number'
       );
-
+      
       if (!isValidFormat) {
         return res.status(400).json({ 
           success: false, 
@@ -2241,7 +2208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Reordenar as questões
       const success = await storage.reorderAssessmentQuestions(assessmentId, questionOrder);
-
+      
       if (!success) {
         return res.status(500).json({ 
           success: false, 
@@ -2276,7 +2243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'SELECT * FROM assessments WHERE discipline_id = $1 ORDER BY id',
           [disciplineId]
         );
-
+        
         return res.status(200).json(result.rows);
       } finally {
         connection.release();
@@ -2286,7 +2253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ success: false, message: 'Erro ao buscar avaliações da disciplina' });
     }
   });
-
+  
   // Endpoint para criar uma avaliação (simulado ou avaliação final) para uma disciplina
   app.post('/api/disciplines/:id/assessments', requireAuth, async (req, res) => {
     try {
@@ -2296,7 +2263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { title, description, type, passingScore, questionIds } = req.body;
-
+      
       if (!title || !description || !['simulado', 'avaliacao_final'].includes(type)) {
         return res.status(400).json({ 
           success: false, 
@@ -2307,7 +2274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Cria a avaliação
       const connection = await pool.connect();
       let assessmentId;
-
+      
       try {
         const result = await connection.query(
           'INSERT INTO assessments (discipline_id, title, description, type, passing_score) VALUES ($1, $2, $3, $4, $5) RETURNING id',
@@ -2335,7 +2302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         await Promise.all(promises);
-
+        
         // Não precisamos atualizar question_count pois a coluna não existe no schema
         // As questões já estão sendo associadas através da tabela assessment_questions
       }
@@ -2358,7 +2325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ success: false, message: 'Erro ao criar avaliação' });
     }
   });
-
+  
   // Registre outras rotas conforme necessário
 
   return server;

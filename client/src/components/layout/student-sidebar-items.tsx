@@ -48,12 +48,6 @@ export const getStudentSidebarItems = (pathname: string): SidebarItemOrCategory[
       active: pathname === '/student/credencial',
     },
     {
-      name: 'Avaliações',
-      icon: <FileQuestion size={18} />,
-      href: '/student/assessments',
-      active: pathname === '/student/assessments',
-    },
-    {
       name: 'Estágios',
       icon: <BriefcaseBusiness size={18} />,
       href: '/student/internships',

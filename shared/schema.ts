@@ -251,31 +251,7 @@ export const courseDisciplines = pgTable("course_disciplines", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Questões para simulados e avaliações
-export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull(),
-  statement: text("statement").notNull(), // Enunciado da questão
-  options: json("options").$type<string[]>().notNull(), // Alternativas
-  correctOption: integer("correct_option").notNull(), // Índice da alternativa correta
-  explanation: text("explanation"), // Explicação para feedback
-  questionType: text("question_type").default("multiple_choice").notNull(), // Tipo de questão
-  createdById: integer("created_by_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Avaliações (simulados e avaliações finais)
-export const assessments = pgTable("assessments", {
-  id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull(),
-  title: text("title").notNull(), // Título da atividade
-  description: text("description"), // Descrição da atividade
-  type: assessmentTypeEnum("type").notNull(), // Tipo: simulado ou avaliação final
-  passingScore: integer("passing_score").default(60).notNull(), // Nota mínima para aprovação (%)
-  timeLimit: integer("time_limit"), // Tempo limite em minutos (opcional)
-  createdById: integer("created_by_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+// Schema de questões e avaliações removido timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

@@ -78,15 +78,12 @@ import CourseDetailPage from "@/pages/student/course-detail-page";
 import DisciplineVideoPage from "@/pages/student/discipline-video-page";
 import DisciplinePdfPage from "@/pages/student/discipline-pdf-page";
 import DisciplineEbookPage from "@/pages/student/discipline-ebook-page";
-import DisciplineSimuladoPage from "@/pages/student/discipline-simulado-page";
-import DisciplineAvaliacaoPage from "@/pages/student/discipline-avaliacao-page";
 import LibraryPage from "@/pages/student/library-page";
 import SecretariaPage from "@/pages/student/secretaria-page";
 import CredencialPage from "@/pages/student/credencial-page";
 import LearningPage from "@/pages/student/learning-page";
 import StudentFinancialPage from "@/pages/student/financial-page";
 // Import das novas páginas do portal do aluno
-import StudentAssessmentsPage from "@/pages/student/assessments-page";
 import StudentInternshipsPage from "@/pages/student/internships-page";
 import StudentContractsPage from "@/pages/student/contracts-page";
 import StudentCalendarPage from "@/pages/student/calendar-page";
@@ -152,7 +149,7 @@ function Router() {
       <Route path="/admin">
         {() => {
           console.log("Renderizando rota /admin com usuário:", user?.portalType);
-          
+
           if (user && user.portalType === "admin") {
             console.log("Redirecionando admin para dashboard");
             return <Redirect to="/admin/dashboard" />;
@@ -161,7 +158,7 @@ function Router() {
           return <AdminAuthPage />;
         }}
       </Route>
-      
+
       <Route path="/polo">
         {() => {
           if (user && user.portalType === "polo") {
@@ -170,7 +167,7 @@ function Router() {
           return <PoloAuthPage />;
         }}
       </Route>
-      
+
       <Route path="/modulos" component={ModulosPage} />
       <Route path="/planos" component={PlanosPage} />
       <Route path="/cadastro" component={CadastroPage} />
@@ -185,7 +182,7 @@ function Router() {
       <Route path="/examples/components" component={ComponentsExamplePage} />
       <Route path="/public-view/charges" component={SimpleChargesPage} />
       <Route path="/create-charge" component={PublicCreateChargePage} />
-      
+
       {/* Portal do Aluno - Rotas unificadas com verificação consistente */}
       <Route path="/student">
         {() => {
@@ -214,12 +211,7 @@ function Router() {
       <Route path="/student/discipline/:id/ebook">
         {() => user?.portalType === "student" ? <DisciplineEbookPage /> : <Redirect to="/auth" />}
       </Route>
-      <Route path="/student/discipline/:id/simulado">
-        {() => user?.portalType === "student" ? <DisciplineSimuladoPage /> : <Redirect to="/auth" />}
-      </Route>
-      <Route path="/student/discipline/:id/avaliacao">
-        {() => user?.portalType === "student" ? <DisciplineAvaliacaoPage /> : <Redirect to="/auth" />}
-      </Route>
+      {/* Rotas de avaliações e simulados foram removidas */}
       <Route path="/student/library">
         {() => user?.portalType === "student" ? <LibraryPage /> : <Redirect to="/auth" />}
       </Route>
@@ -239,9 +231,6 @@ function Router() {
         {() => user?.portalType === "student" ? <Redirect to="/student/financial" /> : <Redirect to="/auth" />}
       </Route>
       {/* Novas rotas para o portal do aluno */}
-      <Route path="/student/assessments">
-        {() => user?.portalType === "student" ? <StudentAssessmentsPage /> : <Redirect to="/auth" />}
-      </Route>
       <Route path="/student/internships">
         {() => user?.portalType === "student" ? <StudentInternshipsPage /> : <Redirect to="/auth" />}
       </Route>
@@ -326,7 +315,7 @@ function Router() {
             : <Redirect to="/admin" />;
         }}
       </Route>
-      
+
       {/* Redirecionamentos das rotas antigas em português */}
       <Route path="/admin/academico/disciplinas">
         {() => {
@@ -397,46 +386,46 @@ function Router() {
       <Route path="/admin/financial">
         {() => user?.portalType === "admin" ? <FinancialPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo Financeiro Empresarial */}
       <Route path="/admin/financeiro-empresarial">
         {() => user?.portalType === "admin" ? <FinanceiroEmpresarialPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/financeiro-empresarial/antecipacao">
         {() => user?.portalType === "admin" ? <AntecipacaoPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/financeiro-empresarial/assinaturas">
         {() => user?.portalType === "admin" ? <AssinaturasPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo CRM - Matrículas Simplificadas */}
       <Route path="/admin/crm/new-simplified-enrollments">
         {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/new-simplified-enrollments/create">
         {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentCreatePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/new-simplified-enrollments/:id">
         {() => user?.portalType === "admin" ? <NewSimplifiedEnrollmentDetailsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Matrículas */}
       <Route path="/admin/enrollments">
         {() => user?.portalType === "admin" ? <EnrollmentsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/enrollments/new">
         {() => user?.portalType === "admin" ? <NewEnrollmentPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/polo-enrollments">
         {() => user?.portalType === "admin" ? <PoloEnrollmentsPageAdmin /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/polo-enrollments/new">
         {() => user?.portalType === "admin" ? <AdminPoloNewEnrollmentPage /> : <Redirect to="/admin" />}
       </Route>
@@ -444,7 +433,7 @@ function Router() {
       <Route path="/admin/reports">
         {() => user?.portalType === "admin" ? <ReportsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/reports/new">
         {() => user?.portalType === "admin" ? <NewReportsPage /> : <Redirect to="/admin" />}
       </Route>
@@ -452,16 +441,16 @@ function Router() {
       <Route path="/admin/integrations">
         {() => user?.portalType === "admin" ? <IntegrationsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Certificação */}
       <Route path="/admin/certification/templates">
         {() => user?.portalType === "admin" ? <CertificationTemplatesPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/certification/issue">
         {() => user?.portalType === "admin" ? <CertificationIssuePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/certification/signers">
         {() => user?.portalType === "admin" ? <CertificationSignersPage /> : <Redirect to="/admin" />}
       </Route>
@@ -470,19 +459,19 @@ function Router() {
       <Route path="/admin/parcerias/portal">
         {() => user?.portalType === "admin" ? <PortalDoParceiroPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/parcerias/certificacao">
         {() => user?.portalType === "admin" ? <CertificacaoAlunosPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/parcerias/solicitacoes">
         {() => user?.portalType === "admin" ? <SolicitacoesPendentesPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/parcerias/relatorios">
         {() => user?.portalType === "admin" ? <RelatoriosPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo CRM */}
       {/* Rotas de leads temporariamente removidas para reconstrução do módulo */}
       <Route path="/admin/crm/leads">
@@ -521,19 +510,19 @@ function Router() {
           <p className="text-sm text-gray-500">Previsão de disponibilidade oficial: Em breve</p>
         </div> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/leads/new">
         {() => user?.portalType === "admin" ? <div className="p-8">
           <h1 className="text-2xl font-bold mb-4">Novo Sistema de Leads com Asaas Checkout</h1>
           <p className="mb-2">Estamos implementando um novo fluxo para captura e conversão de leads:</p>
-          
+
           <ol className="list-decimal pl-8 mb-4 space-y-2">
             <li>Cadastro de leads com informações básicas</li>
             <li>Geração de links de pagamento do Asaas</li>
             <li>O lead recebe o link e completa seus próprios dados</li>
             <li>Após o pagamento, conversão automática para cliente</li>
           </ol>
-          
+
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -548,16 +537,16 @@ function Router() {
               </div>
             </div>
           </div>
-          
+
           <p className="text-sm text-gray-500">Obrigado pela sua paciência durante esta transição.</p>
         </div> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/checkout">
         {() => user?.portalType === "admin" ? <div className="p-8">
           <h1 className="text-2xl font-bold mb-4">Links de Checkout Asaas</h1>
           <p className="mb-4">A funcionalidade de geração de links de pagamento estará disponível em breve nesta área.</p>
-          
+
           <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -578,63 +567,63 @@ function Router() {
               </div>
             </div>
           </div>
-          
+
           <p className="text-sm text-gray-500">Previsão de disponibilidade: Em breve</p>
         </div> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas da nova versão do módulo de leads (V2) */}
       <Route path="/admin/crm/leads-v2">
         {() => user?.portalType === "admin" ? <LeadsV2Page /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/leads/new-v2">
         {() => user?.portalType === "admin" ? <NewLeadV2Page /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/leads/:id/detail-v2">
         {() => user?.portalType === "admin" ? <LeadDetailV2Page /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/crm/asaas-clients">
         {() => user?.portalType === "admin" ? <AsaasClientsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas de Contato removidas - Substituídas pela Integração Asaas */}
-      
+
       {/* Rotas do Módulo Financeiro */}
       <Route path="/admin/finance/products">
         {() => user?.portalType === "admin" ? <ProductsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/products/new">
         {() => user?.portalType === "admin" ? <NewProductPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/charges">
         {() => user?.portalType === "admin" ? <ChargesPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/charges/new">
         {() => user?.portalType === "admin" ? <SimpleNewChargePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/charges/advanced">
         {() => user?.portalType === "admin" ? <AdvancedChargePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/charges/subscription">
         {() => user?.portalType === "admin" ? <SubscriptionChargePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/payments">
         {() => user?.portalType === "admin" ? <PaymentsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/finance/payments/new">
         {() => user?.portalType === "admin" ? <NewPaymentPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Comunicação */}
       <Route path="/admin/comunicacao/inbox">
         {() => user?.portalType === "admin" ? <InboxPage /> : <Redirect to="/admin" />}
@@ -647,67 +636,67 @@ function Router() {
       <Route path="/admin/comunicacao/email">
         {() => user?.portalType === "admin" ? <div>Em breve</div> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Contratos */}
       <Route path="/admin/contracts">
         {() => user?.portalType === "admin" ? <AdminContractsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/contracts/new">
         {() => user?.portalType === "admin" ? <NewContractPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Pessoas */}
       <Route path="/admin/pessoas/roles">
         {() => user?.portalType === "admin" ? <RolesPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/pessoas/roles/:id">
         {() => user?.portalType === "admin" ? <RoleDetailPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/pessoas/abac-permissions">
         {() => user?.portalType === "admin" ? <AbacPermissionsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/pessoas/usuarios">
         {() => user?.portalType === "admin" ? <UsuariosPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/pessoas/usuarios/new">
         {() => user?.portalType === "admin" ? <UsuarioFormPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/pessoas/usuarios/:id">
         {() => user?.portalType === "admin" ? <UsuarioFormPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Auditoria */}
       <Route path="/admin/auditoria/logs">
         {() => user?.portalType === "admin" ? <LogsAuditoriaPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       {/* Rotas do Módulo de Sistema */}
       <Route path="/admin/sistema/security">
         {() => user?.portalType === "admin" ? <SecurityPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/sistema/settings">
         {() => user?.portalType === "admin" ? <SettingsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/sistema/institution-settings">
         {() => user?.portalType === "admin" ? <InstitutionSettingsPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/sistema/portal-access-control">
         {() => user?.portalType === "admin" ? <PortalAccessControlPage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route path="/admin/maintenance/system">
         {() => user?.portalType === "admin" ? <SystemMaintenancePage /> : <Redirect to="/admin" />}
       </Route>
-      
+
       <Route component={NotFound} />
     </Switch>
   );
