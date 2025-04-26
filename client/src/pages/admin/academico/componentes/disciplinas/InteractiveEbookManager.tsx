@@ -211,7 +211,20 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
 
     if (ebook && ('available' in ebook ? ebook.available : true)) {
       // Exibe o e-book interativo configurado
-      const ebookObj = ebook as InteractiveEbook;
+      
+      // Normalizar os dados para garantir compatibilidade de campos
+      const normalizedEbook = {
+        ...ebook,
+        // Garantir que temos o campo url (pode vir como interactiveEbookUrl da API)
+        url: ebook.url || ebook.interactiveEbookUrl || "",
+        // Garantir que temos o campo title (pode vir como name da API)
+        title: ebook.title || ebook.name || "",
+      };
+      
+      console.log("Dados do e-book recebidos:", ebook);
+      console.log("Dados do e-book normalizados:", normalizedEbook);
+      
+      const ebookObj = normalizedEbook as InteractiveEbook;
       
       return (
         <div className="space-y-4">
