@@ -1,519 +1,428 @@
-
-import { useState, useEffect } from 'react';
-import { 
-  Button, 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogFooter,
-  Input,
-  Label,
-  Textarea,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Separator,
-  Table,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell,
-  TableBody
-} from "@/components/ui";
-import { PlusIcon, TrashIcon, PencilIcon, PlusCircleIcon, MinusCircleIcon, CheckCircleIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { simuladoApi } from "@/api/pedagogico";
 import { Simulado, Question } from "@/types/pedagogico";
+import { PlusIcon, TrashIcon, PencilIcon, PlusCircleIcon } from "@/components/ui/icons";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface SimuladoManagerProps {
-  disciplineId: string | number;
+  disciplineId: string;
 }
 
-export default function SimuladoManager({ disciplineId }: SimuladoManagerProps) {
-  const [simulado, setSimulado] = useState<Simulado | null>(null);
+export function SimuladoManager({ disciplineId }: SimuladoManagerProps) {
+  const [simulados, setSimulados] = useState<Simulado[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<Simulado>>({
-    title: '',
-    description: '',
-    timeLimit: 60,
-    questions: [],
+
+  const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentSimulado, setCurrentSimulado] = useState<Partial<Simulado>>({
+    title: "",
+    description: "",
+    duration: 60,
+    totalQuestions: 0,
+    questions: []
   });
+
+  const [selectedSimuladoId, setSelectedSimuladoId] = useState<string | null>(null);
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<Partial<Question>>({
-    text: '',
-    options: ['', '', '', ''],
-    correctOption: 0,
-    explanation: '',
+    text: "",
+    options: ["", "", "", ""],
+    isCorrect: [false, false, false, false]
   });
   const [editingQuestionIndex, setEditingQuestionIndex] = useState<number | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  const fetchSimulados = async () => {
+    try {
+      setLoading(true);
+      const data = await simuladoApi.getAll(disciplineId);
+      setSimulados(data);
+      setError(null);
+    } catch (err) {
+      console.error("Erro ao buscar simulados:", err);
+      setError("Não foi possível carregar os simulados. Tente novamente mais tarde.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchSimulado() {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/disciplines/${disciplineId}/simulado`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            // Não existe simulado para esta disciplina, o que é normal
-            setSimulado(null);
-            return;
-          }
-          throw new Error('Falha ao carregar simulado');
-        }
-        const data = await response.json();
-        setSimulado(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar simulado');
-        console.error('Erro ao carregar simulado:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (disciplineId) {
-      fetchSimulado();
-    }
+    fetchSimulados();
   }, [disciplineId]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'timeLimit' ? Number(value) : value 
-    }));
+  const handleAddSimulado = async () => {
+    try {
+      setLoading(true);
+      await simuladoApi.create(disciplineId, {
+        title: currentSimulado.title || "",
+        description: currentSimulado.description || "",
+        duration: currentSimulado.duration || 60,
+        totalQuestions: 0
+      });
+      setIsAdding(false);
+      resetSimuladoForm();
+      await fetchSimulados();
+    } catch (err) {
+      console.error("Erro ao adicionar simulado:", err);
+      setError("Não foi possível adicionar o simulado. Verifique os dados e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleQuestionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentQuestion(prev => ({ ...prev, [name]: value }));
+  const handleUpdateSimulado = async () => {
+    if (!selectedSimuladoId) return;
+
+    try {
+      setLoading(true);
+      await simuladoApi.update(disciplineId, selectedSimuladoId, {
+        title: currentSimulado.title,
+        description: currentSimulado.description,
+        duration: currentSimulado.duration
+      });
+      setIsEditing(false);
+      resetSimuladoForm();
+      setSelectedSimuladoId(null);
+      await fetchSimulados();
+    } catch (err) {
+      console.error("Erro ao atualizar simulado:", err);
+      setError("Não foi possível atualizar o simulado. Verifique os dados e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleOptionChange = (index: number, value: string) => {
-    const newOptions = [...currentQuestion.options!];
-    newOptions[index] = value;
-    setCurrentQuestion(prev => ({ ...prev, options: newOptions }));
+  const handleDeleteSimulado = async (simuladoId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este simulado? Todas as questões serão perdidas.")) return;
+
+    try {
+      setLoading(true);
+      await simuladoApi.delete(disciplineId, simuladoId);
+      await fetchSimulados();
+    } catch (err) {
+      console.error("Erro ao excluir simulado:", err);
+      setError("Não foi possível excluir o simulado. Tente novamente mais tarde.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      timeLimit: 60,
-      questions: [],
+  const startEdit = (simulado: Simulado) => {
+    setCurrentSimulado({
+      title: simulado.title,
+      description: simulado.description,
+      duration: simulado.duration
+    });
+    setSelectedSimuladoId(simulado.id);
+    setIsEditing(true);
+    setIsAdding(false);
+  };
+
+  const resetSimuladoForm = () => {
+    setCurrentSimulado({
+      title: "",
+      description: "",
+      duration: 60,
+      totalQuestions: 0,
+      questions: []
     });
   };
 
   const resetQuestionForm = () => {
     setCurrentQuestion({
-      text: '',
-      options: ['', '', '', ''],
-      correctOption: 0,
-      explanation: '',
+      text: "",
+      options: ["", "", "", ""],
+      isCorrect: [false, false, false, false]
     });
-    setEditingQuestionIndex(null);
   };
 
-  const openAddDialog = () => {
-    resetForm();
-    setDialogOpen(true);
-  };
-
-  const openEditDialog = () => {
-    if (simulado) {
-      setFormData({
-        title: simulado.title,
-        description: simulado.description || '',
-        timeLimit: simulado.timeLimit || 60,
-        questions: [...simulado.questions],
-      });
-    }
-    setDialogOpen(true);
-  };
-
-  const openAddQuestionDialog = () => {
-    resetQuestionForm();
-    setQuestionDialogOpen(true);
-  };
-
-  const openEditQuestionDialog = (index: number) => {
-    const question = formData.questions![index];
-    setCurrentQuestion({
-      text: question.text,
-      options: [...question.options],
-      correctOption: question.correctOption,
-      explanation: question.explanation || '',
-    });
-    setEditingQuestionIndex(index);
-    setQuestionDialogOpen(true);
-  };
-
-  const handleQuestionSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!currentQuestion.text || currentQuestion.options?.some(opt => !opt)) {
-      setError('Preencha o texto da questão e todas as opções');
-      return;
-    }
-
-    const newQuestions = [...(formData.questions || [])];
-    
-    if (editingQuestionIndex !== null) {
-      newQuestions[editingQuestionIndex] = currentQuestion as Question;
-    } else {
-      newQuestions.push(currentQuestion as Question);
-    }
-    
-    setFormData(prev => ({ ...prev, questions: newQuestions }));
-    setQuestionDialogOpen(false);
+  // Métodos para gerenciar questões
+  const handleAddQuestion = () => {
+    // Aqui você adicionaria a lógica para salvar a questão
+    // Por ora, vamos apenas fechar o modal
+    setIsAddingQuestion(false);
     resetQuestionForm();
   };
 
-  const removeQuestion = (index: number) => {
-    const newQuestions = [...(formData.questions || [])];
-    newQuestions.splice(index, 1);
-    setFormData(prev => ({ ...prev, questions: newQuestions }));
+  const handleOptionChange = (index: number, value: string) => {
+    const newOptions = [...(currentQuestion.options || ["", "", "", ""])];
+    newOptions[index] = value;
+    setCurrentQuestion({ ...currentQuestion, options: newOptions });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.title) {
-      setError('Título é um campo obrigatório');
-      return;
-    }
-
-    if (!formData.questions || formData.questions.length === 0) {
-      setError('O simulado deve ter pelo menos uma questão');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      
-      const method = simulado ? 'PUT' : 'POST';
-      const response = await fetch(`/api/disciplines/${disciplineId}/simulado`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          disciplineId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Falha ao ${simulado ? 'atualizar' : 'adicionar'} simulado`);
-      }
-
-      const updatedSimulado = await response.json();
-      setSimulado(updatedSimulado);
-      
-      setDialogOpen(false);
-      resetForm();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : `Erro ao ${simulado ? 'atualizar' : 'adicionar'} simulado`);
-      console.error(`Erro ao ${simulado ? 'atualizar' : 'adicionar'} simulado:`, err);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleCorrectOptionChange = (index: number) => {
+    const newIsCorrect = [false, false, false, false];
+    newIsCorrect[index] = true;
+    setCurrentQuestion({ ...currentQuestion, isCorrect: newIsCorrect });
   };
-
-  const handleDelete = async () => {
-    if (!confirm('Tem certeza que deseja excluir este simulado?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/disciplines/${disciplineId}/simulado`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao excluir simulado');
-      }
-
-      setSimulado(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao excluir simulado');
-      console.error('Erro ao excluir simulado:', err);
-    }
-  };
-
-  if (loading) {
-    return <div>Carregando simulado...</div>;
-  }
 
   return (
-    <div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Simulados</h2>
+        <Button 
+          onClick={() => {
+            setIsAdding(true);
+            setIsEditing(false);
+            resetSimuladoForm();
+          }}
+          disabled={isAdding || isEditing}
+        >
+          <PlusIcon className="mr-2 h-4 w-4" />
+          Adicionar simulado
+        </Button>
+      </div>
+
       {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           {error}
         </div>
       )}
 
-      <div className="flex justify-end mb-4">
-        {!simulado ? (
-          <Button onClick={openAddDialog}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Criar Simulado
-          </Button>
-        ) : (
-          <Button onClick={openEditDialog}>
-            <PencilIcon className="h-4 w-4 mr-2" />
-            Editar Simulado
-          </Button>
-        )}
-      </div>
-
-      {!simulado ? (
-        <div className="text-center p-8 bg-gray-50 rounded-md">
-          <p className="text-gray-500">
-            Nenhum simulado cadastrado para esta disciplina
-          </p>
-        </div>
-      ) : (
+      {(isAdding || isEditing) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">{simulado.title}</CardTitle>
-            {simulado.description && (
-              <p className="text-gray-600">{simulado.description}</p>
-            )}
-            <div className="text-sm text-gray-500">
-              <p>Tempo limite: {simulado.timeLimit || 60} minutos</p>
-              <p>Quantidade de questões: {simulado.questions.length}</p>
-            </div>
+            <CardTitle>{isAdding ? "Adicionar novo simulado" : "Editar simulado"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <h3 className="text-lg font-medium mb-4">Questões</h3>
-            <div className="space-y-4">
-              {simulado.questions.map((question, i) => (
-                <Card key={i} className="p-4">
-                  <p className="font-medium mb-2">
-                    {i + 1}. {question.text}
-                  </p>
-                  <ul className="list-disc pl-8 mb-4">
-                    {question.options.map((option, j) => (
-                      <li key={j} className={j === question.correctOption ? "font-medium text-green-600" : ""}>
-                        {option} {j === question.correctOption && <CheckCircleIcon className="inline h-4 w-4" />}
-                      </li>
-                    ))}
-                  </ul>
-                  {question.explanation && (
-                    <div className="text-sm bg-gray-50 p-3 rounded-md border-l-4 border-blue-300">
-                      <p className="font-medium">Explicação:</p>
-                      <p>{question.explanation}</p>
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-            
-            <div className="flex gap-2 mt-6">
-              <Button variant="outline" onClick={openEditDialog}>
-                <PencilIcon className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
-              <Button variant="destructive" onClick={handleDelete}>
-                <TrashIcon className="h-4 w-4 mr-2" />
-                Excluir
-              </Button>
-            </div>
+            <form className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Título</Label>
+                <Input 
+                  id="title" 
+                  value={currentSimulado.title} 
+                  onChange={e => setCurrentSimulado({...currentSimulado, title: e.target.value})}
+                  placeholder="Título do simulado"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea 
+                  id="description" 
+                  value={currentSimulado.description} 
+                  onChange={e => setCurrentSimulado({...currentSimulado, description: e.target.value})}
+                  placeholder="Descrição do simulado"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duração (minutos)</Label>
+                <Input 
+                  id="duration" 
+                  type="number"
+                  min={10}
+                  value={currentSimulado.duration} 
+                  onChange={e => setCurrentSimulado({...currentSimulado, duration: parseInt(e.target.value) || 60})}
+                  placeholder="Duração em minutos"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAdding(false);
+                    setIsEditing(false);
+                    resetSimuladoForm();
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={isAdding ? handleAddSimulado : handleUpdateSimulado}
+                  disabled={loading || !currentSimulado.title}
+                >
+                  {isAdding ? "Adicionar" : "Atualizar"}
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Dialog do Simulado */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[650px]">
-          <DialogHeader>
-            <DialogTitle>
-              {simulado ? 'Editar Simulado' : 'Criar Simulado'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="timeLimit">Tempo Limite (minutos)</Label>
-                <Input
-                  id="timeLimit"
-                  name="timeLimit"
-                  type="number"
-                  min="1"
-                  value={formData.timeLimit}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <Separator className="my-2" />
-              
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium">Questões</h3>
-                  <Button type="button" size="sm" onClick={openAddQuestionDialog}>
-                    <PlusCircleIcon className="h-4 w-4 mr-2" />
-                    Adicionar Questão
-                  </Button>
-                </div>
-                
-                {formData.questions?.length === 0 ? (
-                  <div className="text-center p-4 bg-gray-50 rounded-md">
-                    <p className="text-gray-500">Nenhuma questão adicionada</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nº</TableHead>
-                        <TableHead>Pergunta</TableHead>
-                        <TableHead>Opções</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {formData.questions?.map((question, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{i + 1}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {question.text}
-                          </TableCell>
-                          <TableCell>{question.options.length}</TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                type="button" 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => openEditQuestionDialog(i)}
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                type="button" 
-                                size="sm" 
-                                variant="destructive"
-                                onClick={() => removeQuestion(i)}
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
+      {!isAdding && !isEditing && (
+        <>
+          {loading ? (
+            <div className="text-center py-4">Carregando simulados...</div>
+          ) : simulados.length === 0 ? (
+            <div className="text-center py-6 border rounded-md bg-gray-50">
+              <p className="text-gray-500">Nenhum simulado adicionado ainda.</p>
+              <Button 
+                variant="outline" 
+                className="mt-2"
+                onClick={() => setIsAdding(true)}
+              >
+                Adicionar primeiro simulado
+              </Button>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isProcessing}>
-                {isProcessing ? 'Processando...' : (simulado ? 'Salvar Alterações' : 'Criar Simulado')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de Questão */}
-      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingQuestionIndex !== null ? 'Editar Questão' : 'Adicionar Questão'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleQuestionSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="text">Pergunta</Label>
-                <Textarea
-                  id="text"
-                  name="text"
-                  value={currentQuestion.text}
-                  onChange={handleQuestionInputChange}
-                  rows={3}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <Label>Opções de Resposta</Label>
-                {currentQuestion.options?.map((option, i) => (
-                  <div key={i} className="flex gap-3 items-center">
-                    <Input
-                      value={option}
-                      onChange={(e) => handleOptionChange(i, e.target.value)}
-                      placeholder={`Opção ${i + 1}`}
-                      required
-                    />
-                    <div className="flex-shrink-0">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="correctOption"
-                          checked={currentQuestion.correctOption === i}
-                          onChange={() => setCurrentQuestion(prev => ({ ...prev, correctOption: i }))}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-sm">Correta</span>
-                      </label>
+          ) : (
+            <Accordion type="single" collapsible className="w-full">
+              {simulados.map((simulado) => (
+                <AccordionItem key={simulado.id} value={simulado.id}>
+                  <AccordionTrigger className="px-4 hover:bg-gray-50">
+                    <div className="flex items-center justify-between w-full pr-4">
+                      <div className="text-left">
+                        <h3 className="text-md font-medium">{simulado.title}</h3>
+                        <p className="text-sm text-gray-500">
+                          {simulado.totalQuestions} questões • {simulado.duration} minutos
+                        </p>
+                      </div>
+                      <div className="space-x-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => startEdit(simulado)}
+                        >
+                          <PencilIcon className="mr-1 h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive"
+                          onClick={() => handleDeleteSimulado(simulado.id)}
+                        >
+                          <TrashIcon className="mr-1 h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="explanation">Explicação (opcional)</Label>
-                <Textarea
-                  id="explanation"
-                  name="explanation"
-                  value={currentQuestion.explanation}
-                  onChange={handleQuestionInputChange}
-                  rows={3}
-                  placeholder="Explique por que a resposta está correta..."
-                />
-              </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-0">
+                    <div className="px-4 py-2 border-t">
+                      <p className="text-sm mb-4">{simulado.description}</p>
+
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="text-sm font-semibold">Questões do simulado</h4>
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedSimuladoId(simulado.id);
+                            setIsAddingQuestion(true);
+                            resetQuestionForm();
+                          }}
+                        >
+                          <PlusCircleIcon className="mr-1 h-4 w-4" />
+                          Adicionar questão
+                        </Button>
+                      </div>
+
+                      {/* Tabela de questões ou mensagem se não houver */}
+                      {simulado.totalQuestions === 0 ? (
+                        <div className="text-center py-4 bg-gray-50 rounded-md">
+                          <p className="text-sm text-gray-500">Nenhuma questão adicionada ainda.</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12">#</TableHead>
+                                <TableHead>Questão</TableHead>
+                                <TableHead className="w-20">Opções</TableHead>
+                                <TableHead className="w-24">Ações</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {/* Simulação de questões - substituir por dados reais */}
+                              {Array.from({ length: simulado.totalQuestions }).map((_, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{index + 1}</TableCell>
+                                  <TableCell className="max-w-md truncate">
+                                    Questão simulada {index + 1}
+                                  </TableCell>
+                                  <TableCell>{4}</TableCell>
+                                  <TableCell>
+                                    <div className="flex space-x-1">
+                                      <Button size="sm" variant="ghost">
+                                        <PencilIcon className="h-4 w-4" />
+                                      </Button>
+                                      <Button size="sm" variant="ghost">
+                                        <TrashIcon className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </>
+      )}
+
+      {/* Modal de adição/edição de questão */}
+      <Dialog open={isAddingQuestion} onOpenChange={setIsAddingQuestion}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingQuestionIndex !== null ? "Editar questão" : "Adicionar nova questão"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="question-text">Texto da questão</Label>
+              <Textarea 
+                id="question-text" 
+                value={currentQuestion.text} 
+                onChange={e => setCurrentQuestion({...currentQuestion, text: e.target.value})}
+                placeholder="Digite a pergunta aqui..."
+                rows={3}
+              />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setQuestionDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {editingQuestionIndex !== null ? 'Salvar Alterações' : 'Adicionar Questão'}
-              </Button>
-            </DialogFooter>
-          </form>
+
+            <div className="space-y-3">
+              <Label>Opções de resposta</Label>
+              {currentQuestion.options?.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input 
+                    value={option} 
+                    onChange={e => handleOptionChange(index, e.target.value)}
+                    placeholder={`Opção ${index + 1}`}
+                  />
+                  <div className="flex items-center space-x-1">
+                    <input 
+                      type="radio" 
+                      id={`correct-${index}`} 
+                      name="correct-option"
+                      checked={currentQuestion.isCorrect?.[index] || false}
+                      onChange={() => handleCorrectOptionChange(index)}
+                    />
+                    <Label htmlFor={`correct-${index}`} className="text-sm">Correta</Label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingQuestion(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleAddQuestion}
+              disabled={!currentQuestion.text || currentQuestion.options?.some(opt => !opt) || !currentQuestion.isCorrect?.includes(true)}
+            >
+              {editingQuestionIndex !== null ? "Atualizar" : "Adicionar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

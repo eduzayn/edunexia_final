@@ -1,280 +1,271 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Edit, Trash, Plus, Video } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Esquema de validação para vídeos
-const videoSchema = z.object({
-  title: z.string().min(3, 'O título deve ter pelo menos 3 caracteres'),
-  description: z.string().min(10, 'A descrição deve ter pelo menos 10 caracteres'),
-  url: z.string().url('Insira uma URL válida'),
-  duration: z.string().min(1, 'Insira a duração do vídeo')
-});
-
-type VideoFormValues = z.infer<typeof videoSchema>;
-
-interface Video {
-  id: string;
-  title: string;
-  description: string;
-  url: string;
-  duration: string;
-}
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { videoApi } from "@/api/pedagogico";
+import { Video } from "@/types/pedagogico";
+import { PlusIcon, TrashIcon, PencilIcon } from "@/components/ui/icons";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface VideoManagerProps {
-  disciplineId?: string;
+  disciplineId: string;
 }
 
-export default function VideoManager({ disciplineId }: VideoManagerProps) {
+export function VideoManager({ disciplineId }: VideoManagerProps) {
   const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingVideo, setEditingVideo] = useState<Video | null>(null);
-
-  const form = useForm<VideoFormValues>({
-    resolver: zodResolver(videoSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      url: '',
-      duration: ''
-    }
+  
+  const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState<Partial<Video>>({
+    title: "",
+    description: "",
+    url: "",
+    duration: ""
   });
+  const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (disciplineId) {
-      // Aqui seria a chamada para a API para buscar os vídeos da disciplina
-      // Por enquanto, vamos simular com dados fictícios
-      setTimeout(() => {
-        setVideos([
-          {
-            id: '1',
-            title: 'Introdução à Disciplina',
-            description: 'Vídeo introdutório sobre os principais conceitos da disciplina',
-            url: 'https://www.youtube.com/watch?v=example1',
-            duration: '10:30'
-          },
-          {
-            id: '2',
-            title: 'Conceitos Fundamentais',
-            description: 'Explicação detalhada sobre os conceitos fundamentais',
-            url: 'https://www.youtube.com/watch?v=example2',
-            duration: '15:45'
-          }
-        ]);
-        setIsLoading(false);
-      }, 1000);
+  const fetchVideos = async () => {
+    try {
+      setLoading(true);
+      const data = await videoApi.getAll(disciplineId);
+      setVideos(data);
+      setError(null);
+    } catch (err) {
+      console.error("Erro ao buscar vídeos:", err);
+      setError("Não foi possível carregar os vídeos. Tente novamente mais tarde.");
+    } finally {
+      setLoading(false);
     }
-  }, [disciplineId]);
-
-  const handleAddVideo = (data: VideoFormValues) => {
-    const newVideo: Video = {
-      id: Date.now().toString(),
-      ...data
-    };
-
-    // Aqui seria a chamada para a API para adicionar o vídeo
-    // Por enquanto, apenas atualizamos o estado local
-    setVideos([...videos, newVideo]);
-    setIsAddDialogOpen(false);
-    form.reset();
   };
 
-  const handleEditVideo = (video: Video) => {
-    setEditingVideo(video);
-    form.reset({
+  useEffect(() => {
+    fetchVideos();
+  }, [disciplineId]);
+
+  const handleAddVideo = async () => {
+    try {
+      setLoading(true);
+      await videoApi.create(disciplineId, currentVideo as Omit<Video, 'id'>);
+      setIsAdding(false);
+      setCurrentVideo({
+        title: "",
+        description: "",
+        url: "",
+        duration: ""
+      });
+      await fetchVideos();
+    } catch (err) {
+      console.error("Erro ao adicionar vídeo:", err);
+      setError("Não foi possível adicionar o vídeo. Verifique os dados e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateVideo = async () => {
+    if (!currentVideoId) return;
+    
+    try {
+      setLoading(true);
+      await videoApi.update(disciplineId, currentVideoId, currentVideo);
+      setIsEditing(false);
+      setCurrentVideo({
+        title: "",
+        description: "",
+        url: "",
+        duration: ""
+      });
+      setCurrentVideoId(null);
+      await fetchVideos();
+    } catch (err) {
+      console.error("Erro ao atualizar vídeo:", err);
+      setError("Não foi possível atualizar o vídeo. Verifique os dados e tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteVideo = async (videoId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este vídeo?")) return;
+    
+    try {
+      setLoading(true);
+      await videoApi.delete(disciplineId, videoId);
+      await fetchVideos();
+    } catch (err) {
+      console.error("Erro ao excluir vídeo:", err);
+      setError("Não foi possível excluir o vídeo. Tente novamente mais tarde.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEdit = (video: Video) => {
+    setCurrentVideo({
       title: video.title,
       description: video.description,
       url: video.url,
       duration: video.duration
     });
-    setIsAddDialogOpen(true);
+    setCurrentVideoId(video.id);
+    setIsEditing(true);
+    setIsAdding(false);
   };
-
-  const handleSaveEdit = (data: VideoFormValues) => {
-    if (editingVideo) {
-      // Aqui seria a chamada para a API para editar o vídeo
-      // Por enquanto, apenas atualizamos o estado local
-      const updatedVideos = videos.map(v => 
-        v.id === editingVideo.id ? { ...v, ...data } : v
-      );
-      setVideos(updatedVideos);
-      setEditingVideo(null);
-      setIsAddDialogOpen(false);
-      form.reset();
-    }
-  };
-
-  const handleDeleteVideo = (id: string) => {
-    // Aqui seria a chamada para a API para excluir o vídeo
-    // Por enquanto, apenas atualizamos o estado local
-    const updatedVideos = videos.filter(v => v.id !== id);
-    setVideos(updatedVideos);
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center p-8">Carregando vídeos...</div>;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Erro</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Vídeos da Disciplina</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => {
-              setEditingVideo(null);
-              form.reset({
-                title: '',
-                description: '',
-                url: '',
-                duration: ''
-              });
-            }}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar Vídeo
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[550px]">
-            <DialogHeader>
-              <DialogTitle>{editingVideo ? 'Editar Vídeo' : 'Adicionar Novo Vídeo'}</DialogTitle>
-              <DialogDescription>
-                Preencha os dados para {editingVideo ? 'editar o' : 'adicionar um novo'} vídeo à disciplina.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(editingVideo ? handleSaveEdit : handleAddVideo)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Título do vídeo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Descrição do vídeo" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL do Vídeo</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Insira o link do YouTube ou Vimeo
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Duração</FormLabel>
-                      <FormControl>
-                        <Input placeholder="10:30" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="submit">{editingVideo ? 'Salvar Alterações' : 'Adicionar Vídeo'}</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Vídeo-aulas</h2>
+        <Button 
+          onClick={() => {
+            setIsAdding(true);
+            setIsEditing(false);
+            setCurrentVideo({
+              title: "",
+              description: "",
+              url: "",
+              duration: ""
+            });
+          }}
+          disabled={isAdding || isEditing}
+        >
+          <PlusIcon className="mr-2 h-4 w-4" />
+          Adicionar vídeo
+        </Button>
       </div>
-
-      {videos.length === 0 ? (
-        <Card className="text-center p-6">
-          <div className="flex flex-col items-center justify-center p-4">
-            <Video className="h-12 w-12 text-gray-400 mb-2" />
-            <h3 className="text-lg font-medium">Nenhum Vídeo Cadastrado</h3>
-            <p className="text-sm text-gray-500 mb-4">Adicione vídeos para esta disciplina.</p>
-            <DialogTrigger asChild>
-              <Button onClick={() => {
-                setEditingVideo(null);
-                form.reset({
-                  title: '',
-                  description: '',
-                  url: '',
-                  duration: ''
-                });
-              }}>
-                <Plus className="mr-2 h-4 w-4" /> Adicionar Primeiro Vídeo
-              </Button>
-            </DialogTrigger>
-          </div>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {videos.map((video) => (
-            <Card key={video.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">{video.title}</CardTitle>
-                <CardDescription>Duração: {video.duration}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">{video.description}</p>
-                <div className="mt-2 text-sm text-blue-600 truncate">
-                  <a href={video.url} target="_blank" rel="noopener noreferrer">
-                    {video.url}
-                  </a>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end space-x-2">
-                <Button variant="outline" size="sm" onClick={() => handleEditVideo(video)}>
-                  <Edit className="h-4 w-4 mr-1" /> Editar
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteVideo(video.id)}>
-                  <Trash className="h-4 w-4 mr-1" /> Excluir
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
         </div>
+      )}
+
+      {(isAdding || isEditing) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{isAdding ? "Adicionar novo vídeo" : "Editar vídeo"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Título</Label>
+                <Input 
+                  id="title" 
+                  value={currentVideo.title} 
+                  onChange={e => setCurrentVideo({...currentVideo, title: e.target.value})}
+                  placeholder="Título do vídeo"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea 
+                  id="description" 
+                  value={currentVideo.description} 
+                  onChange={e => setCurrentVideo({...currentVideo, description: e.target.value})}
+                  placeholder="Descrição do vídeo"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="url">URL</Label>
+                <Input 
+                  id="url" 
+                  value={currentVideo.url} 
+                  onChange={e => setCurrentVideo({...currentVideo, url: e.target.value})}
+                  placeholder="URL do vídeo (YouTube, Vimeo, etc.)"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duração (formato: HH:MM:SS)</Label>
+                <Input 
+                  id="duration" 
+                  value={currentVideo.duration} 
+                  onChange={e => setCurrentVideo({...currentVideo, duration: e.target.value})}
+                  placeholder="Ex: 01:30:00"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAdding(false);
+                    setIsEditing(false);
+                    setCurrentVideo({
+                      title: "",
+                      description: "",
+                      url: "",
+                      duration: ""
+                    });
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={isAdding ? handleAddVideo : handleUpdateVideo}
+                  disabled={loading || !currentVideo.title || !currentVideo.url}
+                >
+                  {isAdding ? "Adicionar" : "Atualizar"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAdding && !isEditing && (
+        <>
+          {loading ? (
+            <div className="text-center py-4">Carregando vídeos...</div>
+          ) : videos.length === 0 ? (
+            <div className="text-center py-6 border rounded-md bg-gray-50">
+              <p className="text-gray-500">Nenhum vídeo adicionado ainda.</p>
+              <Button 
+                variant="outline" 
+                className="mt-2"
+                onClick={() => setIsAdding(true)}
+              >
+                Adicionar primeiro vídeo
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Título</TableHead>
+                  <TableHead>Duração</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {videos.map((video) => (
+                  <TableRow key={video.id}>
+                    <TableCell>{video.title}</TableCell>
+                    <TableCell>{video.duration}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-1">
+                        <Button size="sm" variant="ghost" onClick={() => startEdit(video)}>
+                          <PencilIcon className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteVideo(video.id)}>
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </>
       )}
     </div>
   );
