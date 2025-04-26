@@ -30,7 +30,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import {
   Book,
   Upload,
@@ -45,6 +44,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InteractiveEbook, InteractiveEbookType } from "@/types/pedagogico";
+import { getInteractiveEbook, saveInteractiveEbook, deleteInteractiveEbook } from "@/api/pedagogico";
 
 const interactiveEbookFormSchema = z.object({
   type: z.enum(["embed", "iframe", "link", "h5p"]),
@@ -80,25 +80,29 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
     return `/api/disciplines/${disciplineId}/interactive-ebook`;
   };
 
-  // Busca os dados do e-book interativo da disciplina
+  // Busca os dados do e-book interativo da disciplina usando a API centralizada
   const {
     data: ebook,
     isLoading: isEbookLoading,
     refetch: refetchEbook,
   } = useQuery({
     queryKey: [buildDisciplineInteractiveEbookApiUrl(disciplineId)],
+    queryFn: () => getInteractiveEbook(disciplineId),
     enabled: !!disciplineId,
   });
 
-  // Mutation para adicionar/atualizar e-book interativo
+  // Mutation para adicionar/atualizar e-book interativo usando a API centralizada
   const ebookMutation = useMutation({
     mutationFn: (data: InteractiveEbookFormValues) => {
-      // Se já existe um e-book, faz update, senão cria
-      const method = ebook && ebook.id ? "PUT" : "POST";
-      return apiRequest(method, buildDisciplineInteractiveEbookApiUrl(disciplineId), data);
+      const ebookData: Partial<InteractiveEbook> = {
+        ...data,
+        disciplineId: disciplineId,
+        id: ebook && 'id' in ebook ? ebook.id : undefined // Preserva o ID caso esteja editando
+      };
+      return saveInteractiveEbook(disciplineId, ebookData);
     },
     onSuccess: () => {
-      const isUpdate = !!(ebook && ebook.id);
+      const isUpdate = !!(ebook && 'id' in ebook && ebook.id);
       toast({
         title: isUpdate ? "E-book interativo atualizado com sucesso" : "E-book interativo adicionado com sucesso",
         description: isUpdate ? "As alterações foram salvas." : "O e-book interativo foi vinculado à disciplina.",
@@ -114,16 +118,16 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
     onError: (error) => {
       toast({
         title: "Erro ao salvar e-book interativo",
-        description: `Ocorreu um erro: ${error.message}`,
+        description: `Ocorreu um erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive",
       });
     },
   });
 
-  // Mutation para excluir e-book interativo
+  // Mutation para excluir e-book interativo usando a API centralizada
   const deleteEbookMutation = useMutation({
     mutationFn: () => {
-      return apiRequest("DELETE", buildDisciplineInteractiveEbookApiUrl(disciplineId));
+      return deleteInteractiveEbook(disciplineId);
     },
     onSuccess: () => {
       toast({
@@ -138,7 +142,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
     onError: (error) => {
       toast({
         title: "Erro ao excluir e-book interativo",
-        description: `Ocorreu um erro: ${error.message}`,
+        description: `Ocorreu um erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: "destructive",
       });
     },
@@ -201,19 +205,21 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
       );
     }
 
-    if (ebook && ebook.available) {
+    if (ebook && ('available' in ebook ? ebook.available : true)) {
       // Exibe o e-book interativo configurado
+      const ebookObj = ebook as InteractiveEbook;
+      
       return (
         <div className="space-y-4">
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <h3 className="font-medium text-lg">{ebook.title || "E-book interativo"}</h3>
-              {ebook.description && (
-                <p className="text-sm text-gray-600 mt-1">{ebook.description}</p>
+              <h3 className="font-medium text-lg">{ebookObj.title || "E-book interativo"}</h3>
+              {ebookObj.description && (
+                <p className="text-sm text-gray-600 mt-1">{ebookObj.description}</p>
               )}
               <div className="flex items-center mt-2 text-sm text-gray-500">
                 <Book className="h-4 w-4 mr-1" />
-                <span>{getEbookTypeLabel(ebook.type)}</span>
+                <span>{getEbookTypeLabel(ebookObj.type || 'link')}</span>
               </div>
             </div>
             
@@ -221,7 +227,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => handleEditEbook(ebook)}
+                onClick={() => handleEditEbook(ebookObj)}
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Editar
@@ -238,7 +244,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
           </div>
           
           <div className="border rounded-md p-4 bg-gray-50">
-            {ebook.type === 'link' && ebook.url && (
+            {ebookObj.type === 'link' && ebookObj.url && (
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm font-medium">Link para conteúdo interativo</span>
@@ -247,7 +253,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                     size="sm" 
                     asChild
                   >
-                    <a href={ebook.url || "#"} target="_blank" rel="noopener noreferrer">
+                    <a href={ebookObj.url || "#"} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-1" />
                       Abrir
                     </a>
@@ -255,19 +261,19 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                 </div>
                 
                 <div className="bg-gray-100 p-3 rounded-md text-sm overflow-auto">
-                  <code>{ebook.url}</code>
+                  <code>{ebookObj.url}</code>
                 </div>
               </div>
             )}
             
-            {(ebook.type === 'embed' || ebook.type === 'iframe') && ebook.embedCode && (
+            {(ebookObj.type === 'embed' || ebookObj.type === 'iframe') && ebookObj.embedCode && (
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm font-medium">Código de incorporação</span>
                 </div>
                 
                 <div className="bg-gray-100 p-3 rounded-md text-sm overflow-auto mb-4">
-                  <code className="whitespace-pre-wrap">{ebook.embedCode}</code>
+                  <code className="whitespace-pre-wrap">{ebookObj.embedCode}</code>
                 </div>
                 
                 <div className="border rounded p-4 bg-white">
@@ -277,7 +283,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                   
                   <div 
                     className="w-full min-h-[300px] bg-gray-50 rounded" 
-                    dangerouslySetInnerHTML={{ __html: ebook.embedCode || "" }}
+                    dangerouslySetInnerHTML={{ __html: ebookObj.embedCode || "" }}
                   />
                 </div>
               </div>
