@@ -1383,7 +1383,6 @@ export default function DisciplineContentPage() {
             <TabsList className="mb-6">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
               <TabsTrigger value="videos">Vídeo-aulas</TabsTrigger>
-              <TabsTrigger value="materials">Apostila</TabsTrigger>
               <TabsTrigger value="ebook">E-book</TabsTrigger>
               <TabsTrigger value="assessments">Avaliações</TabsTrigger>
             </TabsList>
@@ -1732,110 +1731,7 @@ export default function DisciplineContentPage() {
               </Card>
             </TabsContent>
 
-            {/* Materials Tab */}
-            <TabsContent value="materials">
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <CardTitle>Apostila</CardTitle>
-                      <CardDescription>
-                        Adicione a apostila principal em PDF para esta disciplina
-                      </CardDescription>
-                    </div>
-                    <Button
-                      onClick={handleOpenMaterialDialog}
-                      className="mt-4 md:mt-0"
-                      disabled={material !== null && material !== undefined}
-                    >
-                      <PlusIcon className="mr-1 h-4 w-4" />
-                      {material ? "Substituir Apostila" : "Adicionar Apostila"}
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isMaterialLoading ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-40 w-full" />
-                      <Skeleton className="h-6 w-[250px]" />
-                      <Skeleton className="h-4 w-full" />
-                    </div>
-                  ) : !material ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <FileTextIcon className="h-16 w-16 text-gray-300" />
-                      <h3 className="mt-4 text-lg font-semibold text-gray-900">
-                        Nenhuma apostila adicionada
-                      </h3>
-                      <p className="mt-1 text-gray-500">
-                        Adicione uma apostila em PDF com o conteúdo principal da disciplina.
-                      </p>
-                      <Button onClick={handleOpenMaterialDialog} className="mt-4">
-                        <PlusIcon className="mr-1 h-4 w-4" />
-                        Adicionar Apostila
-                      </Button>
-                    </div>
-                  ) : (
-                    <Card>
-                      <div className="p-6 flex flex-col md:flex-row gap-6">
-                        <div className="relative aspect-[3/4] bg-gray-100 rounded-md min-w-[200px] overflow-hidden">
-                          {material.url ? (
-                            <iframe
-                              src={`${material.url}#page=1&view=FitH`}
-                              className="w-full h-full"
-                              title={material.title || 'Visualização da apostila'}
-                              sandbox="allow-scripts allow-same-origin"
-                            />
-                          ) : (
-                            <div className="flex justify-center items-center h-full w-full">
-                              <FileTextIcon className="h-20 w-20 text-gray-500" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold">{material.title}</h3>
-                          <p className="mt-2 text-gray-600">{material.description}</p>
-                          <div className="mt-6 flex flex-wrap gap-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => window.open(material.url, "_blank")}
-                            >
-                              <LinkIcon className="mr-1 h-4 w-4" />
-                              Visualizar PDF
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                materialForm.reset({
-                                  title: material.title,
-                                  description: material.description,
-                                  url: material.url,
-                                });
-                                setIsMaterialDialogOpen(true);
-                              }}
-                            >
-                              <PencilIcon className="mr-1 h-4 w-4" />
-                              Editar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => {
-                                if (confirm('Tem certeza que deseja excluir esta apostila? Esta ação não pode ser desfeita.')) {
-                                  deleteMaterialMutation.mutate();
-                                }
-                              }}
-                            >
-                              <MinusIcon className="mr-1 h-4 w-4" />
-                              Excluir
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+            {/* Removed Materials Tab */}
 
             {/* E-book Tab */}
             <TabsContent value="ebook">
