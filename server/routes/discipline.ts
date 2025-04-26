@@ -449,52 +449,22 @@ router.delete('/api/disciplines/:id/ebook', async (req, res) => {
       return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
     }
     
-    const discipline = await getDisciplineById(disciplineId);
-    
-    if (!discipline) {
-      return res.status(404).json({ success: false, error: 'Disciplina não encontrada' });
-    }
-
-    // Identificar se usamos ebookInterativoUrl ou apostilaPdfUrl
-    const isInteractiveEbook = !!discipline.ebookInterativoUrl;
-    const isRegularEbook = !!discipline.apostilaPdfUrl;
-    
     console.log('Excluindo e-book para disciplina:', disciplineId);
-    console.log('Tipo de e-book:', isInteractiveEbook ? 'interativo' : (isRegularEbook ? 'regular' : 'nenhum'));
     
-    if (!isInteractiveEbook && !isRegularEbook) {
-      // Se não houver e-book para excluir, apenas retornamos sucesso
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Nenhum e-book para remover nesta disciplina'
-      });
-    }
-    
-    // Preparar o objeto de atualização conforme o tipo de e-book disponível
-    // Definindo um valor padrão para evitar erro "No values to set"
-    const updateData: any = {
-      updatedAt: new Date() // Garantir que sempre temos algo para atualizar
-    };
-    
-    if (isInteractiveEbook) {
-      // Se for um e-book interativo
-      console.log('Limpando campo ebookInterativoUrl');
-      updateData.ebookInterativoUrl = null;
-    }
-    
-    if (isRegularEbook) {
-      // Se for um e-book regular (apostila)
-      console.log('Limpando campo apostilaPdfUrl');
-      updateData.apostilaPdfUrl = null;
-    }
-    
-    // Atualizar a disciplina removendo o e-book correto
+    // Abordagem simplificada: apenas limpe ambos os campos relevantes
+    // Isso garante que a operação sempre funcionará, mesmo que não tenhamos
+    // certeza de qual campo está sendo usado para armazenar o e-book
     await db.update(disciplines)
-      .set(updateData)
+      .set({
+        apostilaPdfUrl: null,         // Limpar campo de e-book regular
+        ebookInterativoUrl: null,     // Limpar campo de e-book interativo
+        updatedAt: new Date()         // Atualizar timestamp
+      })
       .where(eq(disciplines.id, disciplineId));
     
-    console.log('E-book excluído com sucesso, campos atualizados:', updateData);
+    console.log('E-book excluído com sucesso para disciplina:', disciplineId);
     
+    // Sempre retornar sucesso, mesmo se não houver e-book para excluir
     res.status(200).json({ 
       success: true, 
       message: 'E-book removido com sucesso'
