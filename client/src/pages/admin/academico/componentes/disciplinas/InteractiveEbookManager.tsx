@@ -193,6 +193,100 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
     };
     return types[type] || "Outro";
   };
+  
+  // Função para converter qualquer URL em uma URL incorporável
+  const getEmbedUrlFromLink = (url: string): string => {
+    try {
+      // Detecta se o link é do Google Drive
+      if (url.includes('drive.google.com/file/d/')) {
+        // Extrai o ID do arquivo do Google Drive e gera uma URL de visualização
+        const fileIdMatch = url.match(/\/d\/([^/]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+          return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+        }
+      }
+      
+      // Detecta links do Google Drive em formato diferente
+      if (url.includes('drive.google.com/open?id=')) {
+        const urlParams = new URL(url).searchParams;
+        const fileId = urlParams.get('id');
+        if (fileId) {
+          return `https://drive.google.com/file/d/${fileId}/preview`;
+        }
+      }
+      
+      // Detecta se é link de compartilhamento de pasta do Google Drive
+      if (url.includes('drive.google.com/drive/folders/')) {
+        const folderId = url.match(/\/folders\/([^/?]+)/)?.[1];
+        if (folderId) {
+          return `https://drive.google.com/embeddedfolderview?id=${folderId}#list`;
+        }
+      }
+      
+      // Detecta se o link é do Dropbox
+      if (url.includes('dropbox.com/s/')) {
+        // Converte links do Dropbox para formato raw
+        return url.replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/').replace('?dl=0', '');
+      }
+      
+      // Detecta se o link é do OneDrive
+      if (url.includes('1drv.ms') || url.includes('onedrive.live.com')) {
+        // Para OneDrive, usamos incorporação em iframe direta se possível
+        if (url.includes('embed')) {
+          return url;
+        }
+        // Tenta criar link de incorporação para OneDrive
+        return url.replace('view.aspx', 'embed').replace('redir', 'embed');
+      }
+      
+      // Detecta se o link é de um PDF direto
+      if (url.toLowerCase().endsWith('.pdf')) {
+        // Usamos o PDF Viewer do Google para PDFs diretos
+        return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+      }
+      
+      // Detecta se é um link de um arquivo de vídeo direto
+      if (url.toLowerCase().match(/\.(mp4|webm|ogg|ogv)$/i)) {
+        // Retorna o link direto para ser usado em um elemento <video>
+        return url;
+      }
+      
+      // Detecta se o link é do YouTube
+      if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+        let videoId = '';
+        if (url.includes('youtube.com/watch')) {
+          try {
+            const urlParams = new URL(url).searchParams;
+            videoId = urlParams.get('v') || '';
+          } catch (e) {
+            // Se não conseguir extrair parâmetros, tenta extração manual
+            videoId = url.split('v=')[1]?.split('&')[0] || '';
+          }
+        } else if (url.includes('youtu.be/')) {
+          videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+        }
+        
+        if (videoId) {
+          return `https://www.youtube.com/embed/${videoId}`;
+        }
+      }
+      
+      // Detecta se o link é do Vimeo
+      if (url.includes('vimeo.com/')) {
+        const videoId = url.split('vimeo.com/')[1]?.split('?')[0] || '';
+        if (videoId) {
+          return `https://player.vimeo.com/video/${videoId}`;
+        }
+      }
+      
+      // Para links externos genéricos (sites, etc)
+      return url;
+    } catch (error) {
+      console.error("Erro ao converter URL para embed:", error);
+      // Em caso de erro, retorna a URL original
+      return url;
+    }
+  };
 
   const renderEbookContent = () => {
     if (isEbookLoading) {
@@ -248,20 +342,48 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm font-medium">Link para conteúdo interativo</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    asChild
-                  >
-                    <a href={ebookObj.url || "#"} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Abrir
-                    </a>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      asChild
+                    >
+                      <a href={ebookObj.url || "#"} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Abrir em nova aba
+                      </a>
+                    </Button>
+                  </div>
                 </div>
                 
-                <div className="bg-gray-100 p-3 rounded-md text-sm overflow-auto">
+                <div className="bg-gray-100 p-2 rounded-md text-xs overflow-auto mb-3">
                   <code>{ebookObj.url}</code>
+                </div>
+                
+                <div className="border rounded p-4 bg-white">
+                  <div className="text-center text-sm text-gray-500 mb-2">
+                    Visualização integrada do conteúdo:
+                  </div>
+                  
+                  {ebookObj.url?.toLowerCase().match(/\.(mp4|webm|ogg|ogv)$/i) ? (
+                    <video 
+                      src={ebookObj.url} 
+                      controls
+                      className="w-full min-h-[400px] rounded"
+                      playsInline
+                      controlsList="nodownload"
+                    >
+                      Seu navegador não suporta a reprodução de vídeos.
+                    </video>
+                  ) : (
+                    <iframe 
+                      src={getEmbedUrlFromLink(ebookObj.url || "")}
+                      className="w-full min-h-[500px] border-0 rounded"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title={ebookObj.title || "Conteúdo interativo"}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -430,6 +552,9 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                           value={field.value || ""}
                         />
                       </FormControl>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Suporta links do Google Drive, Dropbox, OneDrive, YouTube, Vimeo e links diretos de PDF/MP4
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
