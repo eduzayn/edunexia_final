@@ -18,9 +18,9 @@ import PoloAuthPage from "@/pages/autenticacao/polo-auth-page";
 // import DisciplinesPage from "@/pages/admin/academico/disciplines-page"; // Removido
 import CoursesPage from "@/pages/admin/academico/courses-page";
 import CourseFormPage from "@/pages/admin/academico/course-form-page";
-// Página antiga de disciplinas removida
-import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content";
-import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas";
+// Todas as páginas de disciplinas foram removidas para reconstrução
+// import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content"; // Removido
+// import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas"; // Removido
 import InstitutionsPage from "@/pages/admin/institucional/institutions-page";
 // import UsersPage from "@/pages/admin/users-page";
 import PolosPage from "@/pages/admin/institucional/polos-page";
@@ -293,13 +293,19 @@ function Router() {
         {() => user?.portalType === "polo" ? <PoloSalesLinksPage /> : <Redirect to="/polo" />}
       </Route>
       <ProtectedRoute path="/admin/dashboard" portalType="admin" />
-      {/* As páginas antigas de disciplinas foram removidas */}
-      {/* Novas rotas para o módulo pedagógico refatorado */}
+      {/* As páginas de disciplinas foram completamente removidas para reconstrução */}
+      {/* Redirecionamentos temporários enquanto as páginas estão sendo reconstruídas */}
       <Route path="/admin/academico/disciplinas">
-        {() => user?.portalType === "admin" ? <DisciplinasPage /> : <Redirect to="/admin" />}
+        {() => {
+          console.log("Redirecionando de /admin/academico/disciplinas para dashboard");
+          return user?.portalType === "admin" ? <Redirect to="/admin/dashboard" /> : <Redirect to="/admin" />;
+        }}
       </Route>
       <Route path="/admin/academico/disciplinas/:id/content">
-        {() => user?.portalType === "admin" ? <DisciplinaContentPage /> : <Redirect to="/admin" />}
+        {() => {
+          console.log("Redirecionando de /admin/academico/disciplinas/ID/content para dashboard");
+          return user?.portalType === "admin" ? <Redirect to="/admin/dashboard" /> : <Redirect to="/admin" />;
+        }}
       </Route>
       <Route path="/admin/disciplines">
         {() => <Redirect to="/admin/academico/disciplines" />}
