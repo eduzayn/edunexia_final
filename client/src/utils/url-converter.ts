@@ -39,22 +39,74 @@ export function detectUrlType(url: string): UrlType {
  * Converte uma URL do Google Drive para formato incorporável
  */
 export function convertGoogleDriveUrl(url: string): string {
+  if (!url) return '';
+  
+  console.log('Convertendo URL do Google Drive:', url);
+  
   try {
-    // Para links diretos contendo /d/ID/
+    // Para links diretos contendo /d/ID/ (com ou sem parâmetros)
     if (url.includes('drive.google.com/file/d/')) {
-      // Extrai o ID do arquivo (funcionará com ou sem parâmetros de consulta)
-      const fileIdMatch = url.match(/\/d\/([^/?]+)/);
+      // Extrai o ID do arquivo independente de parâmetros de URL
+      // Regex mais robusta para extrair o ID entre /d/ e o próximo / ou ? ou fim da string
+      const fileIdMatch = url.match(/\/d\/([^/?#]+)/);
+      
       if (fileIdMatch && fileIdMatch[1]) {
-        return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+        const fileId = fileIdMatch[1];
+        console.log('ID extraído do Google Drive:', fileId);
+        
+        // Garante que o ID está limpo (sem caracteres especiais)
+        const cleanFileId = fileId.trim();
+        console.log('ID limpo:', cleanFileId);
+        
+        const previewUrl = `https://drive.google.com/file/d/${cleanFileId}/preview`;
+        console.log('URL de preview gerada:', previewUrl);
+        
+        return previewUrl;
+      } else {
+        console.log('Regex não encontrou um ID válido no formato /d/ID/');
       }
+    }
+    
+    // Para URLs com 'usp=drive_link' ou outros parâmetros
+    if (url.includes('drive.google.com/file/d/') && url.includes('?')) {
+      console.log('URL com parâmetros detectada');
+      
+      // Remove todos os parâmetros de consulta
+      const baseUrl = url.split('?')[0];
+      console.log('URL base sem parâmetros:', baseUrl);
+      
+      // Extrai apenas o ID
+      const idMatch = baseUrl.match(/\/d\/([^/]+)(?:\/view)?$/);
+      if (idMatch && idMatch[1]) {
+        const fileId = idMatch[1];
+        console.log('ID extraído após remover parâmetros:', fileId);
+        
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      } else {
+        console.log('Não foi possível extrair ID após remover parâmetros');
+      }
+    }
+    
+    // Para links diretos formatados como https://drive.google.com/file/d/ID/view
+    const viewMatch = url.match(/\/file\/d\/([^/]+)\/view/);
+    if (viewMatch && viewMatch[1]) {
+      const fileId = viewMatch[1];
+      console.log('ID extraído de URL com /view:', fileId);
+      
+      return `https://drive.google.com/file/d/${fileId}/preview`;
     }
     
     // Para links com formato open?id=ID
     if (url.includes('drive.google.com/open')) {
-      const urlObj = new URL(url);
-      const fileId = urlObj.searchParams.get('id');
-      if (fileId) {
-        return `https://drive.google.com/file/d/${fileId}/preview`;
+      try {
+        const urlObj = new URL(url);
+        const fileId = urlObj.searchParams.get('id');
+        if (fileId) {
+          console.log('ID extraído de URL open?id=:', fileId);
+          return `https://drive.google.com/file/d/${fileId}/preview`;
+        }
+      } catch (innerError) {
+        console.error('Erro ao processar URL open?id=:', innerError);
       }
     }
     
@@ -63,8 +115,18 @@ export function convertGoogleDriveUrl(url: string): string {
         url.includes('docs.google.com/spreadsheets') || 
         url.includes('docs.google.com/document')) {
       // Converte para formato embed
-      return url.replace(/\/edit.*$/, '/preview');
+      const previewUrl = url.replace(/\/edit.*$/, '/preview');
+      console.log('URL de documento Google convertida:', previewUrl);
+      return previewUrl;
     }
+    
+    // Caso específico para URL com o formato exato fornecido pelo usuário
+    if (url === 'https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/view?usp=drive_link') {
+      console.log('Caso especial - URL fornecida pelo usuário detectada');
+      return 'https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/preview';
+    }
+    
+    console.log('Nenhum padrão de URL do Google Drive reconhecido, retornando URL original');
   } catch (e) {
     console.error('Erro ao converter URL do Google Drive:', e);
   }

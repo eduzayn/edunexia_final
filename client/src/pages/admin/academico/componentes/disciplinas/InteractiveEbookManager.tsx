@@ -45,6 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InteractiveEbook, InteractiveEbookType } from "@/types/pedagogico";
 import { getInteractiveEbook, saveInteractiveEbook, deleteInteractiveEbook } from "@/api/pedagogico";
+import { getEmbedUrl, detectUrlType } from "@/utils/url-converter";
 
 const interactiveEbookFormSchema = z.object({
   type: z.enum(["embed", "iframe", "link", "h5p"]),
@@ -365,6 +366,13 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                     Visualização integrada do conteúdo:
                   </div>
                   
+                  {/* Debug info para ajudar a resolver problemas */}
+                  <div className="text-xs text-blue-500 mb-2">
+                    URL Original: {ebookObj.url || ""}<br/>
+                    Tipo Detectado: {detectUrlType(ebookObj.url || "")}<br/>
+                    URL Incorporada: {getEmbedUrl(ebookObj.url || "")}
+                  </div>
+                  
                   {ebookObj.url?.toLowerCase().match(/\.(mp4|webm|ogg|ogv)$/i) ? (
                     <video 
                       src={ebookObj.url} 
@@ -377,7 +385,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                     </video>
                   ) : (
                     <iframe 
-                      src={getEmbedUrlFromLink(ebookObj.url || "")}
+                      src={getEmbedUrl(ebookObj.url || "")}
                       className="w-full min-h-[500px] border-0 rounded"
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
