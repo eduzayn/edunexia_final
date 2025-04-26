@@ -134,7 +134,7 @@ export function VideoManager({ disciplineId, discipline }: VideoManagerProps) {
       toast({
         title: "Vídeo atualizado com sucesso",
         description: "As alterações foram salvas.",
-        variant: "success",
+        variant: "default",
       });
       setIsVideoEditDialogOpen(false);
       // Recarrega a lista de vídeos
@@ -159,7 +159,7 @@ export function VideoManager({ disciplineId, discipline }: VideoManagerProps) {
       toast({
         title: "Vídeo excluído com sucesso",
         description: "O vídeo foi removido da disciplina.",
-        variant: "success",
+        variant: "default",
       });
       // Recarrega a lista de vídeos
       queryClient.invalidateQueries({ queryKey: [buildDisciplineVideosApiUrl(disciplineId)] });
