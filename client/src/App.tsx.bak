@@ -1,6 +1,9 @@
 import { Switch, Route, Redirect, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
+import { lazy } from "react";
 
+// Função para importação dinâmica de componentes sem necessidade de React global
+const lazyImport = (importFn) => lazy(importFn);
 import NotFound from "@/pages/landing/not-found";
 import HomePage from "@/pages/landing/home-page";
 import AuthPage from "@/pages/autenticacao/auth-page";
@@ -287,21 +290,7 @@ function Router() {
       </Route>
       <ProtectedRoute path="/admin/dashboard" portalType="admin" />
       {/* Novas rotas do módulo de disciplinas reconstruído em inglês */}
-      <Route path="/admin/academico/disciplines">
-        {() => {
-          console.log("Rota /admin/academico/disciplines");
-          return user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />;
-        }}
-      </Route>
-      <Route path="/admin/academico/disciplines/new">
-        {() => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
-      </Route>
-      <Route path="/admin/academico/disciplines/:id/edit">
-        {(params) => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
-      </Route>
-      <Route path="/admin/academico/disciplines/:id/content">
-        {(params) => user?.portalType === "admin" ? <div>Módulo em manutenção</div> : <Redirect to="/admin" />}
-      </Route>
+      {/* Rotas do módulo de disciplinas temporariamente removidas */}
 
       {/* Redirecionamentos das rotas antigas em português */}
       <Route path="/admin/academico/disciplinas">
