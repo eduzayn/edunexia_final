@@ -101,11 +101,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       name: "Acadêmico",
       icon: <MenuBookIcon />,
       items: [
+        // Versão antiga (mostrar em itálico e uma dica de "deprecated")
         { 
-          name: "Disciplinas", 
+          name: "Disciplinas (antigo)", 
           icon: <BookIcon />, 
           href: "/admin/academico/disciplines",
           active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/"))
+        },
+        // Nova versão com a estrutura refatorada
+        { 
+          name: "Disciplinas (novo)", 
+          icon: <BookIcon />, 
+          href: "/admin/academico/disciplinas",
+          active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/"))
         },
         { 
           name: "Cursos", 
@@ -116,11 +124,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       ]
     }, currentPath),
     items: [
+        // Versão antiga (mostrar em itálico e uma dica de "deprecated")
         { 
-          name: "Disciplinas", 
+          name: "Disciplinas (antigo)", 
           icon: <BookIcon />, 
           href: "/admin/academico/disciplines",
           active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/"))
+        },
+        // Nova versão com a estrutura refatorada
+        { 
+          name: "Disciplinas (novo)", 
+          icon: <BookIcon />, 
+          href: "/admin/academico/disciplinas",
+          active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/")),
         },
         { 
           name: "Cursos", 
