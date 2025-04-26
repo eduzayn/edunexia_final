@@ -280,7 +280,7 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                     URL Original: {ebookObj.url || ""}
                   </div>
                   
-                  {/* Usando o novo componente EbookViewer para renderização dinâmica */}
+                  {/* Usando o componente EbookViewer para renderização dinâmica */}
                   <EbookViewer url={ebookObj.url || ""} title={ebookObj.title || "Conteúdo interativo"} />
                 </div>
               </div>
