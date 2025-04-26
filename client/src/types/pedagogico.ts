@@ -26,6 +26,7 @@ export interface Ebook {
   url: string;
   fileType?: string;
   uploadType: EbookUploadType;
+  available?: boolean; // Indica se o e-book está disponível
 }
 
 // Tipos para e-books interativos
@@ -39,6 +40,7 @@ export interface InteractiveEbook {
   type: InteractiveEbookType;
   url?: string;
   embedCode?: string;
+  available?: boolean; // Indica se o e-book interativo está disponível
 }
 
 // Tipos para questões (utilizadas em simulados e avaliações)
