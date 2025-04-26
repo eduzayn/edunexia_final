@@ -142,12 +142,55 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
     message?: string;
   }
 
-  // Consulta para buscar dados do ebook
+  // Consulta para buscar dados do ebook com método direto para evitar problemas de cache
   const { data: rawEbookResponse, isLoading, refetch } = useQuery<any>({
-    queryKey: ['/api/disciplines', disciplineId, 'ebook'],
-    refetchOnWindowFocus: false,
+    queryKey: ['/api/disciplines', disciplineId, 'ebook', Date.now()], // Adiciona timestamp para prevenir cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     staleTime: 0,
-    // Usar o queryFn padrão que já está configurado para lidar com autenticação
+    // gcTime: 0 <- Removido pois não é suportado na versão atual
+    retry: 3,
+    // Função de busca customizada para evitar cache
+    queryFn: async () => {
+      try {
+        // URL com timestamp para evitar cache do navegador
+        const url = `/api/disciplines/${disciplineId}/ebook?t=${Date.now()}`;
+        const token = localStorage.getItem('auth_token');
+        console.log('Buscando e-book diretamente da API com URL:', url);
+        
+        // Requisição com opções anti-cache explícitas
+        const response = await fetch(window.location.origin + url, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error(`Erro HTTP ${response.status} ao buscar e-book`);
+          throw new Error(`Erro ao buscar e-book: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Dados recebidos da API:', data);
+        
+        // Retornar dados tipados para corrigir os erros do LSP
+        if (data && typeof data === 'object') {
+          return {
+            ...data,
+            name: data.name || '',
+            description: data.description || ''
+          };
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Erro ao buscar dados do e-book:', error);
+        throw error;
+      }
+    }
   });
   
   // Processamento da resposta para extrair os dados corretos
@@ -332,57 +375,79 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
     }
   });
   
-  // Mutação para excluir ebook
-  const deleteEbookMutation = useMutation({
-    mutationFn: async () => {
-      try {
-        console.log('Iniciando exclusão do e-book regular para disciplina:', disciplineId);
-        
-        // Usar fetch diretamente para garantir que não há problemas com o wrapper
-        const token = localStorage.getItem('auth_token');
-        const url = `/api/disciplines/${disciplineId}/ebook`;
-        console.log('Enviando solicitação de exclusão para:', url);
-        
-        // Fazer a requisição manualmente
-        const response = await fetch(window.location.origin + url, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+  // Função síncrona para deletar o ebook diretamente 
+  const executeEbookDeletion = async () => {
+    try {
+      setIsManageDialogOpen(false); // Fechar diálogo imediatamente
+      
+      // Mostrar toast de processamento
+      toast({
+        title: 'Processando',
+        description: 'Excluindo e-book...',
+      });
+      
+      console.log('Executando exclusão direta do e-book para disciplina:', disciplineId);
+      
+      // URL completa com parâmetro para evitar cache
+      const fullUrl = `${window.location.origin}/api/disciplines/${disciplineId}/ebook?nocache=${Date.now()}`;
+      
+      // Token de autenticação
+      const token = localStorage.getItem('auth_token');
+      
+      // Executar requisição DELETE diretamente
+      const response = await fetch(fullUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
-        
-        return await response.json();
-      } catch (error) {
-        console.error('Erro na mutação de exclusão do e-book:', error);
-        throw error;
+      });
+      
+      // Verificar resposta
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
-    },
-    onSuccess: (data) => {
-      console.log('Resposta de sucesso na exclusão:', data);
       
-      // Limpar todos os caches relacionados
-      queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId, 'ebook']});
-      queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId]});
-      queryClient.invalidateQueries({queryKey: ['/api/disciplines']});
+      // Processar resposta
+      const result = await response.json();
+      console.log('Resposta da exclusão:', result);
       
+      // Limpar todos os caches relacionados à disciplina
+      queryClient.clear();
+      localStorage.removeItem('ebook_data_' + disciplineId);
+      
+      // Mostrar mensagem de sucesso
       toast({
         title: 'Sucesso',
         description: 'E-book removido com sucesso',
       });
       
-      setIsManageDialogOpen(false);
+      // Recarregar a página completamente para garantir estado limpo
+      console.log('Recarregando página...');
+      setTimeout(() => window.location.reload(), 1000);
       
-      // Forçar uma atualização completa da página após um pequeno delay
-      setTimeout(() => {
-        console.log('Forçando atualização completa da página após exclusão');
-        window.location.reload();
-      }, 1000);
+      return result;
+    } catch (error) {
+      console.error('Erro ao excluir e-book:', error);
+      toast({
+        title: 'Erro',
+        description: `Falha ao remover e-book: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+  
+  // Mutação para excluir ebook (para compatibilidade com a interface, mas usando a função direta)
+  const deleteEbookMutation = useMutation({
+    mutationFn: executeEbookDeletion,
+    onSuccess: (data) => {
+      // A lógica principal já está em executeEbookDeletion
+      console.log('Exclusão realizada com sucesso');
     },
     onError: (error) => {
       console.error('Erro ao excluir e-book:', error);
