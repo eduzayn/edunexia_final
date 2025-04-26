@@ -168,37 +168,69 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
   // Função para converter qualquer URL em uma URL incorporável
   const getEmbedUrlFromLink = (url: string): string => {
     try {
-      // Detecta se o link é do Google Drive
+      console.log("Convertendo URL:", url);
+      
+      // Tratamos URL vazia
+      if (!url || url === "#" || url === "") {
+        console.log("URL vazia ou inválida");
+        return "";
+      }
+      
+      // Detecta se o link é do Google Drive no formato padrão de compartilhamento
       if (url.includes('drive.google.com/file/d/')) {
         // Extrai o ID do arquivo do Google Drive e gera uma URL de visualização
         const fileIdMatch = url.match(/\/d\/([^/]+)/);
         if (fileIdMatch && fileIdMatch[1]) {
-          return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+          const fileId = fileIdMatch[1];
+          console.log("ID do arquivo Google Drive extraído:", fileId);
+          return `https://drive.google.com/file/d/${fileId}/preview`;
         }
       }
       
-      // Detecta links do Google Drive em formato diferente
-      if (url.includes('drive.google.com/open?id=')) {
-        const urlParams = new URL(url).searchParams;
-        const fileId = urlParams.get('id');
-        if (fileId) {
+      // Detecta links do Google Drive com parâmetros (como usp=drive_link ou usp=sharing)
+      if (url.includes('drive.google.com/file/d/') && url.includes('?')) {
+        // Remove os parâmetros e extrai apenas o ID do arquivo
+        const urlWithoutParams = url.split('?')[0];
+        const fileIdMatch = urlWithoutParams.match(/\/d\/([^/]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+          const fileId = fileIdMatch[1];
+          console.log("ID do arquivo Google Drive (com parâmetros) extraído:", fileId);
           return `https://drive.google.com/file/d/${fileId}/preview`;
+        }
+      }
+      
+      // Detecta links do Google Drive em formato diferente (com open?id=)
+      if (url.includes('drive.google.com/open?id=')) {
+        try {
+          const urlParams = new URL(url).searchParams;
+          const fileId = urlParams.get('id');
+          if (fileId) {
+            console.log("ID do arquivo Google Drive (formato open) extraído:", fileId);
+            return `https://drive.google.com/file/d/${fileId}/preview`;
+          }
+        } catch (e) {
+          console.error("Erro ao processar URL do Google Drive (formato open):", e);
         }
       }
       
       // Detecta se o link é do Dropbox
       if (url.includes('dropbox.com/s/')) {
         // Converte links do Dropbox para formato raw
-        return url.replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/').replace('?dl=0', '');
+        const convertedUrl = url.replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/').replace('?dl=0', '');
+        console.log("URL Dropbox convertida:", convertedUrl);
+        return convertedUrl;
       }
       
       // Detecta se o link é de um PDF direto
       if (url.toLowerCase().endsWith('.pdf')) {
         // Usamos o PDF Viewer do Google para PDFs diretos
-        return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+        const convertedUrl = `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+        console.log("URL de PDF direto convertida:", convertedUrl);
+        return convertedUrl;
       }
       
       // Para outros links (incluindo OneDrive e links genéricos)
+      console.log("URL não modificada:", url);
       return url;
     } catch (error) {
       console.error("Erro ao converter URL para embed:", error);
