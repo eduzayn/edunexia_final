@@ -64,41 +64,6 @@ export function DisciplineForm({ initialData, onSubmit, isSubmitting }: Discipli
     try {
       await onSubmit({
         ...values,
-        // Preserva outros campos se estiver em modo de edição
-        ...(isEditMode && {
-          videoAula1Url: initialData?.videoAula1Url,
-          videoAula1Source: initialData?.videoAula1Source,
-          videoAula1StartTime: initialData?.videoAula1StartTime,
-          videoAula2Url: initialData?.videoAula2Url,
-          videoAula2Source: initialData?.videoAula2Source,
-          videoAula2StartTime: initialData?.videoAula2StartTime,
-          videoAula3Url: initialData?.videoAula3Url,
-          videoAula3Source: initialData?.videoAula3Source,
-          videoAula3StartTime: initialData?.videoAula3StartTime,
-          videoAula4Url: initialData?.videoAula4Url,
-          videoAula4Source: initialData?.videoAula4Source,
-          videoAula4StartTime: initialData?.videoAula4StartTime,
-          videoAula5Url: initialData?.videoAula5Url,
-          videoAula5Source: initialData?.videoAula5Source,
-          videoAula5StartTime: initialData?.videoAula5StartTime,
-          videoAula6Url: initialData?.videoAula6Url,
-          videoAula6Source: initialData?.videoAula6Source,
-          videoAula6StartTime: initialData?.videoAula6StartTime,
-          videoAula7Url: initialData?.videoAula7Url,
-          videoAula7Source: initialData?.videoAula7Source,
-          videoAula7StartTime: initialData?.videoAula7StartTime,
-          videoAula8Url: initialData?.videoAula8Url,
-          videoAula8Source: initialData?.videoAula8Source,
-          videoAula8StartTime: initialData?.videoAula8StartTime,
-          videoAula9Url: initialData?.videoAula9Url,
-          videoAula9Source: initialData?.videoAula9Source,
-          videoAula9StartTime: initialData?.videoAula9StartTime,
-          videoAula10Url: initialData?.videoAula10Url,
-          videoAula10Source: initialData?.videoAula10Source,
-          videoAula10StartTime: initialData?.videoAula10StartTime,
-          apostilaUrl: initialData?.apostilaUrl,
-          ebookInterativoUrl: initialData?.ebookInterativoUrl,
-        }),
       });
       
       toast({
