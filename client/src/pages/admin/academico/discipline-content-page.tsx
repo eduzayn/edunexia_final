@@ -120,6 +120,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import VideoFormFields from "@/components/disciplinas/video-form-fields";
 import { VideoSource, detectVideoSource, processVideoUrl } from "@/lib/video-utils";
+import SimpleVideoPlayer from "@/components/video-player/simple-video-player";
 
 // Schema para validação dos formulários
 const videoFormSchema = z.object({
@@ -1704,28 +1705,13 @@ export default function DisciplineContentPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                // Definir o URL e tipo para preview e abrir o modal
-                                console.log('Abrindo visualização do vídeo:', {
-                                  url: video.url,
-                                  source: video.videoSource || 'youtube'
-                                });
+                                // Solução simplificada para garantir funcionamento
+                                const source = video.videoSource || "youtube";
+                                console.log("Abrindo vídeo:", video.url, "Fonte:", source);
                                 
-                                // Usar o detector de fonte se não tiver uma fonte definida
-                                const videoSource = video.videoSource || detectVideoSource(video.url);
-                                console.log('Fonte detectada:', videoSource);
-                                
-                                // Limpar os valores atuais primeiro para garantir nova renderização
-                                setPreviewVideoUrl('');
-                                setPreviewVideoSource('youtube');
-                                
-                                // Aguardar o próximo ciclo de renderização
-                                setTimeout(() => {
-                                  // Atualizar com os valores reais
-                                  setPreviewVideoUrl(video.url);
-                                  setPreviewVideoSource(videoSource as VideoSource);
-                                  // Abrir o modal de visualização depois de definir os estados
-                                  setIsVideoPreviewDialogOpen(true);
-                                }, 50);
+                                setPreviewVideoUrl(video.url);
+                                setPreviewVideoSource(source as VideoSource);
+                                setIsVideoPreviewDialogOpen(true);
                               }}
                             >
                               <PlayIcon className="mr-1 h-4 w-4" />
@@ -3075,19 +3061,20 @@ export default function DisciplineContentPage() {
           <div className="mt-2">
             {previewVideoUrl ? (
               <div className="aspect-video w-full overflow-hidden rounded-md bg-slate-200">
-                <EmbeddedVideoPlayer 
+                {/* Usando o novo SimpleVideoPlayer */}
+                <SimpleVideoPlayer 
                   url={previewVideoUrl} 
                   source={previewVideoSource} 
                   title="Visualização do vídeo" 
                   className="w-full h-full"
-                  key={`video-player-${previewVideoUrl}`} // Forçar nova renderização quando a URL mudar
+                  key={`video-preview-${previewVideoUrl}`} 
                 />
               </div>
             ) : (
               <div className="aspect-video flex items-center justify-center bg-slate-100 rounded-md text-slate-500">
                 <div className="text-center">
                   <VideoIcon className="h-10 w-10 mx-auto mb-2 text-slate-400" />
-                  <p>Erro ao carregar o vídeo</p>
+                  <p>Nenhum vídeo selecionado</p>
                 </div>
               </div>
             )}

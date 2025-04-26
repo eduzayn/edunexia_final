@@ -1,51 +1,48 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { VideoSource, processVideoUrl } from "@/lib/video-utils";
 
-interface EmbeddedVideoPlayerProps {
+interface SimpleVideoPlayerProps {
   url: string;
   title: string;
   source?: VideoSource;
-  poster?: string;
   startTime?: string;
-  onEnded?: () => void;
   className?: string;
 }
 
-const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
+/**
+ * Um player de vídeo simplificado apenas para visualização de conteúdo
+ * através de iframes de serviços de terceiros.
+ */
+export default function SimpleVideoPlayer({
   url,
   title,
   source = 'youtube',
-  poster,
   startTime,
-  onEnded,
   className = '',
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+}: SimpleVideoPlayerProps) {
+  // Se não houver URL, mostrar um esqueleto
+  if (!url) {
+    return (
+      <div className={`aspect-video rounded-lg ${className}`}>
+        <Skeleton className="w-full h-full" />
+      </div>
+    );
+  }
   
-  // Versão super simplificada para garantir funcionamento
   try {
-    // Processar a URL para obter o embed URL correto
-    const videoInfo = processVideoUrl(url, source, startTime);
+    // Processar a URL do vídeo para obter o embed URL
+    const { embedUrl } = processVideoUrl(url, source, startTime);
     
-    if (isLoading) {
-      return (
-        <div className={`aspect-video rounded-lg ${className}`}>
-          <Skeleton className="w-full h-full" />
-        </div>
-      );
-    }
-    
-    // Renderizar o iframe do vídeo
+    // Renderizar o iframe
     return (
       <div className={`aspect-video rounded-lg overflow-hidden ${className}`}>
         <iframe
           width="100%"
           height="100%"
-          src={videoInfo.embedUrl}
+          src={embedUrl}
           title={title}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -54,13 +51,13 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
       </div>
     );
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-    console.error('Erro ao processar vídeo:', errorMessage);
-    
+    // Em caso de erro, mostrar uma mensagem e botão para abrir o link externo
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
         <h3 className="text-red-700 font-medium mb-2">Erro ao carregar vídeo</h3>
-        <p className="text-red-600 text-sm">{errorMessage}</p>
+        <p className="text-red-600 text-sm">
+          Não foi possível processar o vídeo. Tente abrir em uma nova aba.
+        </p>
         <div className="mt-3">
           <Button 
             variant="outline" 
@@ -74,6 +71,4 @@ const EmbeddedVideoPlayer: React.FC<EmbeddedVideoPlayerProps> = ({
       </div>
     );
   }
-};
-
-export default EmbeddedVideoPlayer;
+}
