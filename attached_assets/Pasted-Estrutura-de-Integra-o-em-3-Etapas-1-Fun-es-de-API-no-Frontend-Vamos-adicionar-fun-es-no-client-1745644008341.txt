@@ -1,0 +1,108 @@
+Estrutura de Integração em 3 Etapas
+1️⃣ Funções de API no Frontend
+Vamos adicionar funções no client/src/api/pedagogico.ts, separadas por tipo de conteúdo:
+
+typescript
+Copiar
+Editar
+// 📄 File: client/src/api/pedagogico.ts
+
+import { Video, Ebook, Questao } from "@/types/pedagogico";
+
+export async function getVideos(disciplinaId: string): Promise<Video[]> {
+  const res = await fetch(`/api/disciplinas/${disciplinaId}/videos`);
+  if (!res.ok) throw new Error("Erro ao buscar vídeos");
+  return res.json();
+}
+
+export async function addVideo(disciplinaId: string, video: Partial<Video>) {
+  const res = await fetch(`/api/disciplinas/${disciplinaId}/videos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(video),
+  });
+  if (!res.ok) throw new Error("Erro ao adicionar vídeo");
+  return res.json();
+}
+
+// Você vai ter funções similares para Ebook, Ebook Interativo, Simulado e Avaliação Final.
+2️⃣ Ajuste nos Componentes
+Exemplo para o VideoManager.tsx:
+
+tsx
+Copiar
+Editar
+import { useEffect, useState } from "react";
+import { Video } from "@/types/pedagogico";
+import { getVideos, addVideo } from "@/api/pedagogico";
+import { useParams } from "next/navigation";
+
+export function VideoManager() {
+  const { id: disciplinaId } = useParams(); // pega o ID da disciplina pela rota
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [tituloNovoVideo, setTituloNovoVideo] = useState("");
+
+  useEffect(() => {
+    if (!disciplinaId) return;
+    getVideos(disciplinaId).then(setVideos).catch(console.error);
+  }, [disciplinaId]);
+
+  async function handleAdicionarVideo() {
+    if (!tituloNovoVideo) return;
+    try {
+      const novoVideo = await addVideo(disciplinaId, {
+        titulo: tituloNovoVideo,
+        tipo: "youtube", // ou "vimeo", "upload"
+        url: "https://youtube.com/...", // capturado de um input real
+      });
+      setVideos((prev) => [...prev, novoVideo]);
+      setTituloNovoVideo(""); // limpa o campo
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  return (
+    <section className="bg-white p-4 rounded shadow">
+      <h2 className="text-lg font-semibold mb-4">Vídeo-aulas</h2>
+      <ul className="space-y-2">
+        {videos.map((video) => (
+          <li key={video.id} className="border p-2 rounded">
+            {video.titulo} ({video.tipo})
+          </li>
+        ))}
+      </ul>
+      <div className="flex gap-2 mt-4">
+        <input
+          value={tituloNovoVideo}
+          onChange={(e) => setTituloNovoVideo(e.target.value)}
+          placeholder="Título do novo vídeo"
+          className="border p-2 rounded w-full"
+        />
+        <button onClick={handleAdicionarVideo} className="bg-blue-500 text-white px-4 py-2 rounded">
+          Adicionar
+        </button>
+      </div>
+    </section>
+  );
+}
+3️⃣ Fluxo para os outros componentes
+Você repetirá a lógica:
+
+Para o EbookManager (usando getEbooks, addEbook).
+
+Para o InteractiveEbookManager (idem).
+
+Para o SimuladoManager (cadastrando perguntas).
+
+Para o AvaliacaoFinalManager (cadastrando questões finais).
+
+Sempre usando os mesmos princípios:
+
+fetch para buscar.
+
+POST para adicionar.
+
+PUT para editar.
+
+DELETE para remover.

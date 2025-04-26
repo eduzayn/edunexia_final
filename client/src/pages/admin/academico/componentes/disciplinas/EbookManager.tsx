@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Ebook, EbookUploadType } from "@/types/pedagogico";
 
 const ebookFormSchema = z.object({
   uploadType: z.enum(["link", "upload"]),
@@ -54,20 +55,10 @@ const ebookFormSchema = z.object({
 
 type EbookFormValues = z.infer<typeof ebookFormSchema>;
 
-interface EbookType {
-  id?: number;
-  disciplineId?: number;
-  title: string;
-  description?: string;
-  url: string;
-  fileType?: string;
-  uploadType: "link" | "upload";
-}
-
 export function EbookManager({ disciplineId }: { disciplineId: number | string }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedEbook, setSelectedEbook] = useState<EbookType | null>(null);
+  const [selectedEbook, setSelectedEbook] = useState<Ebook | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
@@ -152,10 +143,10 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
   });
 
   // Para edição, atualiza o formulário com os dados do e-book selecionado
-  const handleEditEbook = (ebookData: EbookType | Record<string, any>) => {
-    setSelectedEbook(ebookData as EbookType);
+  const handleEditEbook = (ebookData: Ebook | Record<string, any>) => {
+    setSelectedEbook(ebookData as Ebook);
     form.reset({
-      uploadType: ebookData?.uploadType || "link",
+      uploadType: ebookData?.uploadType as EbookUploadType || "link",
       url: ebookData?.url || "",
       title: ebookData?.title || "",
       description: ebookData?.description || "",

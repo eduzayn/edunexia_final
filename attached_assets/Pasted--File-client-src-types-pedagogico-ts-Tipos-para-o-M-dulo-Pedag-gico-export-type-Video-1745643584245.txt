@@ -1,0 +1,92 @@
+// 📄 File: client/src/types/pedagogico.ts
+
+// Tipos para o Módulo Pedagógico
+
+export type VideoType = 'youtube' | 'vimeo' | 'upload';
+
+export interface Video {
+  id: string;
+  disciplinaId: string;
+  titulo: string;
+  tipo: VideoType;
+  url: string; // Pode ser link externo ou caminho do arquivo
+  duracaoSegundos?: number;
+}
+
+export type EbookType = 'arquivo' | 'link';
+
+export interface Ebook {
+  id: string;
+  disciplinaId: string;
+  titulo: string;
+  tipo: EbookType;
+  url: string;
+}
+
+export interface Questao {
+  id: string;
+  pergunta: string;
+  alternativas: string[];
+  respostaCorreta: number; // índice da alternativa correta
+}
+
+export interface Simulado {
+  id: string;
+  disciplinaId: string;
+  questoes: Questao[];
+}
+
+export interface AvaliacaoFinal {
+  id: string;
+  disciplinaId: string;
+  questoes: Questao[];
+}
+
+export interface DisciplinaCompleta {
+  id: string;
+  nome: string;
+  descricao: string;
+  videos: Video[];
+  ebook?: Ebook;
+  ebookInterativo?: Ebook;
+  simulado?: Simulado;
+  avaliacaoFinal?: AvaliacaoFinal;
+}
+
+// ===============================
+
+// 📄 File: client/src/components/disciplinas/VideoManager.tsx
+
+import { useEffect, useState } from "react";
+import { Video } from "@/types/pedagogico";
+
+export function VideoManager() {
+  const [videos, setVideos] = useState<Video[]>([]);
+
+  useEffect(() => {
+    async function fetchVideos() {
+      try {
+        const res = await fetch(`/api/disciplinas/videos`);
+        const data = await res.json();
+        setVideos(data);
+      } catch (error) {
+        console.error("Erro ao buscar vídeos", error);
+      }
+    }
+
+    fetchVideos();
+  }, []);
+
+  return (
+    <section className="bg-white p-4 rounded shadow">
+      <h2 className="text-lg font-semibold mb-4">Vídeo-aulas</h2>
+      <ul className="space-y-2">
+        {videos.map((video) => (
+          <li key={video.id} className="border p-2 rounded">
+            {video.titulo} ({video.tipo})
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
