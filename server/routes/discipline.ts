@@ -449,22 +449,20 @@ router.delete('/api/disciplines/:id/ebook', async (req, res) => {
       return res.status(400).json({ success: false, error: 'ID de disciplina inválido' });
     }
     
-    console.log('Excluindo e-book para disciplina:', disciplineId);
+    console.log('Excluindo e-book regular para disciplina:', disciplineId);
     
-    // Abordagem simplificada: apenas limpe ambos os campos relevantes
-    // Isso garante que a operação sempre funcionará, mesmo que não tenhamos
-    // certeza de qual campo está sendo usado para armazenar o e-book
+    // Modificação: Agora só limpa o campo apostilaPdfUrl (e-book regular)
+    // preservando o campo ebookInterativoUrl
     await db.update(disciplines)
       .set({
-        apostilaPdfUrl: null,         // Limpar campo de e-book regular
-        ebookInterativoUrl: null,     // Limpar campo de e-book interativo
+        apostilaPdfUrl: null,         // Limpar apenas o campo de e-book regular
         updatedAt: new Date()         // Atualizar timestamp
       })
       .where(eq(disciplines.id, disciplineId));
     
-    console.log('E-book excluído com sucesso para disciplina:', disciplineId);
+    console.log('E-book regular excluído com sucesso para disciplina:', disciplineId);
     
-    // Sempre retornar sucesso, mesmo se não houver e-book para excluir
+    // Sempre retornar sucesso
     res.status(200).json({ 
       success: true, 
       message: 'E-book removido com sucesso'
