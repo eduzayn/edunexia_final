@@ -109,10 +109,14 @@ function getGoogleDriveEmbedUrl(url: string): string | null {
 }
 
 // Função para detectar o tipo de URL
-function detectUrlType(url: string | undefined): 'google-drive' | 'pdf' | 'unknown' {
+function detectUrlType(url: string | undefined): 'google-drive' | 'google-drive-folder' | 'pdf' | 'unknown' {
   if (!url) return 'unknown';
   
   if (isGoogleDriveUrl(url)) {
+    // Verificar se é um link para pasta no Drive
+    if (url.includes('/drive/folders/')) {
+      return 'google-drive-folder';
+    }
     return 'google-drive';
   } else if (url.endsWith('.pdf') || url.includes('/uploads/')) {
     return 'pdf';
@@ -248,6 +252,10 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
         const convertedUrl = convertGoogleDriveUrl(ebookData.interactiveEbookUrl);
         console.log('URL convertida para o Google Drive:', convertedUrl);
         setViewerUrl(convertedUrl);
+      } else if (urlType === 'google-drive-folder') {
+        // Para pastas do Google Drive, vamos manter a URL original para exibição no iframe
+        console.log('URL de pasta do Google Drive detectada, usando URL original');
+        setViewerUrl(null); // Não definimos viewerUrl porque vamos usar a URL diretamente no iframe
       } else {
         console.log('Usando URL original para visualização');
         setViewerUrl(ebookData.interactiveEbookUrl);
@@ -505,6 +513,15 @@ export default function InteractiveEbookContentSection({ disciplineId }: Interac
                     className="w-full h-full border-0"
                     allow="autoplay"
                     title="Visualizador de E-book Interativo"
+                    loading="lazy"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                  ></iframe>
+                ) : urlType === 'google-drive-folder' && ebookData?.interactiveEbookUrl ? (
+                  <iframe 
+                    src={ebookData.interactiveEbookUrl}
+                    className="w-full h-full border-0"
+                    allow="autoplay"
+                    title="Visualizador de Pasta do Google Drive"
                     loading="lazy"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
                   ></iframe>
