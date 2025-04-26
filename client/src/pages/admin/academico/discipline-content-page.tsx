@@ -11,13 +11,13 @@ import {
   apiRequest, 
   fetchDiscipline, 
   fetchDisciplineVideos, 
-  fetchDisciplineMaterial, 
+  // fetchDisciplineMaterial (removed), 
   fetchDisciplineEbook 
 } from "@/lib/queryClient";
 import { 
   buildDisciplineApiUrl, 
   buildDisciplineVideosApiUrl, 
-  buildDisciplineMaterialApiUrl, 
+  // buildDisciplineMaterialApiUrl (removed), 
   buildDisciplineEbookApiUrl, 
   buildDisciplineQuestionsApiUrl, 
   buildDisciplineAssessmentsApiUrl, 
@@ -1494,16 +1494,16 @@ export default function DisciplineContentPage() {
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative aspect-video bg-gray-200">
-                            {(video.videoSource || video.source) ? (
+                            {video.videoSource ? (
                               <VideoThumbnail
                                 url={video.url}
                                 title={video.title}
-                                source={(video.videoSource || video.source) as VideoSource}
+                                source={video.videoSource as VideoSource}
                                 className="w-full h-full"
                                 onClick={() => {
                                   // Quando clica na miniatura, abre o vídeo em tela cheia
                                   setPreviewVideoUrl(video.url);
-                                  setPreviewVideoSource((video.videoSource || video.source) as VideoSource);
+                                  setPreviewVideoSource(video.videoSource as VideoSource);
                                   setIsVideoPreviewDialogOpen(true);
                                 }}
                               />
