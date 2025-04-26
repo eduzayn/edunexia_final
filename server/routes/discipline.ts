@@ -248,6 +248,86 @@ router.post('/api/disciplines/:id/videos', async (req, res) => {
 });
 
 /**
+ * Rota para excluir um vídeo específico de uma disciplina
+ */
+router.delete('/api/disciplines/:id/videos/:videoId', async (req, res) => {
+  try {
+    // Extrair e validar parâmetros
+    const { id, videoId } = req.params;
+    const disciplineId = validateDisciplineId(id);
+    const videoIdNum = parseInt(videoId, 10);
+    
+    if (!disciplineId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de disciplina inválido' 
+      });
+    }
+    
+    if (isNaN(videoIdNum) || videoIdNum < 1 || videoIdNum > 10) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'ID de vídeo inválido. Deve ser um número entre 1 e 10.' 
+      });
+    }
+    
+    // Buscar a disciplina para verificar se ela existe
+    const discipline = await getDisciplineById(disciplineId);
+    if (!discipline) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Disciplina não encontrada' 
+      });
+    }
+    
+    // Construir as chaves para os campos que precisam ser limpos
+    const urlKey = `videoAula${videoIdNum}Url`;
+    const sourceKey = `videoAula${videoIdNum}Source`;
+    const startTimeKey = `videoAula${videoIdNum}StartTime`;
+    
+    // Verificar se o vídeo existe
+    const videoUrl = discipline[urlKey as keyof typeof discipline];
+    if (!videoUrl) {
+      return res.status(404).json({ 
+        success: false, 
+        error: `Vídeo ${videoIdNum} não encontrado na disciplina` 
+      });
+    }
+    
+    // Atualizar a disciplina, limpando os campos do vídeo
+    const [updatedDiscipline] = await db.update(disciplines)
+      .set({ 
+        [urlKey]: null,
+        [sourceKey]: null,
+        [startTimeKey]: null,
+        updatedAt: new Date()
+      })
+      .where(eq(disciplines.id, disciplineId))
+      .returning();
+    
+    if (!updatedDiscipline) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro ao atualizar disciplina' 
+      });
+    }
+    
+    // Retornar sucesso
+    return res.status(200).json({ 
+      success: true, 
+      message: `Vídeo ${videoIdNum} excluído com sucesso`
+    });
+    
+  } catch (error) {
+    console.error('Erro ao excluir vídeo:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno do servidor ao excluir vídeo'
+    });
+  }
+});
+
+/**
  * Rota para obter material de uma disciplina
  */
 router.get('/api/disciplines/:id/material', async (req, res) => {
