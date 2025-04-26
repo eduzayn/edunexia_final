@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -42,10 +42,12 @@ import {
   ExternalLink,
   Trash2,
   Edit,
+  Eye,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Ebook, EbookUploadType } from "@/types/pedagogico";
+import { getEmbedUrl, detectUrlType } from "@/utils/url-converter";
 
 const ebookFormSchema = z.object({
   uploadType: z.enum(["link", "upload"]),
@@ -350,7 +352,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
               </div>
               
               <iframe 
-                src={getEmbedUrlFromLink(ebook.url || "")}
+                src={getEmbedUrl(ebook.url || "")}
                 className="w-full min-h-[600px] border-0 rounded"
                 allowFullScreen
                 title={ebook.title || "E-book da disciplina"}
