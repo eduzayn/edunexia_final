@@ -295,28 +295,36 @@ function Router() {
       <ProtectedRoute path="/admin/dashboard" portalType="admin" />
       {/* Novas rotas do módulo de disciplinas reconstruído em inglês */}
       <Route path="/admin/academico/disciplines">
-        {() => user?.portalType === "admin" 
-          ? React.lazy(() => import("@/pages/admin/academico/disciplines")) 
-          : <Redirect to="/admin" />
-        }
+        {() => {
+          const DisciplinesPage = React.lazy(() => import("@/pages/admin/academico/disciplines"));
+          return user?.portalType === "admin" 
+            ? <DisciplinesPage /> 
+            : <Redirect to="/admin" />;
+        }}
       </Route>
       <Route path="/admin/academico/disciplines/new">
-        {() => user?.portalType === "admin" 
-          ? React.lazy(() => import("@/pages/admin/academico/disciplines/new")) 
-          : <Redirect to="/admin" />
-        }
+        {() => {
+          const NewDisciplinePage = React.lazy(() => import("@/pages/admin/academico/disciplines/new"));
+          return user?.portalType === "admin" 
+            ? <NewDisciplinePage /> 
+            : <Redirect to="/admin" />;
+        }}
       </Route>
       <Route path="/admin/academico/disciplines/:id/edit">
-        {() => user?.portalType === "admin" 
-          ? React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/edit")) 
-          : <Redirect to="/admin" />
-        }
+        {(params) => {
+          const EditDisciplinePage = React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/edit"));
+          return user?.portalType === "admin" 
+            ? <EditDisciplinePage /> 
+            : <Redirect to="/admin" />;
+        }}
       </Route>
       <Route path="/admin/academico/disciplines/:id/content">
-        {() => user?.portalType === "admin" 
-          ? React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/content")) 
-          : <Redirect to="/admin" />
-        }
+        {(params) => {
+          const ContentPage = React.lazy(() => import("@/pages/admin/academico/disciplines/[id]/content"));
+          return user?.portalType === "admin" 
+            ? <ContentPage /> 
+            : <Redirect to="/admin" />;
+        }}
       </Route>
       
       {/* Redirecionamentos das rotas antigas em português */}
@@ -327,8 +335,7 @@ function Router() {
         }}
       </Route>
       <Route path="/admin/academico/disciplinas/:id/content">
-        {() => {
-          const [, params] = useRoute("/admin/academico/disciplinas/:id/content");
+        {(params) => {
           console.log(`Redirecionando de /admin/academico/disciplinas/${params?.id}/content para disciplines`);
           return <Redirect to={`/admin/academico/disciplines/${params?.id}/content`} />;
         }}
