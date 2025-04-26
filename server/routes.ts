@@ -20,6 +20,7 @@ import studentChargesRoutes from './routes/student-charges-routes';
 import contractRoutes from './routes/contract-routes';
 import contractApiJsonRoutes from './routes/contracts-api-json';
 import enrollmentIntegrationRoutes from './routes/enrollment-integration-routes';
+import disciplinasRoutes from './routes/disciplinas-routes';
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
@@ -66,7 +67,6 @@ import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
 import disciplineRoutes from './routes/discipline-routes'; // Rotas com restrições de permissão
-import disciplinasRoutes from './routes/disciplinas-routes'; // Nova implementação direta para o frontend
 // Rota antiga de disciplinas removida
 
 // Armazenamento de sessão simplificado (em memória)
