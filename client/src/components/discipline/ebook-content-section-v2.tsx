@@ -335,10 +335,27 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
   // Mutação para excluir ebook
   const deleteEbookMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('DELETE', `/api/disciplines/${disciplineId}/ebook`);
-      return response.json();
+      try {
+        console.log('Iniciando exclusão do e-book regular para disciplina:', disciplineId);
+        
+        // Importar dinamicamente o helper da API que tem tratamento de erro mais robusto
+        const { safeApiRequest } = await import('@/lib/api-helpers');
+        
+        // URL do endpoint
+        const url = `/api/disciplines/${disciplineId}/ebook`;
+        console.log('Enviando solicitação de exclusão para:', url);
+        
+        // Usar o safeApiRequest que tem melhor tratamento de erros
+        return await safeApiRequest(url, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        console.error('Erro na mutação de exclusão do e-book:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Resposta de sucesso na exclusão:', data);
       queryClient.invalidateQueries({
         queryKey: ['/api/disciplines', disciplineId, 'ebook']
       });
@@ -351,10 +368,13 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
       // Refetch para atualizar os dados
       setTimeout(() => {
         console.log('Recarregando dados do e-book após exclusão bem-sucedida');
+        // Forçar uma invalidação mais agressiva do cache
+        queryClient.removeQueries({queryKey: ['/api/disciplines', disciplineId, 'ebook']});
         refetch();
       }, 500);
     },
     onError: (error) => {
+      console.error('Erro ao excluir e-book:', error);
       toast({
         title: 'Erro',
         description: `Falha ao remover e-book: ${error.message}`,
@@ -773,8 +793,19 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteEbookMutation.mutate()}>
-                          Excluir
+                        <AlertDialogAction 
+                          onClick={() => deleteEbookMutation.mutate()}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          disabled={deleteEbookMutation.isPending}
+                        >
+                          {deleteEbookMutation.isPending ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Excluindo...</span>
+                            </div>
+                          ) : (
+                            <span>Excluir</span>
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
