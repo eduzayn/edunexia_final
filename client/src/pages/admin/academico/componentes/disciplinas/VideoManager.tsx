@@ -31,6 +31,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getVideos, addVideo, updateVideo, deleteVideo } from "@/api/pedagogico";
 import {
   FileVideo,
   Upload,
@@ -78,18 +79,20 @@ export function VideoManager({ disciplineId }: { disciplineId: number | string }
     refetch: refetchVideos,
   } = useQuery<Video[]>({
     queryKey: [buildDisciplineVideosApiUrl(disciplineId)],
+    queryFn: () => getVideos(disciplineId),
     enabled: !!disciplineId,
   });
 
   // Mutation para adicionar/atualizar vídeo
   const videoMutation = useMutation({
     mutationFn: (data: VideoFormValues) => {
-      // Se já existe um vídeo selecionado, faz update, senão cria
-      const method = selectedVideo && selectedVideo.id ? "PUT" : "POST";
-      const url = selectedVideo && selectedVideo.id
-        ? `${buildDisciplineVideosApiUrl(disciplineId)}/${selectedVideo.id}`
-        : buildDisciplineVideosApiUrl(disciplineId);
-      return apiRequest(method, url, data);
+      if (selectedVideo && selectedVideo.id) {
+        // Atualizar vídeo existente
+        return updateVideo(disciplineId, selectedVideo.id, data);
+      } else {
+        // Adicionar novo vídeo
+        return addVideo(disciplineId, data as Video);
+      }
     },
     onSuccess: () => {
       const isUpdate = !!(selectedVideo && selectedVideo.id);
@@ -117,7 +120,7 @@ export function VideoManager({ disciplineId }: { disciplineId: number | string }
   // Mutation para excluir vídeo
   const deleteVideoMutation = useMutation({
     mutationFn: (videoId: number | string) => {
-      return apiRequest("DELETE", `${buildDisciplineVideosApiUrl(disciplineId)}/${videoId}`);
+      return deleteVideo(disciplineId, videoId);
     },
     onSuccess: () => {
       toast({
