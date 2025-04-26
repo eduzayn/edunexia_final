@@ -220,6 +220,46 @@ export function getOneDriveEmbedUrl(url: string): string {
  * Função principal para processar uma URL de vídeo
  * Detecta automaticamente o tipo, extrai o ID e gera URL de embed
  */
+/**
+ * Obtém a URL da miniatura (thumbnail) do vídeo
+ */
+export function getVideoThumbnailUrl(url: string, source?: VideoSource): string | undefined {
+  try {
+    const detectedSource = source || detectVideoSource(url);
+    
+    switch (detectedSource) {
+      case 'youtube':
+        const videoId = extractYouTubeVideoId(url);
+        if (videoId) {
+          // YouTube oferece várias opções de resolução: default, hqdefault, mqdefault, sddefault, maxresdefault
+          return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+        }
+        break;
+        
+      case 'vimeo':
+        // Vimeo não permite acesso direto às miniaturas sem API
+        // Esta é uma solução limitada que precisa ser melhorada com API
+        const vimeoId = extractVimeoVideoId(url);
+        if (vimeoId) {
+          // Placeholder para futuro uso da API do Vimeo
+          return undefined;
+        }
+        break;
+        
+      case 'google_drive':
+      case 'onedrive':
+      case 'upload':
+        // Plataformas sem suporte direto a miniaturas públicas
+        return undefined;
+    }
+    
+    return undefined;
+  } catch (error) {
+    console.error('Erro ao obter miniatura do vídeo:', error);
+    return undefined;
+  }
+}
+
 export function processVideoUrl(url: string, source?: VideoSource, startTime?: string): VideoInfo {
   // Se não for fornecida, detectar a fonte automaticamente
   const detectedSource = source || detectVideoSource(url);

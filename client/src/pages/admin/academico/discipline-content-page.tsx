@@ -24,6 +24,7 @@ import {
   buildApiUrl 
 } from "@/lib/api-config";
 import EmbeddedVideoPlayer from "@/components/video-player/embedded-video-player";
+import VideoThumbnail from "@/components/video-player/video-thumbnail";
 import { Discipline, videoSourceEnum, contentCompletionStatusEnum } from "@shared/schema";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
