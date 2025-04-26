@@ -141,14 +141,19 @@ export function SimuladoManager({ disciplineId }: { disciplineId: number | strin
 
   // Atualiza o formulário quando os dados do simulado são carregados
   // useState substitua por useEffect
+  // Atualiza o formulário e o estado de questões quando o simulado é carregado
   useEffect(() => {
     if (simulado) {
       form.reset({
-        title: simulado.title,
+        title: simulado.title || "Simulado da Disciplina",
         description: simulado.description || "",
         timeLimit: simulado.timeLimit || 30,
         questions: simulado.questions || [],
       });
+      
+      if (simulado.questions && simulado.questions.length > 0) {
+        setCurrentQuestions(simulado.questions);
+      }
     }
   }, [simulado, form]);
 
