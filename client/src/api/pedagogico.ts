@@ -42,75 +42,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return response.json();
 }
 
-// ===== VÍDEOS =====
-
-/**
- * Busca todos os vídeos de uma disciplina
- */
-export async function getVideos(disciplineId: string | number): Promise<Video[]> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/videos`);
-}
-
-/**
- * Adiciona um novo vídeo à disciplina
- */
-export async function addVideo(disciplineId: string | number, video: Omit<Video, 'id'>): Promise<Video> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/videos`, {
-    method: 'POST',
-    body: JSON.stringify(video),
-  });
-}
-
-/**
- * Atualiza um vídeo existente
- */
-export async function updateVideo(disciplineId: string | number, videoId: string | number, video: Partial<Video>): Promise<Video> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
-    method: 'PUT',
-    body: JSON.stringify(video),
-  });
-}
-
-/**
- * Remove um vídeo da disciplina com tratamento especial para evitar erros de parsing HTML
- */
-export async function deleteVideo(disciplineId: string | number, videoId: string | number): Promise<void> {
-  try {
-    return await fetchWithAuth(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
-      method: 'DELETE',
-    });
-  } catch (error) {
-    // Se o erro for relacionado a resposta não-JSON, tente uma abordagem alternativa
-    if (error instanceof Error && error.message.includes("Resposta não é JSON")) {
-      console.warn("Tentando método alternativo para exclusão de vídeo");
-      
-      // Fazemos uma requisição manual e verificamos apenas o status de resposta
-      const token = localStorage.getItem('token');
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const response = await fetch(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
-        method: 'DELETE',
-        headers
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao excluir vídeo: ${response.status}`);
-      }
-      
-      // Se chegou até aqui, consideramos sucesso mesmo sem resposta JSON
-      return;
-    }
-    
-    // Se não for erro de JSON, propaga o erro original
-    throw error;
-  }
-}
+// Os endpoints de vídeos foram removidos como parte da limpeza de recursos de vídeo
 
 // ===== E-BOOKS =====
 

@@ -1,13 +1,5 @@
 // Tipos para módulo de disciplinas
-export type VideoSource = "youtube" | "vimeo" | "onedrive" | "google_drive" | "upload";
-
-export const videoSourceLabels: Record<VideoSource, string> = {
-  youtube: "YouTube",
-  vimeo: "Vimeo",
-  onedrive: "OneDrive",
-  google_drive: "Google Drive",
-  upload: "Upload Direto"
-};
+// As definições de VideoSource foram removidas como parte da limpeza de recursos de vídeo;
 
 export type DisciplineFormData = {
   code: string;
