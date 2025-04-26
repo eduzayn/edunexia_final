@@ -2757,6 +2757,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(contractApiJsonRoutes); // Novas rotas JSON para contratos educacionais
   app.use('/api/enrollment-integration', enrollmentIntegrationRoutes); // Rotas para integração de matrículas
   
+  // Rotas para gerenciamento de disciplinas
+  app.get('/api/disciplinas', requireAuth, async (req, res) => {
+    try {
+      const { listarDisciplinas } = await import('./api/disciplinas');
+      return await listarDisciplinas(req, res);
+    } catch (error) {
+      console.error('Erro ao listar disciplinas:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar disciplinas',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api/disciplinas', requireAuth, async (req, res) => {
+    try {
+      const { criarDisciplina } = await import('./api/disciplinas');
+      return await criarDisciplina(req, res);
+    } catch (error) {
+      console.error('Erro ao criar disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao criar disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
   // Rota para buscar avaliações do aluno
   app.get('/api-json/student/assessments', requireStudent, async (req, res) => {
     try {
