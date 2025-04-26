@@ -164,6 +164,48 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
       deleteEbookMutation.mutate();
     }
   };
+  
+  // Função para converter qualquer URL em uma URL incorporável
+  const getEmbedUrlFromLink = (url: string): string => {
+    try {
+      // Detecta se o link é do Google Drive
+      if (url.includes('drive.google.com/file/d/')) {
+        // Extrai o ID do arquivo do Google Drive e gera uma URL de visualização
+        const fileIdMatch = url.match(/\/d\/([^/]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+          return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+        }
+      }
+      
+      // Detecta links do Google Drive em formato diferente
+      if (url.includes('drive.google.com/open?id=')) {
+        const urlParams = new URL(url).searchParams;
+        const fileId = urlParams.get('id');
+        if (fileId) {
+          return `https://drive.google.com/file/d/${fileId}/preview`;
+        }
+      }
+      
+      // Detecta se o link é do Dropbox
+      if (url.includes('dropbox.com/s/')) {
+        // Converte links do Dropbox para formato raw
+        return url.replace('www.dropbox.com/s/', 'dl.dropboxusercontent.com/s/').replace('?dl=0', '');
+      }
+      
+      // Detecta se o link é de um PDF direto
+      if (url.toLowerCase().endsWith('.pdf')) {
+        // Usamos o PDF Viewer do Google para PDFs diretos
+        return `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+      }
+      
+      // Para outros links (incluindo OneDrive e links genéricos)
+      return url;
+    } catch (error) {
+      console.error("Erro ao converter URL para embed:", error);
+      // Em caso de erro, retorna a URL original
+      return url;
+    }
+  };
 
   // Simulação de upload de arquivo
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,7 +278,7 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
           </div>
           
           <div className="border rounded-md p-4 bg-gray-50">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-4">
               <div className="flex items-center">
                 <FileText className="h-5 w-5 text-blue-500 mr-2" />
                 <span className="text-sm font-medium">
@@ -246,18 +288,18 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
               
               <div className="flex gap-2">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
                   asChild
                 >
                   <a href={ebook.url || "#"} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-1" />
-                    Abrir
+                    Abrir em nova aba
                   </a>
                 </Button>
                 
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
                   asChild
                 >
@@ -267,6 +309,20 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                   </a>
                 </Button>
               </div>
+            </div>
+            
+            {/* Visualizador incorporado para mostrar o PDF dentro da aplicação */}
+            <div className="border rounded p-4 bg-white">
+              <div className="text-center text-sm text-gray-500 mb-2">
+                Visualização integrada do conteúdo:
+              </div>
+              
+              <iframe 
+                src={getEmbedUrlFromLink(ebook.url || "")}
+                className="w-full min-h-[600px] border-0 rounded"
+                allowFullScreen
+                title={ebook.title || "E-book da disciplina"}
+              />
             </div>
           </div>
         </div>
@@ -418,6 +474,9 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                           value={field.value || ""}
                         />
                       </FormControl>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Suporta links do Google Drive, Dropbox, OneDrive e links diretos de PDF
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
