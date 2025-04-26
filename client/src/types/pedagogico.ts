@@ -41,10 +41,6 @@ export interface InteractiveEbook {
   url?: string;
   embedCode?: string;
   available?: boolean; // Indica se o e-book interativo está disponível
-  
-  // Campos adicionais que podem vir da API para compatibilidade
-  name?: string;            // Campo equivalente a 'title' no backend
-  interactiveEbookUrl?: string;  // Campo equivalente a 'url' no backend
 }
 
 // Tipos para questões (utilizadas em simulados e avaliações)

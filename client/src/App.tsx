@@ -19,9 +19,8 @@ import DisciplinesPage from "@/pages/admin/academico/disciplines-page";
 import CoursesPage from "@/pages/admin/academico/courses-page";
 import CourseFormPage from "@/pages/admin/academico/course-form-page";
 import DisciplineContentPage from "@/pages/admin/academico/discipline-content-page";
-// Páginas antigas removidas durante a refatoração do módulo pedagógico
-// import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content";
-// import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas";
+import DisciplinaContentPage from "@/pages/admin/academico/disciplinas/[id]/content";
+import { default as DisciplinasPage } from "@/pages/admin/academico/disciplinas";
 import InstitutionsPage from "@/pages/admin/institucional/institutions-page";
 // import UsersPage from "@/pages/admin/users-page";
 import PolosPage from "@/pages/admin/institucional/polos-page";
@@ -300,12 +299,12 @@ function Router() {
       <Route path="/admin/academico/disciplines/:id/content">
         {() => user?.portalType === "admin" ? <DisciplineContentPage /> : <Redirect to="/admin" />}
       </Route>
-      {/* Redirecionar antigas rotas do módulo pedagógico para as novas após a refatoração */}
+      {/* Novas rotas para o módulo pedagógico refatorado */}
       <Route path="/admin/academico/disciplinas">
-        {() => user?.portalType === "admin" ? <Redirect to="/admin/academico/disciplines" /> : <Redirect to="/admin" />}
+        {() => user?.portalType === "admin" ? <DisciplinasPage /> : <Redirect to="/admin" />}
       </Route>
       <Route path="/admin/academico/disciplinas/:id/content">
-        {() => user?.portalType === "admin" ? <Redirect to="/admin/academico/disciplines" /> : <Redirect to="/admin" />}
+        {() => user?.portalType === "admin" ? <DisciplinaContentPage /> : <Redirect to="/admin" />}
       </Route>
       <Route path="/admin/disciplines">
         {() => <Redirect to="/admin/academico/disciplines" />}
