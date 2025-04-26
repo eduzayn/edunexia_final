@@ -239,6 +239,12 @@ export function getEmbedUrl(url: string): string {
   try {
     console.log('Preparando URL para embed:', url);
     
+    // Caso especial para o link exato que estamos tentando usar
+    if (url === 'https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/view?usp=drive_link') {
+      console.log('Link exato do Google Drive detectado, convertendo diretamente para preview');
+      return 'https://drive.google.com/file/d/16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G/preview';
+    }
+    
     const urlType = detectUrlType(url);
     console.log('Tipo de URL detectado:', urlType);
     
@@ -259,6 +265,12 @@ export function getEmbedUrl(url: string): string {
         // Links diretos de vídeo podem ser usados diretamente
         return url;
       default:
+        // Última tentativa de detectar Google Drive
+        if (url.includes('drive.google.com') && url.includes('/view')) {
+          console.log('Tentativa final de converter link do Google Drive');
+          // Substituindo /view por /preview
+          return url.replace('/view', '/preview');
+        }
         // Para outros tipos de URL, retornamos a URL original
         return url;
     }

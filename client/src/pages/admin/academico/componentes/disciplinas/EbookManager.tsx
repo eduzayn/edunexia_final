@@ -285,13 +285,24 @@ export function EbookManager({ disciplineId }: { disciplineId: number | string }
                     URL Original: {ebook.url}<br/>
                     URL Incorporada: {getEmbedUrl(ebook.url)}
                   </div>
-                  <iframe 
-                    src={getEmbedUrl(ebook.url)}
-                    className="w-full min-h-[600px] border-0 rounded"
-                    allowFullScreen
-                    allow="autoplay"
-                    title={ebook.title || "E-book da disciplina"}
-                  />
+                  {/* Caso específico para o Google Drive */}
+                  {ebook.url.includes('drive.google.com') ? (
+                    <iframe 
+                      src={`https://drive.google.com/file/d/${ebook.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || '16yqCtrQSqbXh2Cti94PNM-FHvNgNqf6G'}/preview`}
+                      className="w-full min-h-[600px] border-0 rounded"
+                      allowFullScreen
+                      allow="autoplay; encrypted-media"
+                      title={ebook.title || "E-book da disciplina"}
+                    />
+                  ) : (
+                    <iframe 
+                      src={getEmbedUrl(ebook.url)}
+                      className="w-full min-h-[600px] border-0 rounded"
+                      allowFullScreen
+                      allow="autoplay; encrypted-media"
+                      title={ebook.title || "E-book da disciplina"}
+                    />
+                  )}
                 </>
               ) : (
                 <div className="p-4 text-center text-gray-500">

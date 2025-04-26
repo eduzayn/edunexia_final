@@ -291,6 +291,14 @@ export function InteractiveEbookManager({ disciplineId }: { disciplineId: number
                     >
                       Seu navegador não suporta a reprodução de vídeos.
                     </video>
+                  ) : ebookObj.url?.includes('drive.google.com') ? (
+                    <iframe 
+                      src={`https://drive.google.com/file/d/${ebookObj.url.match(/\/d\/([^/]+)\/|id=([^&]+)&?/)?.[1] || ''}/preview`}
+                      className="w-full min-h-[500px] border-0 rounded"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title={ebookObj.title || "Conteúdo interativo"}
+                    />
                   ) : (
                     <iframe 
                       src={getEmbedUrl(ebookObj.url || "")}
