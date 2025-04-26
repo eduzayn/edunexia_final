@@ -20,6 +20,14 @@ export async function createDiscipline(data: DisciplineFormData): Promise<Discip
     method: "POST",
     data
   });
+  
+  // Log para debug
+  console.log("Resposta da criação de disciplina:", response);
+  
+  if (!response.data) {
+    throw new Error("Erro ao criar disciplina: Resposta sem dados");
+  }
+  
   return response.data;
 }
 

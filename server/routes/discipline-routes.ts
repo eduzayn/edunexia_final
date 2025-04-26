@@ -27,4 +27,23 @@ router.delete('/disciplines/:id',
   deleteDiscipline
 );
 
+// Também adicionar as rotas sem o prefixo 'admin' para compatibilidade
+router.post('/admin/disciplines', 
+  requireAuth,
+  hasPermission('discipline:create'),
+  createDiscipline
+);
+
+router.put('/admin/disciplines/:id', 
+  requireAuth,
+  hasPermission('discipline:update'),
+  updateDiscipline
+);
+
+router.delete('/admin/disciplines/:id',
+  requireAuth,
+  hasPermission('discipline:delete'),
+  deleteDiscipline
+);
+
 export default router;

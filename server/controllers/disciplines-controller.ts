@@ -10,7 +10,7 @@ import { generateDisciplineCode, isDisciplineCodeInUse } from './discipline-code
  */
 export async function createDiscipline(req: Request, res: Response) {
   try {
-    const { name, description, workload, syllabus } = req.body;
+    const { code, name, description, workload, syllabus } = req.body;
     
     // Validações básicas
     if (!name || !description || !workload || !syllabus) {
@@ -20,15 +20,15 @@ export async function createDiscipline(req: Request, res: Response) {
       });
     }
     
-    // Gerar código automaticamente
-    const code = await generateDisciplineCode(name);
+    // Gerar código automaticamente se não for fornecido
+    const disciplineCode = code || await generateDisciplineCode(name);
     
-    console.log('Criando disciplina com código:', code);
+    console.log('Criando disciplina com código:', disciplineCode);
     
     // Inserir a disciplina no banco de dados
     const [newDiscipline] = await db.insert(disciplineTable)
       .values({
-        code,
+        code: disciplineCode,
         name,
         description,
         workload: Number(workload), // Garante que é um número
