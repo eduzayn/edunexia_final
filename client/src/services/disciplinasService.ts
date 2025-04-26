@@ -20,11 +20,41 @@ interface QuestaoSimulado {
   respostaCorreta: number;
 }
 
+// Interface para resposta de verificação de completude
+interface CompletenessResponse {
+  isComplete: boolean;
+  components: {
+    videos: CompletenessComponent;
+    ebooks: CompletenessComponent;
+    simulado: CompletenessComponent;
+    avaliacaoFinal: CompletenessComponent;
+  };
+}
+
+// Interface para cada componente da verificação de completude
+interface CompletenessComponent {
+  status: boolean;
+  count: number;
+  required: number;
+  message: string;
+}
+
 export const disciplinasService = {
   // Buscar disciplina por ID
   async buscarDisciplina(id: string) {
     const response = await apiRequest(`/api/admin/disciplines/${id}`);
     return response.data;
+  },
+  
+  // Verificar completude da disciplina
+  async verificarCompletude(id: string): Promise<CompletenessResponse | null> {
+    try {
+      const response = await apiRequest(`/api/disciplines/${id}/completeness`);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao verificar completude da disciplina:", error);
+      return null;
+    }
   },
 
   // Buscar lista de vídeos de uma disciplina
