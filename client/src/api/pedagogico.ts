@@ -31,6 +31,14 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     throw new Error(`Erro na requisição: ${response.status} - ${error}`);
   }
 
+  // Verifica se o conteúdo retornado é realmente JSON antes de fazer o parse
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    const textResponse = await response.text();
+    console.error("Resposta não-JSON recebida:", textResponse);
+    throw new Error("Resposta não é JSON. Verifique se a rota da API está correta.");
+  }
+
   return response.json();
 }
 
@@ -64,12 +72,44 @@ export async function updateVideo(disciplineId: string | number, videoId: string
 }
 
 /**
- * Remove um vídeo da disciplina
+ * Remove um vídeo da disciplina com tratamento especial para evitar erros de parsing HTML
  */
 export async function deleteVideo(disciplineId: string | number, videoId: string | number): Promise<void> {
-  return fetchWithAuth(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
-    method: 'DELETE',
-  });
+  try {
+    return await fetchWithAuth(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    // Se o erro for relacionado a resposta não-JSON, tente uma abordagem alternativa
+    if (error instanceof Error && error.message.includes("Resposta não é JSON")) {
+      console.warn("Tentando método alternativo para exclusão de vídeo");
+      
+      // Fazemos uma requisição manual e verificamos apenas o status de resposta
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`/api/disciplines/${disciplineId}/videos/${videoId}`, {
+        method: 'DELETE',
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ao excluir vídeo: ${response.status}`);
+      }
+      
+      // Se chegou até aqui, consideramos sucesso mesmo sem resposta JSON
+      return;
+    }
+    
+    // Se não for erro de JSON, propaga o erro original
+    throw error;
+  }
 }
 
 // ===== E-BOOKS =====
