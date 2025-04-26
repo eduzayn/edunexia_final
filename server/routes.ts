@@ -1115,14 +1115,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Verificando e-book interativo para disciplina ${disciplineId}: ` +
                   `ebookInterativoUrl=${hasInteractiveEbook ? ebook.url : 'null'}`);
       
+      // Informações adicionais para facilitar o debug
+      if (hasInteractiveEbook) {
+        console.log(`E-book interativo encontrado para disciplina ${disciplineId}:`, ebook);
+      }
+      
+      // Retornar campos no formato esperado pelo frontend
       return res.json({
         id: parseInt(disciplineId),
         available: !!hasInteractiveEbook,
         url: hasInteractiveEbook ? ebook.url : null,
-        title: ebook?.title || null,
+        title: ebook?.title || ebook?.name || null,
         description: ebook?.description || null,
         type: ebook?.type || "link",
-        embedCode: ebook?.embedCode || null
+        embedCode: ebook?.embedCode || null,
+        // Adicionar campo também no formato original para compatibilidade
+        interactiveEbookUrl: hasInteractiveEbook ? ebook.url : null,
+        name: ebook?.title || ebook?.name || null
       });
     } catch (error) {
       console.error("Erro ao buscar e-book interativo:", error);
@@ -1243,6 +1252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SET ebook_interativo_url = NULL
         WHERE id = $1
       `, [disciplineId]);
+      
+      console.log(`E-book interativo excluído para disciplina ${disciplineId}`);
       
       return res.json({ 
         success: true, 
