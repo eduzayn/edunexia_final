@@ -1,278 +1,146 @@
-import React, { useEffect } from 'react';
-import { Control } from 'react-hook-form';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
+import { useEffect, useState } from "react";
+import { UseFormReturn } from "react-hook-form";
+import { 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import {
-  YoutubeIcon,
-  OneDriveIcon,
-  GoogleDriveIcon,
-  VimeoIcon,
-  UploadIcon,
-} from "@/components/ui/icons";
 import { 
-  VideoSource, 
-  detectVideoSource,
-  processVideoUrl
-} from "@/lib/video-utils";
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  YoutubeIcon, 
+  OneDriveIcon, 
+  GoogleDriveIcon, 
+  VimeoIcon, 
+  UploadIcon 
+} from "@/components/ui/icons";
+import { detectVideoSource, processVideoUrl } from "@/lib/video-utils";
+
+// Interfaces e tipos
+type VideoSourceOption = {
+  value: string;
+  label: string;
+  icon: React.ReactNode;
+};
 
 interface VideoFormFieldsProps {
-  control: Control<any>;
-  idSuffix?: string;
-  setPreviewVideoUrl?: (url: string) => void;
-  setPreviewVideoSource?: (source: VideoSource) => void;
-  watch: (name: string) => any;
+  form: UseFormReturn<any>;
 }
 
-const VideoFormFields: React.FC<VideoFormFieldsProps> = ({
-  control,
-  idSuffix = '',
-  setPreviewVideoUrl,
-  setPreviewVideoSource,
-  watch
-}) => {
-  // Função para detectar e atualizar a fonte de vídeo
-  const detectAndUpdateSource = (url: string) => {
-    if (!url) return;
-    
-    try {
-      // Usar nosso detector centralizado
-      const detectedSource = detectVideoSource(url);
-      const currentSource = watch("videoSource");
-      
-      // Só atualiza se for diferente
-      if (detectedSource && detectedSource !== currentSource) {
-        console.log(`Fonte de vídeo detectada: ${detectedSource} para URL: ${url}`);
-        
-        // Atualiza o estado no componente pai para a prévia
-        if (setPreviewVideoSource) {
-          setPreviewVideoSource(detectedSource);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao detectar fonte de vídeo:", error);
-    }
-  };
+// Lista de fontes de vídeo suportadas
+const videoSourceOptions: VideoSourceOption[] = [
+  { value: "youtube", label: "YouTube", icon: <YoutubeIcon className="h-4 w-4 mr-2" /> },
+  { value: "vimeo", label: "Vimeo", icon: <VimeoIcon className="h-4 w-4 mr-2" /> },
+  { value: "onedrive", label: "OneDrive", icon: <OneDriveIcon className="h-4 w-4 mr-2" /> },
+  { value: "google_drive", label: "Google Drive", icon: <GoogleDriveIcon className="h-4 w-4 mr-2" /> },
+  { value: "upload", label: "Upload Direto", icon: <UploadIcon className="h-4 w-4 mr-2" /> },
+];
+
+export default function VideoFormFields({ form }: VideoFormFieldsProps) {
+  const [showStartTime, setShowStartTime] = useState(false);
   
-  // Observa mudanças na URL para atualizar tipo de vídeo
+  // Detecta automaticamente a fonte do vídeo quando a URL muda
+  const watchUrl = form.watch("url");
+  
   useEffect(() => {
-    const url = watch("url");
-    if (url) {
-      detectAndUpdateSource(url);
+    if (watchUrl) {
+      const source = detectVideoSource(watchUrl);
+      if (source === "youtube" || source === "vimeo") {
+        form.setValue("videoSource", source);
+        setShowStartTime(true);
+      } else {
+        setShowStartTime(false);
+      }
     }
-  }, [watch("url")]);
-  
+  }, [watchUrl, form]);
+
   return (
-    <div className="space-y-6">
+    <>
       <FormField
-        control={control}
-        name="title"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Título</FormLabel>
-            <FormControl>
-              <Input placeholder="Ex: Introdução à Disciplina" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={control}
-        name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Descrição</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Breve descrição do conteúdo do vídeo..."
-                {...field}
-                value={field.value || ""}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={control}
+        control={form.control}
         name="videoSource"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Origem do Vídeo</FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  if (setPreviewVideoSource) {
-                    setPreviewVideoSource(value as VideoSource);
-                  }
-                }}
-                defaultValue={field.value}
-                className="flex flex-col space-y-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="youtube" id={`youtube${idSuffix}`} />
-                  <Label htmlFor={`youtube${idSuffix}`} className="flex items-center">
-                    <YoutubeIcon className="mr-2 h-4 w-4 text-red-600" />
-                    YouTube
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="onedrive" id={`onedrive${idSuffix}`} />
-                  <Label htmlFor={`onedrive${idSuffix}`} className="flex items-center">
-                    <OneDriveIcon className="mr-2 h-4 w-4 text-blue-500" />
-                    OneDrive
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="google_drive" id={`google_drive${idSuffix}`} />
-                  <Label htmlFor={`google_drive${idSuffix}`} className="flex items-center">
-                    <GoogleDriveIcon className="mr-2 h-4 w-4 text-green-500" />
-                    Google Drive
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="vimeo" id={`vimeo${idSuffix}`} />
-                  <Label htmlFor={`vimeo${idSuffix}`} className="flex items-center">
-                    <VimeoIcon className="mr-2 h-4 w-4 text-blue-600" />
-                    Vimeo
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="upload" id={`upload${idSuffix}`} />
-                  <Label htmlFor={`upload${idSuffix}`} className="flex items-center">
-                    <UploadIcon className="mr-2 h-4 w-4" />
-                    Upload Direto
-                  </Label>
-                </div>
-              </RadioGroup>
-            </FormControl>
+            <FormLabel>Fonte do vídeo</FormLabel>
+            <Select 
+              onValueChange={field.onChange} 
+              defaultValue={field.value}
+              value={field.value}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a fonte do vídeo" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                {videoSourceOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center">
+                      {option.icon}
+                      {option.label}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         )}
       />
       
       <FormField
-        control={control}
+        control={form.control}
         name="url"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>URL do Vídeo</FormLabel>
+            <FormLabel>URL do vídeo</FormLabel>
             <FormControl>
-              <Input 
-                placeholder="https://" 
-                {...field} 
-                onChange={(e) => {
-                  field.onChange(e);
-                  // Usar nosso processador centralizado
-                  const url = e.target.value;
-                  if (url && setPreviewVideoUrl) {
-                    try {
-                      // Detectar a fonte atual selecionada
-                      const currentSource = watch("videoSource") as VideoSource;
-                      console.log(`Processando URL: ${url} com fonte: ${currentSource}`);
-                      
-                      // Se for uma URL válida, processá-la para criar a prévia
-                      if (url.startsWith('http')) {
-                        // Atualizar a URL de prévia diretamente 
-                        setPreviewVideoUrl(url);
-                        
-                        // Processar a URL para detectar automaticamente a fonte
-                        const videoInfo = processVideoUrl(url);
-                        console.log('Informações do vídeo:', videoInfo);
-                        
-                        // Se a fonte for diferente da atual e detectada automaticamente, atualizá-la
-                        if (videoInfo.source !== currentSource) {
-                          detectAndUpdateSource(url);
-                        }
-                      }
-                    } catch (error) {
-                      console.error('Erro ao processar URL do vídeo:', error);
-                      // Mesmo com erro, mantemos o comportamento atual
-                      setPreviewVideoUrl(url);
-                    }
-                  }
-                }}
-              />
+              <Input placeholder="https://" {...field} />
             </FormControl>
-            <FormDescription>
-              {watch("videoSource") === "youtube"
-                ? "Cole a URL completa do vídeo no YouTube."
-                : watch("videoSource") === "onedrive"
-                ? "Cole a URL de compartilhamento do OneDrive."
-                : watch("videoSource") === "google_drive"
-                ? "Cole a URL de compartilhamento do Google Drive."
-                : watch("videoSource") === "vimeo"
-                ? "Cole a URL completa do vídeo no Vimeo."
-                : "Cole a URL de upload direto do vídeo."}
-            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
       
-      {/* Grade com 2 colunas para campos de duração e tempo de início */}
       <div className="grid grid-cols-2 gap-4">
         <FormField
-          control={control}
+          control={form.control}
           name="duration"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Duração (mm:ss)</FormLabel>
               <FormControl>
-                <Input
-                  type="text"
-                  placeholder="Ex: 45:30"
-                  {...field}
-                />
+                <Input placeholder="10:30" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        {watch("videoSource") === "youtube" ? (
+        {showStartTime && (
           <FormField
-            control={control}
+            control={form.control}
             name="startTime"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tempo de Início (mm:ss)</FormLabel>
+                <FormLabel>Tempo de início (mm:ss)</FormLabel>
                 <FormControl>
-                  <Input
-                    type="text"
-                    placeholder="Ex: 01:30"
-                    {...field}
-                    value={field.value || ""}
-                  />
+                  <Input placeholder="00:00" {...field} value={field.value || "00:00"} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        ) : <div></div>}
+        )}
       </div>
-      
-      {/* Descrição para o campo de tempo de início */}
-      {watch("videoSource") === "youtube" && (
-        <div className="text-xs text-slate-500 -mt-4">
-          Defina em qual momento o vídeo deve começar (opcional). Útil para pular introduções ou anúncios.
-        </div>
-      )}
-    </div>
+    </>
   );
-};
-
-export default VideoFormFields;
+}
