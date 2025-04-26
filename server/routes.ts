@@ -2330,6 +2330,225 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ==================== APIs para gerenciamento de e-book interativo ====================
+  
+  // Buscar e-book interativo
+  app.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/interactive-ebook - Buscando e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Buscar o e-book interativo
+        const result = await pool.query(`
+          SELECT id, url, title, description 
+          FROM discipline_interactive_ebooks 
+          WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.json({
+            success: true,
+            data: null
+          });
+        }
+        
+        return res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao buscar e-book interativo:', dbError);
+        return res.json({
+          success: true,
+          data: null
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao buscar e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Salvar e-book interativo
+  app.put('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`PUT /api/disciplines/${req.params.id}/interactive-ebook - Salvando e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { url, title, description } = req.body;
+      
+      // Validação básica
+      if (!url) {
+        return res.status(400).json({
+          success: false,
+          message: 'URL do e-book interativo é obrigatória'
+        });
+      }
+      
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Título do e-book interativo é obrigatório'
+        });
+      }
+      
+      try {
+        // Verificar se o e-book interativo já existe para esta disciplina
+        const checkResult = await pool.query(`
+          SELECT id FROM discipline_interactive_ebooks WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        let result;
+        
+        if (checkResult.rows.length > 0) {
+          // Atualizar o e-book existente
+          result = await pool.query(`
+            UPDATE discipline_interactive_ebooks 
+            SET url = $1, title = $2, description = $3, updated_at = NOW()
+            WHERE discipline_id = $4
+            RETURNING id, url, title, description
+          `, [url, title, description, disciplineId]);
+        } else {
+          // Criar a tabela se não existir
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS discipline_interactive_ebooks (
+              id SERIAL PRIMARY KEY,
+              discipline_id INTEGER NOT NULL UNIQUE,
+              url TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          
+          // Inserir novo e-book
+          result = await pool.query(`
+            INSERT INTO discipline_interactive_ebooks (discipline_id, url, title, description)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, url, title, description
+          `, [disciplineId, url, title, description]);
+        }
+        
+        return res.json({
+          success: true,
+          message: checkResult.rows.length > 0 
+            ? 'E-book interativo atualizado com sucesso' 
+            : 'E-book interativo adicionado com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao salvar e-book interativo:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao salvar e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao salvar e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover e-book interativo
+  app.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`DELETE /api/disciplines/${req.params.id}/interactive-ebook - Removendo e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover o e-book interativo
+        const result = await pool.query(`
+          DELETE FROM discipline_interactive_ebooks
+          WHERE discipline_id = $1
+          RETURNING id
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'E-book interativo não encontrado para esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'E-book interativo removido com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover e-book interativo:', dbError);
+        return res.status(404).json({
+          success: false,
+          message: 'E-book interativo não encontrado para esta disciplina'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Remover e-book de uma disciplina
   app.delete('/api/disciplines/:id/ebook', async (req, res) => {
     try {

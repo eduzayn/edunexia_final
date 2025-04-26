@@ -91,6 +91,22 @@ export const disciplinasService = {
       return null;
     }
   },
+  
+  // Salvar conteúdo interativo
+  async salvarConteudoInterativo(disciplinaId: string, ebookData: { url: string; title: string; description: string }) {
+    const response = await apiRequest(`/api/disciplines/${disciplinaId}/interactive-ebook`, {
+      method: "PUT",
+      data: ebookData
+    });
+    return response;
+  },
+  
+  // Remover conteúdo interativo
+  async removerConteudoInterativo(disciplinaId: string) {
+    await apiRequest(`/api/disciplines/${disciplinaId}/interactive-ebook`, {
+      method: "DELETE"
+    });
+  },
 
   // ==================== Funções para gerenciamento de simulados ====================
 
