@@ -375,10 +375,11 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
     }
   });
   
-  // Função síncrona para deletar o ebook diretamente 
-  const executeEbookDeletion = async () => {
+  // Função simplificada para excluir e-book
+  const handleDeleteEbook = async () => {
     try {
-      setIsManageDialogOpen(false); // Fechar diálogo imediatamente
+      // Fechar o diálogo imediatamente
+      setIsManageDialogOpen(false);
       
       // Mostrar toast de processamento
       toast({
@@ -386,51 +387,39 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
         description: 'Excluindo e-book...',
       });
       
-      console.log('Executando exclusão direta do e-book para disciplina:', disciplineId);
-      
-      // URL completa com parâmetro para evitar cache
-      const fullUrl = `${window.location.origin}/api/disciplines/${disciplineId}/ebook?nocache=${Date.now()}`;
-      
-      // Token de autenticação
+      // URL com timestamp para evitar cache
+      const url = `/api/disciplines/${disciplineId}/ebook?t=${Date.now()}`;
       const token = localStorage.getItem('auth_token');
       
-      // Executar requisição DELETE diretamente
-      const response = await fetch(fullUrl, {
+      console.log('Enviando requisição DELETE para:', url);
+      
+      // Requisição DELETE com configuração anti-cache
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       
-      // Verificar resposta
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
       
-      // Processar resposta
-      const result = await response.json();
-      console.log('Resposta da exclusão:', result);
+      console.log('E-book excluído com sucesso');
       
-      // Limpar todos os caches relacionados à disciplina
-      queryClient.clear();
-      localStorage.removeItem('ebook_data_' + disciplineId);
+      // Invalidar todos os caches relacionados
+      queryClient.invalidateQueries();
       
-      // Mostrar mensagem de sucesso
       toast({
         title: 'Sucesso',
-        description: 'E-book removido com sucesso',
+        description: 'E-book removido com sucesso'
       });
       
-      // Recarregar a página completamente para garantir estado limpo
-      console.log('Recarregando página...');
-      setTimeout(() => window.location.reload(), 1000);
+      // Recarregar a página para garantir um estado limpo
+      window.location.reload();
       
-      return result;
     } catch (error) {
       console.error('Erro ao excluir e-book:', error);
       toast({
@@ -438,26 +427,15 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
         description: `Falha ao remover e-book: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
         variant: 'destructive',
       });
-      throw error;
     }
   };
   
-  // Mutação para excluir ebook (para compatibilidade com a interface, mas usando a função direta)
-  const deleteEbookMutation = useMutation({
-    mutationFn: executeEbookDeletion,
-    onSuccess: (data) => {
-      // A lógica principal já está em executeEbookDeletion
-      console.log('Exclusão realizada com sucesso');
-    },
-    onError: (error) => {
-      console.error('Erro ao excluir e-book:', error);
-      toast({
-        title: 'Erro',
-        description: `Falha ao remover e-book: ${error.message}`,
-        variant: 'destructive',
-      });
+  // Confirmação antes de excluir
+  const confirmDeleteEbook = () => {
+    if (confirm("Tem certeza que deseja excluir este e-book? Esta ação não pode ser desfeita.")) {
+      handleDeleteEbook();
     }
-  });
+  };
   
   const onSubmit = (values: EbookFormValues) => {
     const formData = new FormData();
@@ -870,18 +848,10 @@ export default function EbookContentSectionV2({ disciplineId }: EbookContentSect
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => deleteEbookMutation.mutate()}
+                          onClick={handleDeleteEbook}
                           className="bg-red-600 hover:bg-red-700 text-white"
-                          disabled={deleteEbookMutation.isPending}
                         >
-                          {deleteEbookMutation.isPending ? (
-                            <div className="flex items-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              <span>Excluindo...</span>
-                            </div>
-                          ) : (
-                            <span>Excluir</span>
-                          )}
+                          <span>Excluir</span>
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
