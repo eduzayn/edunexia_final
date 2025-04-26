@@ -36,6 +36,8 @@ const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 }
 
 const router = Router();
 
+
+
 // Função auxiliar para verificar ID da disciplina
 const validateDisciplineId = (id: string): number | null => {
   const numId = parseInt(id, 10);
@@ -1035,8 +1037,6 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       });
     }
     
-    // Consultar diretamente a disciplina
-    console.log(`Buscando e-book interativo para disciplina ${disciplineId}`);
     const discipline = await getDisciplineById(disciplineId);
     
     if (!discipline) {
@@ -1046,10 +1046,33 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       });
     }
     
+    // Verificar se há um estado armazenado para este e-book
+    const state = interactiveEbooks[disciplineId];
+    
+    // Se a exclusão foi realizada anteriormente, retornar como não disponível
+    if (state && state.available === false) {
+      return res.json({
+        id: disciplineId,
+        available: false,
+        message: "E-book interativo não disponível"
+      });
+    }
+    
+    // Se já existe um e-book carregado com URL
+    if (state && state.available === true && state.url) {
+      return res.json({
+        id: disciplineId,
+        available: true,
+        name: discipline.name,
+        description: discipline.description,
+        interactiveEbookUrl: state.url
+      });
+    }
+    
     // Verificar se a disciplina tem um e-book interativo no banco
     const interactiveEbookUrl = discipline.ebookInterativoUrl;
     
-    console.log(`E-book interativo para disciplina ${disciplineId}:`,
+    console.log(`Verificando e-book interativo para disciplina ${disciplineId}:`,
                `ebookInterativoUrl=${interactiveEbookUrl}`);
     
     // Se não tiver um e-book interativo, retornar como não disponível
@@ -1063,7 +1086,7 @@ router.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       });
     }
     
-    // Retornar os dados do e-book interativo
+    // Usar o e-book interativo do banco de dados
     return res.json({
       id: disciplineId,
       available: true,
@@ -1140,7 +1163,13 @@ router.post('/api/disciplines/:id/interactive-ebook', upload.single('file'), asy
       interactiveEbookUrl: fileUrl
     };
     
-    console.log(`E-book interativo adicionado com sucesso para disciplina ${disciplineId}.`);
+    // Atualizar o estado em memória
+    interactiveEbooks[disciplineId] = {
+      available: true,
+      url: fileUrl
+    };
+    
+    console.log(`E-book interativo adicionado com sucesso para disciplina ${disciplineId}. Estado atual:`, interactiveEbooks);
     
     // Retornar o e-book interativo no formato esperado
     return res.status(200).json(interactiveEbook);
@@ -1185,7 +1214,14 @@ router.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
       })
       .where(eq(disciplines.id, disciplineId));
     
+    // Atualizar o estado em memória
+    interactiveEbooks[disciplineId] = {
+      available: false,
+      url: null
+    };
+    
     console.log(`E-book interativo removido com sucesso para disciplina ${disciplineId}`);
+    console.log(`Estado atual dos e-books interativos:`, interactiveEbooks);
     
     // Retornar um objeto consistente com o formato usado no restante da API
     return res.status(200).json({
