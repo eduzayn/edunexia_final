@@ -1488,22 +1488,23 @@ export default function DisciplineContentPage() {
                         title: string, 
                         description: string, 
                         duration: string, 
-                        videoSource: string, 
+                        videoSource?: string, 
+                        source?: string,
                         url: string,
                         startTime?: string
                       }) => (
                         <Card key={video.id} className="overflow-hidden">
                           <div className="relative aspect-video bg-gray-200">
-                            {video.videoSource ? (
+                            {(video.videoSource || video.source) ? (
                               <VideoThumbnail
                                 url={video.url}
                                 title={video.title}
-                                source={video.videoSource as VideoSource}
+                                source={(video.videoSource || video.source) as VideoSource}
                                 className="w-full h-full"
                                 onClick={() => {
                                   // Quando clica na miniatura, abre o vídeo em tela cheia
                                   setPreviewVideoUrl(video.url);
-                                  setPreviewVideoSource(video.videoSource as VideoSource);
+                                  setPreviewVideoSource((video.videoSource || video.source) as VideoSource);
                                   setIsVideoPreviewDialogOpen(true);
                                 }}
                               />
@@ -1520,7 +1521,7 @@ export default function DisciplineContentPage() {
                             </p>
                             <div className="flex flex-col mt-2 text-sm text-gray-500">
                               <span>Duração: {video.duration}</span>
-                              {video.startTime && video.videoSource === 'youtube' && (
+                              {video.startTime && (video.videoSource === 'youtube' || video.source === 'youtube') && (
                                 <span className="text-emerald-600 mt-1">
                                   <ClockIcon className="h-3 w-3 inline-block mr-1" />
                                   Início em: {video.startTime}
@@ -1552,8 +1553,8 @@ export default function DisciplineContentPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                // Utilizando videoSource com fallback para "youtube" se nenhum for especificado
-                                const source = video.videoSource || "youtube";
+                                // Utilizando videoSource ou source com fallback para "youtube" se nenhum for especificado
+                                const source = video.videoSource || video.source || "youtube";
                                 console.log("Abrindo vídeo:", video.url, "Fonte:", source);
                                 
                                 setPreviewVideoUrl(video.url);
