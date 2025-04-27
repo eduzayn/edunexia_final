@@ -142,26 +142,26 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Usuários", 
           icon: <GroupIcon />, 
-          href: "/admin/pessoas/usuarios",
-          active: currentPath === "/admin/pessoas/usuarios" || Boolean(currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
+          href: "/admin/people/users",
+          active: currentPath === "/admin/people/users" || Boolean(currentPath && currentPath.includes("/admin/people/users/"))
         },
         { 
           name: "Alunos", 
           icon: <UserPlusIcon />, 
-          href: "/admin/pessoas/alunos",
-          active: currentPath === "/admin/pessoas/alunos" || Boolean(currentPath && currentPath.includes("/admin/pessoas/alunos"))
+          href: "/admin/people/students",
+          active: currentPath === "/admin/people/students" || Boolean(currentPath && currentPath.includes("/admin/people/students"))
         },
         { 
           name: "Professores", 
           icon: <BadgeCheckIcon />, 
-          href: "/admin/pessoas/professores",
-          active: currentPath === "/admin/pessoas/professores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/professores"))
+          href: "/admin/people/teachers",
+          active: currentPath === "/admin/people/teachers" || Boolean(currentPath && currentPath.includes("/admin/people/teachers"))
         },
         { 
           name: "Colaboradores", 
           icon: <GroupIcon />, 
-          href: "/admin/pessoas/colaboradores",
-          active: currentPath === "/admin/pessoas/colaboradores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
+          href: "/admin/people/staff",
+          active: currentPath === "/admin/people/staff" || Boolean(currentPath && currentPath.includes("/admin/people/staff"))
         },
       ]
     }, currentPath),
@@ -169,26 +169,26 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       { 
         name: "Usuários", 
         icon: <GroupIcon />, 
-        href: "/admin/pessoas/usuarios",
-        active: currentPath === "/admin/pessoas/usuarios" || Boolean(currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
+        href: "/admin/people/users",
+        active: currentPath === "/admin/people/users" || Boolean(currentPath && currentPath.includes("/admin/people/users/"))
       },
       { 
         name: "Alunos", 
         icon: <UserPlusIcon />, 
-        href: "/admin/pessoas/alunos",
-        active: currentPath === "/admin/pessoas/alunos" || Boolean(currentPath && currentPath.includes("/admin/pessoas/alunos"))
+        href: "/admin/people/students",
+        active: currentPath === "/admin/people/students" || Boolean(currentPath && currentPath.includes("/admin/people/students"))
       },
       { 
         name: "Professores", 
         icon: <BadgeCheckIcon />, 
-        href: "/admin/pessoas/professores",
-        active: currentPath === "/admin/pessoas/professores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/professores"))
+        href: "/admin/people/teachers",
+        active: currentPath === "/admin/people/teachers" || Boolean(currentPath && currentPath.includes("/admin/people/teachers"))
       },
       { 
         name: "Colaboradores", 
         icon: <GroupIcon />, 
-        href: "/admin/pessoas/colaboradores",
-        active: currentPath === "/admin/pessoas/colaboradores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
+        href: "/admin/people/staff",
+        active: currentPath === "/admin/people/staff" || Boolean(currentPath && currentPath.includes("/admin/people/staff"))
       },
     ]
   };
@@ -287,44 +287,44 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       name: "Comunicação",
       icon: <MessageSquareIcon />,
       items: [
-        { 
-          name: "Canais", 
+        {
+          name: "Caixa de entrada", 
           icon: <InboxIcon />, 
-          href: "/admin/comunicacao/inbox",
-          active: currentPath === "/admin/comunicacao/inbox" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
+          href: "/admin/communication/inbox",
+          active: Boolean(currentPath.includes("/admin/comunicacao/inbox") || currentPath.includes("/admin/communication/inbox")),
         },
-        { 
-          name: "WhatsApp", 
+        {
+          name: "WhatsApp",
           icon: <WhatsAppIcon />, 
-          href: "/admin/comunicacao/whatsapp",
-          active: currentPath === "/admin/comunicacao/whatsapp" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
+          href: "/admin/communication/whatsapp",
+          active: Boolean(currentPath.includes("/admin/comunicacao/whatsapp") || currentPath.includes("/admin/communication/whatsapp")),
         },
-        { 
-          name: "Email", 
+        {
+          name: "E-mail", 
           icon: <MailIcon />, 
-          href: "/admin/comunicacao/email",
-          active: currentPath === "/admin/comunicacao/email" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/email/"))
+          href: "/admin/communication/email",
+          active: Boolean(currentPath.includes("/admin/comunicacao/email") || currentPath.includes("/admin/communication/email")),
         },
       ]
     }, currentPath),
     items: [
-      { 
-        name: "Canais", 
+      {
+        name: "Caixa de entrada", 
         icon: <InboxIcon />, 
-        href: "/admin/comunicacao/inbox",
-        active: currentPath === "/admin/comunicacao/inbox" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
+        href: "/admin/communication/inbox",
+        active: Boolean(currentPath.includes("/admin/comunicacao/inbox") || currentPath.includes("/admin/communication/inbox")),
       },
-      { 
-        name: "WhatsApp", 
+      {
+        name: "WhatsApp",
         icon: <WhatsAppIcon />, 
-        href: "/admin/comunicacao/whatsapp",
-        active: currentPath === "/admin/comunicacao/whatsapp" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
+        href: "/admin/communication/whatsapp",
+        active: Boolean(currentPath.includes("/admin/comunicacao/whatsapp") || currentPath.includes("/admin/communication/whatsapp")),
       },
-      { 
-        name: "Email", 
+      {
+        name: "E-mail", 
         icon: <MailIcon />, 
-        href: "/admin/comunicacao/email",
-        active: currentPath === "/admin/comunicacao/email" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/email/"))
+        href: "/admin/communication/email",
+        active: Boolean(currentPath.includes("/admin/comunicacao/email") || currentPath.includes("/admin/communication/email")),
       },
     ]
   };

@@ -133,6 +133,17 @@ import NewEnrollmentRedirect from "@/pages/admin/enrollments/new";
 import PoloEnrollmentsRedirect from "@/pages/admin/enrollments/polo";
 import AdminPoloNewEnrollmentRedirect from "@/pages/admin/enrollments/admin-polo-new";
 
+// English version redirections for people module
+import UsersRedirectPage from "@/pages/admin/people/users/index";
+import StudentsRedirectPage from "@/pages/admin/people/students/index";
+import TeachersRedirectPage from "@/pages/admin/people/teachers/index";
+import StaffRedirectPage from "@/pages/admin/people/staff/index";
+
+// English version redirections for communication module
+import InboxRedirectPage from "@/pages/admin/communication/inbox/index";
+import WhatsappRedirectPage from "@/pages/admin/communication/whatsapp/index";
+import EmailRedirectPage from "@/pages/admin/communication/email/index";
+
 function Router() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -740,6 +751,19 @@ function Router() {
         {() => user?.portalType === "admin" ? <div>Em breve</div> : <Redirect to="/admin" />}
       </Route>
 
+      {/* English routes for the communication module */}
+      <Route path="/admin/communication/inbox">
+        {() => user?.portalType === "admin" ? <InboxRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/communication/whatsapp">
+        {() => user?.portalType === "admin" ? <WhatsappRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/communication/email">
+        {() => user?.portalType === "admin" ? <EmailRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
       {/* Rotas do Módulo de Contratos */}
       <Route path="/admin/contracts">
         {() => user?.portalType === "admin" ? <AdminContractsPage /> : <Redirect to="/admin" />}
@@ -772,6 +796,23 @@ function Router() {
 
       <Route path="/admin/pessoas/usuarios/:id">
         {() => user?.portalType === "admin" ? <UsuarioFormPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      {/* English routes for the people module */}
+      <Route path="/admin/people/users">
+        {() => user?.portalType === "admin" ? <UsersRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/people/students">
+        {() => user?.portalType === "admin" ? <StudentsRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/people/teachers">
+        {() => user?.portalType === "admin" ? <TeachersRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/people/staff">
+        {() => user?.portalType === "admin" ? <StaffRedirectPage /> : <Redirect to="/admin" />}
       </Route>
 
       {/* Rotas do Módulo de Auditoria */}
