@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -7,6 +7,7 @@ import { CheckCircle, AlertCircle, ChevronDown, ChevronUp, RefreshCw } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { disciplinesService } from "@/services/disciplinesService";
 
 // Interface para os resultados da verificação de completude
 interface CompletenessResult {
@@ -44,28 +45,20 @@ export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = 
 
   // Função para verificar a completude
   const checkCompleteness = async () => {
+    if (!disciplineId) return;
+    
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/disciplines/${disciplineId}/completeness`);
-      
-      if (!response.ok) {
-        throw new Error(`Erro ao verificar completude: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setCompleteness(data.data);
-        if (onStatusChange) {
-          onStatusChange(data.data.isComplete);
-        }
-      } else {
-        throw new Error(data.message || 'Erro ao verificar completude');
+      const data = await disciplinesService.checkCompleteness(disciplineId);
+      setCompleteness(data);
+      if (onStatusChange) {
+        onStatusChange(data.isComplete);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      console.error("Erro ao verificar completude:", err);
+      setError("Erro ao verificar completude da disciplina. Tente novamente mais tarde.");
       toast({
         title: "Erro",
         description: "Não foi possível verificar a completude da disciplina",
@@ -101,11 +94,11 @@ export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = 
   // Renderizar badge de status para cada componente
   const renderStatusBadge = (status: boolean) => {
     return status ? (
-      <Badge variant="success" className="ml-2">
+      <Badge className="ml-2 bg-green-500 hover:bg-green-600">
         <CheckCircle className="h-3 w-3 mr-1" /> Completo
       </Badge>
     ) : (
-      <Badge variant="warning" className="ml-2">
+      <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
         <AlertCircle className="h-3 w-3 mr-1" /> Pendente
       </Badge>
     );
@@ -129,6 +122,7 @@ export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = 
             size="sm" 
             onClick={toggleAccordion}
             className="h-8 w-8 p-0"
+            disabled={loading}
           >
             {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
@@ -159,7 +153,7 @@ export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = 
                     <span className="text-sm font-medium">Progresso</span>
                     <span className="text-sm font-medium">{progress.toFixed(0)}%</span>
                   </div>
-                  <Progress value={progress} className="h-2" variant={progress === 100 ? "success" : "warning"} />
+                  <Progress value={progress} className="h-2" />
                 </div>
 
                 <Accordion type="single" collapsible className="w-full" defaultValue="components">

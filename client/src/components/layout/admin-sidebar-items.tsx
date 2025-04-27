@@ -104,30 +104,29 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academico/disciplines",
-          active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/"))
+          href: "/admin/academic/disciplines",
+          active: currentPath === "/admin/academic/disciplines" || Boolean(currentPath && currentPath.includes("/admin/academic/disciplines/"))
         },
         { 
           name: "Cursos", 
           icon: <GraduationCapAltIcon />, 
-          href: "/admin/academico/courses",
-          active: currentPath === "/admin/academico/courses" || (currentPath && currentPath.includes("/admin/academico/courses/"))
+          href: "/admin/academic/courses",
+          active: currentPath === "/admin/academic/courses" || Boolean(currentPath && currentPath.includes("/admin/academic/courses/"))
         },
       ]
     }, currentPath),
     items: [
-
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academico/disciplines",
-          active: currentPath === "/admin/academico/disciplines" || (currentPath && currentPath.includes("/admin/academico/disciplines/")),
+          href: "/admin/academic/disciplines",
+          active: currentPath === "/admin/academic/disciplines" || Boolean(currentPath && currentPath.includes("/admin/academic/disciplines/")),
         },
         { 
           name: "Cursos", 
           icon: <GraduationCapAltIcon />, 
-          href: "/admin/academico/courses",
-          active: currentPath === "/admin/academico/courses" || (currentPath && currentPath.includes("/admin/academico/courses/"))
+          href: "/admin/academic/courses",
+          active: currentPath === "/admin/academic/courses" || Boolean(currentPath && currentPath.includes("/admin/academic/courses/"))
         },
     ]
   };
@@ -144,25 +143,25 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Usuários", 
           icon: <GroupIcon />, 
           href: "/admin/pessoas/usuarios",
-          active: currentPath === "/admin/pessoas/usuarios" || (currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
+          active: currentPath === "/admin/pessoas/usuarios" || Boolean(currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
         },
         { 
           name: "Alunos", 
           icon: <UserPlusIcon />, 
           href: "/admin/pessoas/alunos",
-          active: currentPath === "/admin/pessoas/alunos" || (currentPath && currentPath.includes("/admin/pessoas/alunos"))
+          active: currentPath === "/admin/pessoas/alunos" || Boolean(currentPath && currentPath.includes("/admin/pessoas/alunos"))
         },
         { 
           name: "Professores", 
           icon: <BadgeCheckIcon />, 
           href: "/admin/pessoas/professores",
-          active: currentPath === "/admin/pessoas/professores" || (currentPath && currentPath.includes("/admin/pessoas/professores"))
+          active: currentPath === "/admin/pessoas/professores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/professores"))
         },
         { 
           name: "Colaboradores", 
           icon: <GroupIcon />, 
           href: "/admin/pessoas/colaboradores",
-          active: currentPath === "/admin/pessoas/colaboradores" || (currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
+          active: currentPath === "/admin/pessoas/colaboradores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
         },
       ]
     }, currentPath),
@@ -171,25 +170,25 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Usuários", 
         icon: <GroupIcon />, 
         href: "/admin/pessoas/usuarios",
-        active: currentPath === "/admin/pessoas/usuarios" || (currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
+        active: currentPath === "/admin/pessoas/usuarios" || Boolean(currentPath && currentPath.includes("/admin/pessoas/usuarios/"))
       },
       { 
         name: "Alunos", 
         icon: <UserPlusIcon />, 
         href: "/admin/pessoas/alunos",
-        active: currentPath === "/admin/pessoas/alunos" || (currentPath && currentPath.includes("/admin/pessoas/alunos"))
+        active: currentPath === "/admin/pessoas/alunos" || Boolean(currentPath && currentPath.includes("/admin/pessoas/alunos"))
       },
       { 
         name: "Professores", 
         icon: <BadgeCheckIcon />, 
         href: "/admin/pessoas/professores",
-        active: currentPath === "/admin/pessoas/professores" || (currentPath && currentPath.includes("/admin/pessoas/professores"))
+        active: currentPath === "/admin/pessoas/professores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/professores"))
       },
       { 
         name: "Colaboradores", 
         icon: <GroupIcon />, 
         href: "/admin/pessoas/colaboradores",
-        active: currentPath === "/admin/pessoas/colaboradores" || (currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
+        active: currentPath === "/admin/pessoas/colaboradores" || Boolean(currentPath && currentPath.includes("/admin/pessoas/colaboradores"))
       },
     ]
   };
@@ -207,39 +206,39 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Clientes", 
           icon: <CreditCardIcon />, 
           href: "/admin/crm/asaas-clients",
-          active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
+          active: currentPath === "/admin/crm/asaas-clients" || Boolean(currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
         },
         { 
           name: "Contatos", 
           icon: <ContactIcon />, 
           href: "/admin/crm/contacts",
-          active: currentPath === "/admin/crm/contacts" || (currentPath && currentPath.includes("/admin/crm/contacts/"))
+          active: currentPath === "/admin/crm/contacts" || Boolean(currentPath && currentPath.includes("/admin/crm/contacts/"))
         },
         // Submódulo Financeiro
         { 
           name: "Cursos e Serviços", 
           icon: <ShoppingBagIcon />, 
           href: "/admin/finance/products",
-          active: currentPath === "/admin/finance/products" || (currentPath && currentPath.includes("/admin/finance/products/"))
+          active: currentPath === "/admin/finance/products" || Boolean(currentPath && currentPath.includes("/admin/finance/products/"))
         },
         { 
           name: "Cobranças", 
           icon: <InvoiceIcon />, 
           href: "/admin/finance/charges",
-          active: currentPath === "/admin/finance/charges" || (currentPath && currentPath.includes("/admin/finance/charges/"))
+          active: currentPath === "/admin/finance/charges" || Boolean(currentPath && currentPath.includes("/admin/finance/charges/"))
         },
         { 
           name: "Matrículas Simplificadas",
           icon: <GraduationCap />,
           href: "/admin/crm/new-simplified-enrollments",
-          active: currentPath === "/admin/crm/new-simplified-enrollments" || (currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
+          active: currentPath === "/admin/crm/new-simplified-enrollments" || Boolean(currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
         },
         // Submódulo Contratos
         { 
           name: "Contratos", 
           icon: <ContractIcon />, 
           href: "/admin/contracts",
-          active: currentPath === "/admin/contracts" || (currentPath && currentPath.includes("/admin/contracts/"))
+          active: currentPath === "/admin/contracts" || Boolean(currentPath && currentPath.includes("/admin/contracts/"))
         },
       ]
     }, currentPath),
@@ -249,33 +248,33 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Clientes", 
         icon: <CreditCardIcon />, 
         href: "/admin/crm/asaas-clients",
-        active: currentPath === "/admin/crm/asaas-clients" || (currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
+        active: currentPath === "/admin/crm/asaas-clients" || Boolean(currentPath && currentPath.includes("/admin/crm/asaas-clients/"))
       },
       // Submódulo Financeiro
       { 
         name: "Cursos e Serviços", 
         icon: <ShoppingBagIcon />, 
         href: "/admin/finance/products",
-        active: currentPath === "/admin/finance/products" || (currentPath && currentPath.includes("/admin/finance/products/"))
+        active: currentPath === "/admin/finance/products" || Boolean(currentPath && currentPath.includes("/admin/finance/products/"))
       },
       { 
         name: "Cobranças", 
         icon: <InvoiceIcon />, 
         href: "/admin/finance/charges",
-        active: currentPath === "/admin/finance/charges" || (currentPath && currentPath.includes("/admin/finance/charges/"))
+        active: currentPath === "/admin/finance/charges" || Boolean(currentPath && currentPath.includes("/admin/finance/charges/"))
       },
       { 
         name: "Matrículas Simplificadas",
         icon: <GraduationCap />,
         href: "/admin/crm/new-simplified-enrollments",
-        active: currentPath === "/admin/crm/new-simplified-enrollments" || (currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
+        active: currentPath === "/admin/crm/new-simplified-enrollments" || Boolean(currentPath && currentPath.includes("/admin/crm/new-simplified-enrollments/"))
       },
       // Submódulo Contratos
       { 
         name: "Contratos", 
         icon: <ContractIcon />, 
         href: "/admin/contracts",
-        active: currentPath === "/admin/contracts" || (currentPath && currentPath.includes("/admin/contracts/"))
+        active: currentPath === "/admin/contracts" || Boolean(currentPath && currentPath.includes("/admin/contracts/"))
       },
     ]
   };
@@ -292,19 +291,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Canais", 
           icon: <InboxIcon />, 
           href: "/admin/comunicacao/inbox",
-          active: currentPath === "/admin/comunicacao/inbox" || (currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
+          active: currentPath === "/admin/comunicacao/inbox" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
         },
         { 
           name: "WhatsApp", 
           icon: <WhatsAppIcon />, 
           href: "/admin/comunicacao/whatsapp",
-          active: currentPath === "/admin/comunicacao/whatsapp" || (currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
+          active: currentPath === "/admin/comunicacao/whatsapp" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
         },
         { 
           name: "Email", 
           icon: <MailIcon />, 
           href: "/admin/comunicacao/email",
-          active: currentPath === "/admin/comunicacao/email" || (currentPath && currentPath.includes("/admin/comunicacao/email/"))
+          active: currentPath === "/admin/comunicacao/email" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/email/"))
         },
       ]
     }, currentPath),
@@ -313,19 +312,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Canais", 
         icon: <InboxIcon />, 
         href: "/admin/comunicacao/inbox",
-        active: currentPath === "/admin/comunicacao/inbox" || (currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
+        active: currentPath === "/admin/comunicacao/inbox" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/inbox/"))
       },
       { 
         name: "WhatsApp", 
         icon: <WhatsAppIcon />, 
         href: "/admin/comunicacao/whatsapp",
-        active: currentPath === "/admin/comunicacao/whatsapp" || (currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
+        active: currentPath === "/admin/comunicacao/whatsapp" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/whatsapp/"))
       },
       { 
         name: "Email", 
         icon: <MailIcon />, 
         href: "/admin/comunicacao/email",
-        active: currentPath === "/admin/comunicacao/email" || (currentPath && currentPath.includes("/admin/comunicacao/email/"))
+        active: currentPath === "/admin/comunicacao/email" || Boolean(currentPath && currentPath.includes("/admin/comunicacao/email/"))
       },
     ]
   };
@@ -342,19 +341,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Templates", 
           icon: <ScrollTextIcon />, 
           href: "/admin/certification/templates",
-          active: currentPath === "/admin/certification/templates" || (currentPath && currentPath.includes("/admin/certification/templates/"))
+          active: currentPath === "/admin/certification/templates" || Boolean(currentPath && currentPath.includes("/admin/certification/templates/"))
         },
         { 
           name: "Signatários", 
           icon: <FileCheckIcon />, 
           href: "/admin/certification/signers",
-          active: currentPath === "/admin/certification/signers" || (currentPath && currentPath.includes("/admin/certification/signers/"))
+          active: currentPath === "/admin/certification/signers" || Boolean(currentPath && currentPath.includes("/admin/certification/signers/"))
         },
         { 
           name: "Emissão de Certificados", 
           icon: <BadgeCheckIcon />, 
           href: "/admin/certification/issue",
-          active: currentPath === "/admin/certification/issue" || (currentPath && currentPath.includes("/admin/certification/issue/"))
+          active: currentPath === "/admin/certification/issue" || Boolean(currentPath && currentPath.includes("/admin/certification/issue/"))
         },
       ]
     }, currentPath),
@@ -363,19 +362,19 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Templates", 
         icon: <ScrollTextIcon />, 
         href: "/admin/certification/templates",
-        active: currentPath === "/admin/certification/templates" || (currentPath && currentPath.includes("/admin/certification/templates/"))
+        active: currentPath === "/admin/certification/templates" || Boolean(currentPath && currentPath.includes("/admin/certification/templates/"))
       },
       { 
         name: "Signatários", 
         icon: <FileCheckIcon />, 
         href: "/admin/certification/signers",
-        active: currentPath === "/admin/certification/signers" || (currentPath && currentPath.includes("/admin/certification/signers/"))
+        active: currentPath === "/admin/certification/signers" || Boolean(currentPath && currentPath.includes("/admin/certification/signers/"))
       },
       { 
         name: "Emissão de Certificados", 
         icon: <BadgeCheckIcon />, 
         href: "/admin/certification/issue",
-        active: currentPath === "/admin/certification/issue" || (currentPath && currentPath.includes("/admin/certification/issue/"))
+        active: currentPath === "/admin/certification/issue" || Boolean(currentPath && currentPath.includes("/admin/certification/issue/"))
       },
     ]
   };
@@ -392,31 +391,31 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Controle de Acesso ao Portal do Aluno", 
           icon: <LockIcon />, 
           href: "/admin/sistema/portal-access-control",
-          active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+          active: currentPath === "/admin/sistema/portal-access-control" || Boolean(currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
         },
         { 
           name: "Permissões Contextuais (ABAC)", 
           icon: <BadgeCheckIcon />, 
           href: "/admin/pessoas/abac-permissions",
-          active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+          active: currentPath === "/admin/pessoas/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/pessoas/abac"))
         },
         { 
           name: "Funções & Permissões", 
           icon: <SecurityIcon />, 
           href: "/admin/pessoas/roles",
-          active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+          active: currentPath === "/admin/pessoas/roles" || Boolean(currentPath && currentPath.includes("/admin/pessoas/roles"))
         },
         { 
           name: "Usuários Admin", 
           icon: <GroupIcon />, 
           href: "/admin/pessoas/admin-users",
-          active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+          active: currentPath === "/admin/pessoas/admin-users" || Boolean(currentPath && currentPath.includes("/admin/pessoas/admin-users"))
         },
         { 
           name: "Integrações", 
           icon: <CloudIcon />, 
           href: "/admin/integracoes/integrations",
-          active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
+          active: currentPath === "/admin/integracoes/integrations" || Boolean(currentPath && currentPath.includes("/admin/integracoes/"))
         },
       ]
     }, currentPath),
@@ -425,31 +424,31 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Controle de Acesso ao Portal do Aluno", 
         icon: <LockIcon />, 
         href: "/admin/sistema/portal-access-control",
-        active: currentPath === "/admin/sistema/portal-access-control" || (currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
+        active: currentPath === "/admin/sistema/portal-access-control" || Boolean(currentPath && currentPath.includes("/admin/sistema/portal-access-control"))
       },
       { 
         name: "Permissões Contextuais (ABAC)", 
         icon: <BadgeCheckIcon />, 
         href: "/admin/pessoas/abac-permissions",
-        active: currentPath === "/admin/pessoas/abac-permissions" || (currentPath && currentPath.includes("/admin/pessoas/abac"))
+        active: currentPath === "/admin/pessoas/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/pessoas/abac"))
       },
       { 
         name: "Funções & Permissões", 
         icon: <SecurityIcon />, 
         href: "/admin/pessoas/roles",
-        active: currentPath === "/admin/pessoas/roles" || (currentPath && currentPath.includes("/admin/pessoas/roles"))
+        active: currentPath === "/admin/pessoas/roles" || Boolean(currentPath && currentPath.includes("/admin/pessoas/roles"))
       },
       { 
         name: "Usuários Admin", 
         icon: <GroupIcon />, 
         href: "/admin/pessoas/admin-users",
-        active: currentPath === "/admin/pessoas/admin-users" || (currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+        active: currentPath === "/admin/pessoas/admin-users" || Boolean(currentPath && currentPath.includes("/admin/pessoas/admin-users"))
       },
       { 
         name: "Integrações", 
         icon: <CloudIcon />, 
         href: "/admin/integracoes/integrations",
-        active: currentPath === "/admin/integracoes/integrations" || (currentPath && currentPath.includes("/admin/integracoes/"))
+        active: currentPath === "/admin/integracoes/integrations" || Boolean(currentPath && currentPath.includes("/admin/integracoes/"))
       },
     ]
   };
@@ -466,25 +465,25 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
           name: "Portal do Parceiro", 
           icon: <StorefrontIcon />, 
           href: "/admin/parcerias/portal",
-          active: currentPath === "/admin/parcerias/portal" || (currentPath && currentPath.includes("/admin/parcerias/portal/"))
+          active: currentPath === "/admin/parcerias/portal" || Boolean(currentPath && currentPath.includes("/admin/parcerias/portal/"))
         },
         { 
           name: "Certificação de Alunos", 
           icon: <AwardIcon />, 
           href: "/admin/parcerias/certificacao",
-          active: currentPath === "/admin/parcerias/certificacao" || (currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
+          active: currentPath === "/admin/parcerias/certificacao" || Boolean(currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
         },
         { 
           name: "Solicitações Pendentes", 
           icon: <InboxIcon />, 
           href: "/admin/parcerias/solicitacoes",
-          active: currentPath === "/admin/parcerias/solicitacoes" || (currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
+          active: currentPath === "/admin/parcerias/solicitacoes" || Boolean(currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
         },
         { 
           name: "Relatórios", 
           icon: <BarChartAltIcon />, 
           href: "/admin/parcerias/relatorios",
-          active: currentPath === "/admin/parcerias/relatorios" || (currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
+          active: currentPath === "/admin/parcerias/relatorios" || Boolean(currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
         },
       ]
     }, currentPath),
@@ -493,25 +492,25 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Portal do Parceiro", 
         icon: <StorefrontIcon />, 
         href: "/admin/parcerias/portal",
-        active: currentPath === "/admin/parcerias/portal" || (currentPath && currentPath.includes("/admin/parcerias/portal/"))
+        active: currentPath === "/admin/parcerias/portal" || Boolean(currentPath && currentPath.includes("/admin/parcerias/portal/"))
       },
       { 
         name: "Certificação de Alunos", 
         icon: <AwardIcon />, 
         href: "/admin/parcerias/certificacao",
-        active: currentPath === "/admin/parcerias/certificacao" || (currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
+        active: currentPath === "/admin/parcerias/certificacao" || Boolean(currentPath && currentPath.includes("/admin/parcerias/certificacao/"))
       },
       { 
         name: "Solicitações Pendentes", 
         icon: <InboxIcon />, 
         href: "/admin/parcerias/solicitacoes",
-        active: currentPath === "/admin/parcerias/solicitacoes" || (currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
+        active: currentPath === "/admin/parcerias/solicitacoes" || Boolean(currentPath && currentPath.includes("/admin/parcerias/solicitacoes/"))
       },
       { 
         name: "Relatórios", 
         icon: <BarChartAltIcon />, 
         href: "/admin/parcerias/relatorios",
-        active: currentPath === "/admin/parcerias/relatorios" || (currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
+        active: currentPath === "/admin/parcerias/relatorios" || Boolean(currentPath && currentPath.includes("/admin/parcerias/relatorios/"))
       },
     ]
   };

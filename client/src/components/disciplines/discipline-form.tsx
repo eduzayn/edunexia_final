@@ -62,7 +62,7 @@ export function DisciplineForm({
       });
 
       // Navegar de volta para a lista após o sucesso
-      navigate("/admin/academico/disciplines");
+      navigate("/admin/academic/disciplines");
     } catch (error) {
       console.error("Erro ao salvar disciplina:", error);
       toast({
@@ -182,7 +182,7 @@ export function DisciplineForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/admin/academico/disciplines")}
+              onClick={() => navigate("/admin/academic/disciplines")}
             >
               Cancelar
             </Button>
