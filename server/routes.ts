@@ -2760,8 +2760,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rotas para gerenciamento de disciplinas
   app.get('/api/disciplinas', requireAuth, async (req, res) => {
     try {
-      const { listarDisciplinas } = await import('./api/disciplinas');
-      return await listarDisciplinas(req, res);
+      const { listDisciplines } = await import('./api/disciplines');
+      return await listDisciplines(req, res);
     } catch (error) {
       console.error('Erro ao listar disciplinas:', error);
       return res.status(500).json({
@@ -2774,8 +2774,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post('/api/disciplinas', requireAuth, async (req, res) => {
     try {
-      const { criarDisciplina } = await import('./api/disciplinas');
-      return await criarDisciplina(req, res);
+      const { createDiscipline } = await import('./api/disciplines');
+      return await createDiscipline(req, res);
     } catch (error) {
       console.error('Erro ao criar disciplina:', error);
       return res.status(500).json({

@@ -1,4 +1,0 @@
-Deploy test - fix Vercel config
-
-Este arquivo foi criado para disparar um novo deploy no Vercel após as alterações de configuração.
-Data: 2025-04-24

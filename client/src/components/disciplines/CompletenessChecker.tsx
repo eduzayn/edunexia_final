@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { disciplinasService } from "@/services/disciplinasService";
+import { disciplinesService } from "@/services/disciplinesService";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,30 +31,25 @@ const CompletenessChecker: React.FC<CompletenessCheckerProps> = ({
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const checkCompleteness = async () => {
+  const fetchCompleteness = async () => {
     if (!disciplineId) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      const data = await disciplinasService.verificarCompletude(disciplineId);
+      const data = await disciplinesService.checkCompleteness(disciplineId);
       setResult(data);
     } catch (err) {
-      setError("Erro ao verificar completude da disciplina");
       console.error("Erro ao verificar completude:", err);
-      toast({
-        title: "Erro",
-        description: "Não foi possível verificar a completude da disciplina.",
-        variant: "destructive",
-      });
+      setError("Erro ao verificar completude da disciplina. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    checkCompleteness();
+    fetchCompleteness();
   }, [disciplineId]);
 
   // Calcula a porcentagem de completude
@@ -127,7 +122,7 @@ const CompletenessChecker: React.FC<CompletenessCheckerProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={checkCompleteness}
+            onClick={fetchCompleteness}
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />

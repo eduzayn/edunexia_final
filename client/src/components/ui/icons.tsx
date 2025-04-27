@@ -54,7 +54,11 @@ import {
   BarChart3,
   PlayCircle,
   Shield,
-  GraduationCap
+  GraduationCap,
+  Check,
+  CheckCircle,
+  X,
+  XCircle
 } from "lucide-react";
 
 // Ícones de Lucide exportados diretamente
@@ -70,9 +74,6 @@ export const MailIcon = Mail;
 export const PhoneIcon = Phone;
 export const CopyIcon = Copy;
 export const RefreshIcon = RefreshCw;
-export const DateRangeIcon = Calendar;
-export const CalendarIcon = Calendar;
-export const PlusIcon = Plus;
 export const PlusCircleIcon = PlusCircle;
 export const InfoIcon = Info;
 export const DocumentIcon = FileText;
@@ -199,10 +200,12 @@ export function SaveIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export function PencilIcon(props: React.SVGProps<SVGSVGElement>) {
+export function PencilIconSvg(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -211,8 +214,8 @@ export function PencilIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="m15 5 4 4" />
     </svg>
   );
 }
@@ -400,10 +403,12 @@ export function VimeoIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+export function CheckIconSvg(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -532,8 +537,6 @@ export function MapPinIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export { Pencil as EditIcon } from "lucide-react";
-
-export { Trash as TrashIcon } from "lucide-react";
 
 export { ArrowLeft as ArrowLeftIcon } from "lucide-react";
 export { Loader2 as Loader2Icon } from "lucide-react";
@@ -1495,10 +1498,12 @@ export function MenuBookIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-export function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
+export function CheckCircleIconSvg(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -1507,8 +1512,8 @@ export function CheckCircleIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
+      <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+      <path d="m9 12 2 2 4-4" />
     </svg>
   );
 }

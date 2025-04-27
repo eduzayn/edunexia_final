@@ -104,30 +104,29 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academico/disciplinas",
-          active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/"))
+          href: "/admin/academic/disciplinas",
+          active: currentPath === "/admin/academic/disciplinas" || (currentPath && currentPath.includes("/admin/academic/disciplinas/"))
         },
         { 
           name: "Cursos", 
           icon: <GraduationCapAltIcon />, 
-          href: "/admin/academico/courses",
-          active: currentPath === "/admin/academico/courses" || (currentPath && currentPath.includes("/admin/academico/courses/"))
+          href: "/admin/academic/courses",
+          active: currentPath === "/admin/academic/courses" || (currentPath && currentPath.includes("/admin/academic/courses/"))
         },
       ]
     }, currentPath),
     items: [
-
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academico/disciplinas",
-          active: currentPath === "/admin/academico/disciplinas" || (currentPath && currentPath.includes("/admin/academico/disciplinas/")),
+          href: "/admin/academic/disciplinas",
+          active: currentPath === "/admin/academic/disciplinas" || (currentPath && currentPath.includes("/admin/academic/disciplinas/")),
         },
         { 
           name: "Cursos", 
           icon: <GraduationCapAltIcon />, 
-          href: "/admin/academico/courses",
-          active: currentPath === "/admin/academico/courses" || (currentPath && currentPath.includes("/admin/academico/courses/"))
+          href: "/admin/academic/courses",
+          active: currentPath === "/admin/academic/courses" || (currentPath && currentPath.includes("/admin/academic/courses/"))
         },
     ]
   };

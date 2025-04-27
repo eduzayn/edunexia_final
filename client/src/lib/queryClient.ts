@@ -136,6 +136,28 @@ export async function apiRequest(
 }
 
 /**
+ * Versão estendida da função apiRequest que inclui processamento automático da resposta JSON
+ * Útil para serviços que precisam do resultado JSON já processado
+ * @template T - Tipo de dados esperado na resposta
+ * @param urlOrMethod - URL ou método HTTP
+ * @param urlOrOptions - URL (se o primeiro argumento for método) ou opções
+ * @param data - Dados para enviar no corpo (quando usando formato method, url, data)
+ * @returns Uma Promise com o objeto JSON do tipo especificado
+ */
+export async function apiRequestJson<T>(
+  urlOrMethod: string,
+  urlOrOptions?: string | { method?: string; data?: unknown; headers?: Record<string, string> },
+  data?: unknown
+): Promise<T> {
+  const response = await apiRequest(urlOrMethod, urlOrOptions, data);
+  if (!response.ok) {
+    throw new Error(`Requisição falhou com status ${response.status}`);
+  }
+  
+  return response.json() as Promise<T>;
+}
+
+/**
  * Helper específicos para chamadas API comuns
  * Convenientes para páginas que precisam acessar esses recursos
  */
