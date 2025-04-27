@@ -6,7 +6,7 @@ export default function EnrollmentsIndexPage() {
 
   useEffect(() => {
     // Redirect to the existing matriculas page
-    navigate("/admin/matriculas/enrollments-page");
+    navigate("/admin/enrollments/list");
   }, [navigate]);
 
   return (

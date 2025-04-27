@@ -6,7 +6,7 @@ export default function PoloEnrollmentsRedirectPage() {
 
   useEffect(() => {
     // Redirect to the existing polo enrollments page
-    navigate("/admin/matriculas/polo-enrollments-page");
+    navigate("/admin/enrollments/polo-list");
   }, [navigate]);
 
   return (

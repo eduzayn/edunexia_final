@@ -5,8 +5,8 @@ export default function NewEnrollmentRedirectPage() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    // Redirect to the existing new enrollment page
-    navigate("/admin/matriculas/new-enrollment-page");
+    // Redirect to the existing matriculas page
+    navigate("/admin/enrollments/create");
   }, [navigate]);
 
   return (

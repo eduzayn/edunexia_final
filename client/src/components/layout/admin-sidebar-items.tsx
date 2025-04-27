@@ -104,8 +104,8 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academic/disciplinas",
-          active: currentPath === "/admin/academic/disciplinas" || (currentPath && currentPath.includes("/admin/academic/disciplinas/"))
+          href: "/admin/academic/disciplines",
+          active: currentPath === "/admin/academic/disciplines" || (currentPath && currentPath.includes("/admin/academic/disciplines/"))
         },
         { 
           name: "Cursos", 
@@ -119,8 +119,8 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Disciplinas", 
           icon: <BookIcon />, 
-          href: "/admin/academic/disciplinas",
-          active: currentPath === "/admin/academic/disciplinas" || (currentPath && currentPath.includes("/admin/academic/disciplinas/")),
+          href: "/admin/academic/disciplines",
+          active: currentPath === "/admin/academic/disciplines" || (currentPath && currentPath.includes("/admin/academic/disciplines/")),
         },
         { 
           name: "Cursos", 

@@ -664,16 +664,32 @@ function Router() {
         {() => user?.portalType === "admin" ? <EnrollmentsIndexRedirect /> : <Redirect to="/admin" />}
       </Route>
 
+      <Route path="/admin/enrollments/list">
+        {() => user?.portalType === "admin" ? <EnrollmentsPage /> : <Redirect to="/admin" />}
+      </Route>
+
       <Route path="/admin/enrollments/new">
         {() => user?.portalType === "admin" ? <NewEnrollmentRedirect /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/enrollments/create">
+        {() => user?.portalType === "admin" ? <NewEnrollmentPage /> : <Redirect to="/admin" />}
       </Route>
 
       <Route path="/admin/enrollments/polo">
         {() => user?.portalType === "admin" ? <PoloEnrollmentsRedirect /> : <Redirect to="/admin" />}
       </Route>
 
+      <Route path="/admin/enrollments/polo-list">
+        {() => user?.portalType === "admin" ? <PoloEnrollmentsPageAdmin /> : <Redirect to="/admin" />}
+      </Route>
+
       <Route path="/admin/enrollments/admin-polo-new">
         {() => user?.portalType === "admin" ? <AdminPoloNewEnrollmentRedirect /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/enrollments/polo-create">
+        {() => user?.portalType === "admin" ? <AdminPoloNewEnrollmentPage /> : <Redirect to="/admin" />}
       </Route>
 
       {/* Rotas de Contato removidas - Substituídas pela Integração Asaas */}
