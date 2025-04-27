@@ -1,0 +1,105 @@
+Checklist Final - Implantação do Módulo Pedagógico Edunéxia
+🎯 Organização de Estrutura de Páginas e Componentes
+ Página /admin/academico/disciplinas
+
+Lista disciplinas cadastradas.
+
+Botão "Nova Disciplina".
+
+Botão "Gerenciar Conteúdo" levando para /disciplinas/:id/content.
+
+ Página /admin/academico/disciplinas/nova
+
+Formulário para cadastro de nova disciplina (Nome, Código, Carga Horária).
+
+ Página /admin/academico/disciplinas/[id]/content
+
+Exibe todos os módulos pedagógicos: vídeos, e-books, simulado e avaliação final.
+
+🧩 Componentes Implementados
+ VideoManager
+
+Listagem de vídeos.
+
+Visualização interna dos vídeos (YouTube, Vimeo, MP4).
+
+Botão "Adicionar vídeo" com Modal.
+
+ EbookManager
+
+Exibição de e-books estáticos.
+
+Visualização interna de PDFs e Drive.
+
+Botão "Adicionar e-book" com Modal.
+
+ InteractiveEbookManager
+
+Exibição de e-books interativos (links).
+
+Visualização interna.
+
+ SimuladoManager
+
+Cadastro e listagem de até 30 questões.
+
+Modal para adicionar nova questão (enunciado, alternativas, resposta correta).
+
+ AvaliacaoFinalManager
+
+Cadastro e listagem de até 10 questões.
+
+Modal para adicionar nova questão.
+
+ CompletenessChecker
+
+Indica se a disciplina está completa (vídeos, e-books, simulados, avaliações).
+
+📡 Integração com APIs (disciplinasService.ts)
+ API para vídeos (listarVideos, adicionarVideo).
+
+ API para e-book estático (buscarEbookEstatico, adicionarEbookEstatico).
+
+ API para e-book interativo (buscarEbookInterativo, adicionarEbookInterativo).
+
+ API para simulado (listarSimulado, adicionarQuestaoSimulado).
+
+ API para avaliação final (listarAvaliacaoFinal, adicionarQuestaoAvaliacaoFinal).
+
+ API para checar completude da disciplina.
+
+🎨 Responsividade e Usabilidade
+ Modais funcionando para adicionar conteúdos sem sair da tela.
+
+ Visualização de e-books e vídeos direto na plataforma (sem abrir novas abas).
+
+ Layout bonito, padronizado e fluido (botões, inputs, grids).
+
+ Mensagens de estado amigáveis ("Nenhum conteúdo cadastrado", etc).
+
+🧪 Testes Básicos
+ Testar criação de uma nova disciplina do início ao fim.
+
+ Testar cadastro de vídeos (YouTube, Vimeo e MP4).
+
+ Testar cadastro de e-books (PDF direto e Google Drive).
+
+ Testar cadastro de questões no Simulado (até 30).
+
+ Testar cadastro de questões na Avaliação Final (até 10).
+
+ Confirmar que a checagem de completude funciona corretamente.
+
+🛠 Sugestões Extras (opcional)
+ Implementar loading spinner enquanto carrega dados (pequeno).
+
+ Confirmação visual (toast) ao salvar um vídeo, e-book ou questão.
+
+ Botão para deletar vídeos, e-books ou questões cadastradas (CRUD completo).
+
+🎯 Resultado esperado depois de cumprir o checklist:
+✅ Sistema 100% funcional para gerenciar todo o conteúdo pedagógico das disciplinas.
+
+✅ Usuários (administradores) poderão trabalhar sem sair da plataforma, com alta fluidez.
+
+✅ Alunos verão materiais internos, com excelente experiência de navegação.

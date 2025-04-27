@@ -1,0 +1,63 @@
+# Documentação: Proteção Global de DOM (Fix InsertBefore)
+
+## 📌 Contexto
+Durante o desenvolvimento e produção do sistema Edunéxia, identificamos que erros como:
+
+```
+Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.
+```
+
+podem ocorrer em situações de manipulação de DOM (Document Object Model), especialmente nos módulos de Matrículas Simplificadas e Cadastro de Disciplinas.
+
+## 🛠️ Solução Implementada
+
+Foi criada uma **proteção global para o método `insertBefore`** para garantir que ele só seja chamado se o `referenceNode` for de fato filho do `parentNode`.
+
+Essa correção está implementada no arquivo:
+
+```
+client/src/dom-fixes.js
+```
+
+### 👉 Código aplicado:
+
+```javascript
+const originalInsertBefore = Node.prototype.insertBefore;
+Node.prototype.insertBefore = function (newNode, referenceNode) {
+  if (referenceNode && !this.contains(referenceNode)) {
+    console.warn('DOM Fix: referenceNode não é filho, usando appendChild em vez de insertBefore');
+    return this.appendChild(newNode);
+  }
+  return originalInsertBefore.call(this, newNode, referenceNode);
+};
+```
+
+### 👉 Integração no projeto
+
+O arquivo `dom-fixes.js` é importado no ponto de entrada da aplicação:
+
+```
+client/src/main.tsx
+```
+
+```typescript
+import "./dom-fixes";
+```
+
+Dessa forma, o fix é aplicado globalmente assim que a aplicação é carregada.
+
+## ✅ Resultados Obtidos
+- O erro de `insertBefore` foi eliminado.
+- Módulos de Matrícula, Disciplinas e outros que manipulam DOM se tornaram mais estáveis.
+- Navegadores que antes apresentavam inconsistências agora se comportam de forma padronizada.
+
+## 📝 Observações Futuras
+- Nunca remover o import de `dom-fixes.js` no `main.tsx`.
+- Esta proteção cobre qualquer tentativa de uso inadequado do `insertBefore` em toda a aplicação.
+- Em novos módulos, não será necessário adicionar verificadores individuais para `insertBefore`.
+
+---
+
+**Edunéxia** ✨
+*Plataforma feita para transformar a educação a distância no Brasil.*
+

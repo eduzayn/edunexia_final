@@ -1,0 +1,1 @@
+// Este arquivo foi removido como parte da limpeza de recursos de vídeo

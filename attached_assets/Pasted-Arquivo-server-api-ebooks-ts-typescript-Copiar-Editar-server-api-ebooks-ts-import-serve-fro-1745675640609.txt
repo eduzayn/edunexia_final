@@ -1,0 +1,106 @@
+Arquivo: server/api/ebooks.ts
+typescript
+Copiar
+Editar
+// server/api/ebooks.ts
+
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+
+serve(async (req: Request) => {
+  const { method, url } = req;
+  const parsedUrl = new URL(url);
+
+  // Captura rotas tipo: /api/disciplines/33/ebooks
+  const ebookRegex = /^\/api\/disciplines\/(\d+)\/ebooks$/;
+  const match = parsedUrl.pathname.match(ebookRegex);
+
+  if (match) {
+    const disciplinaId = match[1]; // ID da disciplina extraído da URL
+
+    if (method === "POST") {
+      try {
+        const body = await req.json();
+
+        const { title, description, contentUrl, contentType } = body;
+
+        if (!contentUrl) {
+          return new Response(
+            JSON.stringify({ success: false, error: "URL do conteúdo é obrigatória." }),
+            { headers: { "Content-Type": "application/json" }, status: 400 }
+          );
+        }
+
+        // Simulação de salvamento - aqui seria a lógica de banco de dados
+        const novoEbook = {
+          disciplinaId,
+          title,
+          description,
+          contentUrl,
+          contentType,
+          createdAt: new Date().toISOString(),
+        };
+
+        console.log("E-book salvo:", novoEbook);
+
+        return new Response(
+          JSON.stringify({ success: true, ebook: novoEbook }),
+          { headers: { "Content-Type": "application/json" }, status: 201 }
+        );
+      } catch (error) {
+        console.error("Erro ao salvar e-book:", error);
+        return new Response(
+          JSON.stringify({ success: false, error: "Erro interno ao processar o e-book." }),
+          { headers: { "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+    }
+  }
+
+  // Se não casou com a rota esperada
+  return new Response(
+    JSON.stringify({ success: false, error: "Rota não encontrada." }),
+    { headers: { "Content-Type": "application/json" }, status: 404 }
+  );
+});
+📜 O que esse endpoint faz:
+Aceita POST na URL /api/disciplines/{id}/ebooks.
+
+Lê o corpo da requisição JSON com os campos: title, description, contentUrl, contentType.
+
+Retorna um JSON padronizado:
+
+Se sucesso ➔ { success: true, ebook: {dados} }
+
+Se erro ➔ { success: false, error: "mensagem de erro" }
+
+Nunca retorna HTML, evitando erro no fetch frontend.
+
+🔥 Como integrar
+Coloque esse arquivo dentro da pasta do seu backend (ex: server/api/ebooks.ts).
+
+Verifique se o Replit/Deploy está servindo a pasta /api/ corretamente.
+
+No frontend (client), confirme que o fetch está chamando corretamente:
+
+typescript
+Copiar
+Editar
+await fetch(`/api/disciplines/${disciplinaId}/ebooks`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    title: titulo,
+    description: descricao,
+    contentUrl: urlDoConteudo,
+    contentType: tipoDeConteudo,
+  }),
+});
+✅ Depois de aplicado:
+O erro Resposta não é JSON vai desaparecer.
+
+O salvamento do e-book interativo vai funcionar normalmente.
+
+O aluno poderá ver as prévias de Drive, PDF, MP4, YouTube, Vimeo etc.
+

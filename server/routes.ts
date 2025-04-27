@@ -66,7 +66,7 @@ import {
   getPortalAccessReport
 } from './controllers/portal-access-report-controller';
 import disciplineRoutes from './routes/discipline-routes'; // Added import for discipline routes
-import disciplineDetailRoute from './routes/discipline'; // Route for individual discipline by ID
+// Rota antiga de disciplinas removida
 
 // Armazenamento de sessão simplificado (em memória)
 // Definição movida para shared/active-users.ts
@@ -843,6 +843,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Rota para criar disciplinas na API principal
+  app.post('/api/admin/disciplines', async (req, res) => {
+    console.log('POST /api/admin/disciplines - Redirecionando para /api-json/admin/disciplines');
+    
+    try {
+      // Garantir que o body do request foi lido corretamente
+      const bodyData = req.body;
+      console.log('Dados recebidos:', bodyData);
+      
+      // Fazer uma requisição para a rota JSON
+      const response = await fetch(`${req.protocol}://${req.get('host')}/api-json/admin/disciplines`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers.authorization || ''
+        },
+        body: JSON.stringify(bodyData)
+      });
+      
+      const jsonResponse = await response.json();
+      return res.status(response.status).json(jsonResponse);
+    } catch (error) {
+      console.error('Erro ao processar requisição para criar disciplina:', error);
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Erro interno do servidor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // Rota para criar disciplinas
+  app.post('/api-json/admin/disciplines', async (req, res) => {
+    console.log('POST /api-json/admin/disciplines - Criando nova disciplina');
+    console.log('Dados recebidos:', req.body);
+    
+    try {
+      const { code, name, description, workload } = req.body;
+      
+      // Validação básica
+      if (!code || !name || !description || !workload) {
+        return res.status(400).json({
+          success: false,
+          message: 'Todos os campos obrigatórios devem ser preenchidos',
+          requiredFields: ['code', 'name', 'description', 'workload']
+        });
+      }
+      
+      // Verificar se já existe uma disciplina com o mesmo código
+      const existingDiscipline = await storage.getDisciplineByCode(code);
+      if (existingDiscipline) {
+        return res.status(400).json({
+          success: false,
+          message: 'Já existe uma disciplina com este código',
+          code
+        });
+      }
+      
+      // Criar a disciplina
+      const newDiscipline = await storage.createDiscipline({
+        code,
+        name,
+        description,
+        workload: parseInt(workload),
+        syllabus: req.body.syllabus || '', // Ementa opcional
+        contentStatus: 'incomplete',
+        createdById: (req as any).auth?.userId || null
+      });
+      
+      console.log('Nova disciplina criada com sucesso:', newDiscipline);
+      return res.status(201).json({
+        success: true,
+        message: 'Disciplina criada com sucesso',
+        data: newDiscipline
+      });
+    } catch (error) {
+      console.error('Erro ao criar disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao criar disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
   // Rota específica para /api-json/admin/disciplines/:id
   app.get('/api-json/admin/disciplines/:id', requireAuth, async (req, res) => {
     try {
@@ -1087,7 +1172,1579 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', financeRouter);
   app.use('/api/admin', disciplineRoutes); // Added route for discipline routes
   app.use('/api-json/admin', disciplineRoutes); // Duplicate for API JSON routes
-  app.use(disciplineDetailRoute); // Route for accessing discipline by ID
+  
+  // Novas rotas do módulo pedagógico foram comentadas por problemas de compatibilidade
+  // As rotas serão importadas corretamente em uma futura atualização
+  // app.use('/api', pedagogicoRoutes);
+  // app.use('/api-json', pedagogicoRoutes);
+  // Rota antiga de disciplinas removida
+  
+  // Implementa diretamente as rotas de e-books interativos aqui
+  // Rota para tratar e-books interativos - GET
+  app.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      const disciplineId = req.params.id;
+      const discipline = await storage.getDiscipline(Number(disciplineId));
+      
+      if (!discipline) {
+        return res.status(404).json({ success: false, error: "Disciplina não encontrada" });
+      }
+      
+      // Verifique se há e-book interativo associado à disciplina
+      // Busca tanto a URL quanto os dados JSON
+      const result = await pool.query(`
+        SELECT id, ebook_interativo_url AS "url", 
+               ebook_interativo_data AS "ebookData",
+               title, description
+        FROM disciplines 
+        WHERE id = $1
+      `, [disciplineId]);
+      
+      const dbResult = result.rows[0];
+      let ebook = dbResult;
+      
+      // Verificar se temos dados JSON para o e-book
+      if (dbResult && dbResult.ebookData) {
+        try {
+          // Tentar parsear os dados JSON armazenados
+          const ebookData = JSON.parse(dbResult.ebookData);
+          console.log(`Dados JSON do e-book interativo encontrados:`, ebookData);
+          
+          // Mesclar os dados do JSON com os resultados da consulta
+          ebook = {
+            ...dbResult,
+            ...ebookData
+          };
+        } catch (jsonError) {
+          console.error(`Erro ao parsear dados JSON do e-book:`, jsonError);
+        }
+      }
+      
+      const hasInteractiveEbook = (ebook && (ebook.url || ebook.embedCode));
+      
+      // Registrar no console
+      console.log(`Verificando e-book interativo para disciplina ${disciplineId}: ` +
+                  `ebookInterativoUrl=${hasInteractiveEbook ? ebook.url : 'null'}`);
+      
+      // Informações adicionais para facilitar o debug
+      if (hasInteractiveEbook) {
+        console.log(`E-book interativo encontrado para disciplina ${disciplineId}:`, ebook);
+      }
+      
+      // Retornar campos no formato esperado pelo frontend
+      return res.json({
+        id: parseInt(disciplineId),
+        available: !!hasInteractiveEbook,
+        url: ebook?.url || null,
+        title: ebook?.title || ebook?.name || null,
+        description: ebook?.description || null,
+        type: ebook?.type || "link",
+        embedCode: ebook?.embedCode || null,
+        // Adicionar campo também no formato original para compatibilidade
+        interactiveEbookUrl: ebook?.url || null,
+        name: ebook?.title || ebook?.name || null
+      });
+    } catch (error) {
+      console.error("Erro ao buscar e-book interativo:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Erro ao buscar e-book interativo." 
+      });
+    }
+  });
+
+  // Rota para salvar e-book interativo - POST
+  app.post('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      const disciplineId = req.params.id;
+      const { title, description, url, type, embedCode } = req.body;
+      
+      console.log(`POST /api/disciplines/${disciplineId}/interactive-ebook - Salvando e-book interativo:`, 
+                { title, type, url: url?.substring(0, 50) + '...' });
+      
+      if (!disciplineId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "ID da disciplina é obrigatório." 
+        });
+      }
+      
+      // Validação básica
+      if (type === 'link' && !url) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "URL é obrigatória para e-books interativos do tipo link." 
+        });
+      }
+      
+      if ((type === 'embed' || type === 'iframe') && !embedCode) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Código de incorporação é obrigatório para e-books do tipo embed/iframe." 
+        });
+      }
+      
+      // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
+      const ebookData = JSON.stringify({
+        title,
+        description,
+        url,
+        type,
+        embedCode
+      });
+      
+      // Atualizar a disciplina com os dados do e-book
+      const result = await pool.query(`
+        UPDATE disciplines 
+        SET 
+          ebook_interativo_url = $1,
+          ebook_interativo_data = $2
+        WHERE id = $3
+        RETURNING id
+      `, [url, ebookData, disciplineId]);
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ 
+          success: false, 
+          error: "Disciplina não encontrada." 
+        });
+      }
+      
+      return res.json({ 
+        success: true, 
+        message: "E-book interativo salvo com sucesso.",
+        data: {
+          id: parseInt(disciplineId),
+          title,
+          description,
+          url,
+          type,
+          embedCode
+        }
+      });
+      
+    } catch (error) {
+      console.error("Erro ao salvar e-book interativo:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Erro interno ao salvar e-book interativo." 
+      });
+    }
+  });
+
+  // Rota para atualizar e-book interativo - PUT
+  app.put('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      const disciplineId = req.params.id;
+      const { title, description, url, type, embedCode } = req.body;
+      
+      console.log(`PUT /api/disciplines/${disciplineId}/interactive-ebook - Atualizando e-book interativo`);
+      
+      // Salvando os dados do e-book em formato JSON na coluna ebook_interativo_data
+      const ebookData = JSON.stringify({
+        title,
+        description,
+        url,
+        type,
+        embedCode
+      });
+      
+      // Atualizando no banco de dados
+      await pool.query(`
+        UPDATE disciplines 
+        SET 
+          ebook_interativo_url = $1,
+          ebook_interativo_data = $2
+        WHERE id = $3
+      `, [url, ebookData, disciplineId]);
+      
+      return res.json({ 
+        success: true, 
+        message: "E-book interativo atualizado com sucesso.",
+        data: {
+          id: parseInt(disciplineId),
+          title,
+          description,
+          url,
+          type,
+          embedCode
+        }
+      });
+      
+    } catch (error) {
+      console.error("Erro ao atualizar e-book interativo:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Erro interno ao atualizar e-book interativo." 
+      });
+    }
+  });
+  
+  // Rota para excluir e-book interativo - DELETE
+  app.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      const disciplineId = req.params.id;
+      
+      console.log(`DELETE /api/disciplines/${disciplineId}/interactive-ebook - Removendo e-book interativo`);
+      
+      // Limpando os campos no banco de dados
+      await pool.query(`
+        UPDATE disciplines 
+        SET 
+          ebook_interativo_url = NULL,
+          ebook_interativo_data = NULL
+        WHERE id = $1
+      `, [disciplineId]);
+      
+      console.log(`E-book interativo excluído para disciplina ${disciplineId}`);
+      
+      return res.json({ 
+        success: true, 
+        message: "E-book interativo removido com sucesso."
+      });
+      
+    } catch (error) {
+      console.error("Erro ao excluir e-book interativo:", error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Erro interno ao excluir e-book interativo." 
+      });
+    }
+  });
+
+  // ==================== APIs para gerenciamento de vídeos ====================
+  
+  // Listar vídeos de uma disciplina
+  app.get('/api/disciplines/:id/videos', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/videos - Listando vídeos`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Na implementação real, buscaríamos no banco
+      // Por enquanto, retornaremos dados simulados ou array vazio
+      const videos = await pool.query(`
+        SELECT id, url, title, description, created_at, updated_at
+        FROM discipline_videos 
+        WHERE discipline_id = $1
+        ORDER BY created_at DESC
+      `, [disciplineId])
+        .then(result => result.rows)
+        .catch(err => {
+          console.error('Erro ao consultar vídeos:', err);
+          return [];
+        });
+      
+      return res.json({
+        success: true,
+        data: videos || []
+      });
+      
+    } catch (error) {
+      console.error('Erro ao listar vídeos:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar vídeos',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar vídeo a uma disciplina
+  app.post('/api/disciplines/:id/videos', async (req, res) => {
+    try {
+      console.log(`POST /api/disciplines/${req.params.id}/videos - Adicionando vídeo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { url, title, description } = req.body;
+      
+      // Validação básica
+      if (!url) {
+        return res.status(400).json({
+          success: false,
+          message: 'URL do vídeo é obrigatória'
+        });
+      }
+      
+      // Inserir o vídeo no banco
+      try {
+        // Verificar se a tabela discipline_videos existe, caso contrário, criar
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_videos (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL,
+            url TEXT NOT NULL,
+            title TEXT,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Inserir o vídeo
+        const result = await pool.query(`
+          INSERT INTO discipline_videos (discipline_id, url, title, description)
+          VALUES ($1, $2, $3, $4)
+          RETURNING *
+        `, [disciplineId, url, title || null, description || null]);
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Vídeo adicionado com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao inserir vídeo no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao adicionar vídeo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao adicionar vídeo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover vídeo de uma disciplina
+  app.delete('/api/disciplines/:disciplineId/videos/:videoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const videoId = parseInt(req.params.videoId);
+      
+      if (isNaN(disciplineId) || isNaN(videoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Remover o vídeo
+      try {
+        const result = await pool.query(`
+          DELETE FROM discipline_videos
+          WHERE id = $1 AND discipline_id = $2
+          RETURNING id
+        `, [videoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Vídeo não encontrado ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Vídeo removido com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover vídeo do banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover vídeo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover vídeo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // ==================== APIs para gerenciamento de e-books ====================
+  
+  // Buscar e-book de uma disciplina
+  app.get('/api/disciplines/:id/ebook', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/ebook - Buscando e-book`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Buscar e-book desta disciplina
+      try {
+        const result = await pool.query(`
+          SELECT id, url, title, description, created_at, updated_at
+          FROM discipline_ebooks 
+          WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'E-book não encontrado para esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        // Se a tabela não existir, retornar 404
+        console.error('Erro ao buscar e-book do banco:', dbError);
+        return res.status(404).json({
+          success: false,
+          message: 'E-book não encontrado para esta disciplina'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao buscar e-book:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar e-book',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Salvar ou atualizar e-book de uma disciplina
+  app.put('/api/disciplines/:id/ebook', async (req, res) => {
+    try {
+      console.log(`PUT /api/disciplines/${req.params.id}/ebook - Salvando e-book`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { url, title, description } = req.body;
+      
+      // Validação básica
+      if (!url) {
+        return res.status(400).json({
+          success: false,
+          message: 'URL do e-book é obrigatória'
+        });
+      }
+      
+      // Criar a tabela se não existir
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_ebooks (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL UNIQUE,
+            url TEXT NOT NULL,
+            title TEXT,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Verificar se já existe um e-book para esta disciplina
+        const checkResult = await pool.query(`
+          SELECT id FROM discipline_ebooks WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        let result;
+        
+        if (checkResult.rows.length > 0) {
+          // Atualizar e-book existente
+          result = await pool.query(`
+            UPDATE discipline_ebooks
+            SET url = $1, title = $2, description = $3, updated_at = NOW()
+            WHERE discipline_id = $4
+            RETURNING *
+          `, [url, title || null, description || null, disciplineId]);
+        } else {
+          // Inserir novo e-book
+          result = await pool.query(`
+            INSERT INTO discipline_ebooks (discipline_id, url, title, description)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *
+          `, [disciplineId, url, title || null, description || null]);
+        }
+        
+        return res.json({
+          success: true,
+          message: 'E-book salvo com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro de banco ao salvar e-book:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao salvar e-book:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao salvar e-book',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // ==================== APIs para gerenciamento de simulados ====================
+  
+  // Listar questões do simulado
+  app.get('/api/disciplines/:id/simulado', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/simulado - Listando questões do simulado`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Verificar se a tabela discipline_simulado_questoes existe
+        const result = await pool.query(`
+          SELECT id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+          FROM discipline_simulado_questoes 
+          WHERE discipline_id = $1
+          ORDER BY created_at DESC
+        `, [disciplineId])
+          .catch(err => {
+            console.log("Simulado ainda não possui questões ou tabela não existe:", err.message);
+            return { rows: [] };
+          });
+        
+        return res.json({
+          success: true,
+          data: result.rows || []
+        });
+      } catch (dbError) {
+        console.error('Erro ao consultar questões do simulado:', dbError);
+        return res.json({
+          success: true,
+          data: []
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao listar questões do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar questões do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar questão ao simulado
+  app.post('/api/disciplines/:id/simulado', async (req, res) => {
+    try {
+      console.log(`POST /api/disciplines/${req.params.id}/simulado - Adicionando questão ao simulado`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Criar a tabela se não existir
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_simulado_questoes (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL,
+            enunciado TEXT NOT NULL,
+            alternativas TEXT[] NOT NULL,
+            resposta_correta INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Inserir a questão
+        const result = await pool.query(`
+          INSERT INTO discipline_simulado_questoes (discipline_id, enunciado, alternativas, resposta_correta)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [disciplineId, enunciado, alternativas, respostaCorreta]);
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Questão adicionada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao inserir questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao adicionar questão ao simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao adicionar questão ao simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Atualizar questão do simulado
+  app.put('/api/disciplines/:disciplineId/simulado/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Atualizar a questão
+        const result = await pool.query(`
+          UPDATE discipline_simulado_questoes
+          SET enunciado = $1, alternativas = $2, resposta_correta = $3, updated_at = NOW()
+          WHERE id = $4 AND discipline_id = $5
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [enunciado, alternativas, respostaCorreta, questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão atualizada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao atualizar questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao atualizar questão do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao atualizar questão do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover questão do simulado
+  app.delete('/api/disciplines/:disciplineId/simulado/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover a questão
+        const result = await pool.query(`
+          DELETE FROM discipline_simulado_questoes
+          WHERE id = $1 AND discipline_id = $2
+          RETURNING id
+        `, [questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão removida com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover questão do banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover questão do simulado:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover questão do simulado',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // ==================== APIs para gerenciamento de avaliação final ====================
+  
+  // Listar questões da avaliação final
+  app.get('/api/disciplines/:id/avaliacao-final', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/avaliacao-final - Listando questões da avaliação final`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Verificar se a tabela discipline_avaliacao_final_questoes existe
+        const result = await pool.query(`
+          SELECT id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+          FROM discipline_avaliacao_final_questoes 
+          WHERE discipline_id = $1
+          ORDER BY created_at DESC
+        `, [disciplineId])
+          .catch(err => {
+            console.log("Avaliação Final ainda não possui questões ou tabela não existe:", err.message);
+            return { rows: [] };
+          });
+        
+        return res.json({
+          success: true,
+          data: result.rows || []
+        });
+      } catch (dbError) {
+        console.error('Erro ao consultar questões da avaliação final:', dbError);
+        return res.json({
+          success: true,
+          data: []
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao listar questões da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar questões da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Adicionar questão à avaliação final
+  app.post('/api/disciplines/:id/avaliacao-final', async (req, res) => {
+    try {
+      console.log(`POST /api/disciplines/${req.params.id}/avaliacao-final - Adicionando questão à avaliação final`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Verificar o limite de 10 questões
+        const countResult = await pool.query(`
+          SELECT COUNT(*) FROM discipline_avaliacao_final_questoes
+          WHERE discipline_id = $1
+        `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+        
+        const questoesCount = parseInt(countResult.rows[0]?.count || '0');
+        
+        if (questoesCount >= 10) {
+          return res.status(400).json({
+            success: false,
+            message: 'Limite de 10 questões para a avaliação final alcançado'
+          });
+        }
+        
+        // Criar a tabela se não existir
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS discipline_avaliacao_final_questoes (
+            id SERIAL PRIMARY KEY,
+            discipline_id INTEGER NOT NULL,
+            enunciado TEXT NOT NULL,
+            alternativas TEXT[] NOT NULL,
+            resposta_correta INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        
+        // Inserir a questão
+        const result = await pool.query(`
+          INSERT INTO discipline_avaliacao_final_questoes (discipline_id, enunciado, alternativas, resposta_correta)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [disciplineId, enunciado, alternativas, respostaCorreta]);
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Questão adicionada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao inserir questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao adicionar questão à avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao adicionar questão à avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Atualizar questão da avaliação final
+  app.put('/api/disciplines/:disciplineId/avaliacao-final/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { enunciado, alternativas, respostaCorreta } = req.body;
+      
+      // Validação básica
+      if (!enunciado) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enunciado da questão é obrigatório'
+        });
+      }
+      
+      if (!Array.isArray(alternativas) || alternativas.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: 'A questão deve ter pelo menos 2 alternativas'
+        });
+      }
+      
+      if (respostaCorreta === undefined || respostaCorreta < 0 || respostaCorreta >= alternativas.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Resposta correta inválida'
+        });
+      }
+      
+      try {
+        // Atualizar a questão
+        const result = await pool.query(`
+          UPDATE discipline_avaliacao_final_questoes
+          SET enunciado = $1, alternativas = $2, resposta_correta = $3, updated_at = NOW()
+          WHERE id = $4 AND discipline_id = $5
+          RETURNING id, enunciado, alternativas, resposta_correta as "respostaCorreta"
+        `, [enunciado, alternativas, respostaCorreta, questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão atualizada com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao atualizar questão no banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao atualizar questão da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao atualizar questão da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover questão da avaliação final
+  app.delete('/api/disciplines/:disciplineId/avaliacao-final/:questaoId', async (req, res) => {
+    try {
+      const disciplineId = parseInt(req.params.disciplineId);
+      const questaoId = parseInt(req.params.questaoId);
+      
+      if (isNaN(disciplineId) || isNaN(questaoId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'IDs inválidos' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover a questão
+        const result = await pool.query(`
+          DELETE FROM discipline_avaliacao_final_questoes
+          WHERE id = $1 AND discipline_id = $2
+          RETURNING id
+        `, [questaoId, disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Questão não encontrada ou não pertence a esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'Questão removida com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover questão do banco:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover questão da avaliação final:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover questão da avaliação final',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // ==================== APIs para gerenciamento de e-book interativo ====================
+  
+  // Buscar e-book interativo
+  app.get('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/interactive-ebook - Buscando e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Buscar o e-book interativo
+        const result = await pool.query(`
+          SELECT id, url, title, description 
+          FROM discipline_interactive_ebooks 
+          WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.json({
+            success: true,
+            data: null
+          });
+        }
+        
+        return res.json({
+          success: true,
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao buscar e-book interativo:', dbError);
+        return res.json({
+          success: true,
+          data: null
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao buscar e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Salvar e-book interativo
+  app.put('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`PUT /api/disciplines/${req.params.id}/interactive-ebook - Salvando e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      const { url, title, description } = req.body;
+      
+      // Validação básica
+      if (!url) {
+        return res.status(400).json({
+          success: false,
+          message: 'URL do e-book interativo é obrigatória'
+        });
+      }
+      
+      if (!title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Título do e-book interativo é obrigatório'
+        });
+      }
+      
+      try {
+        // Verificar se o e-book interativo já existe para esta disciplina
+        const checkResult = await pool.query(`
+          SELECT id FROM discipline_interactive_ebooks WHERE discipline_id = $1
+        `, [disciplineId]);
+        
+        let result;
+        
+        if (checkResult.rows.length > 0) {
+          // Atualizar o e-book existente
+          result = await pool.query(`
+            UPDATE discipline_interactive_ebooks 
+            SET url = $1, title = $2, description = $3, updated_at = NOW()
+            WHERE discipline_id = $4
+            RETURNING id, url, title, description
+          `, [url, title, description, disciplineId]);
+        } else {
+          // Criar a tabela se não existir
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS discipline_interactive_ebooks (
+              id SERIAL PRIMARY KEY,
+              discipline_id INTEGER NOT NULL UNIQUE,
+              url TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          
+          // Inserir novo e-book
+          result = await pool.query(`
+            INSERT INTO discipline_interactive_ebooks (discipline_id, url, title, description)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, url, title, description
+          `, [disciplineId, url, title, description]);
+        }
+        
+        return res.json({
+          success: true,
+          message: checkResult.rows.length > 0 
+            ? 'E-book interativo atualizado com sucesso' 
+            : 'E-book interativo adicionado com sucesso',
+          data: result.rows[0]
+        });
+      } catch (dbError) {
+        console.error('Erro ao salvar e-book interativo:', dbError);
+        throw dbError;
+      }
+      
+    } catch (error) {
+      console.error('Erro ao salvar e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao salvar e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Remover e-book interativo
+  app.delete('/api/disciplines/:id/interactive-ebook', async (req, res) => {
+    try {
+      console.log(`DELETE /api/disciplines/${req.params.id}/interactive-ebook - Removendo e-book interativo`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      try {
+        // Remover o e-book interativo
+        const result = await pool.query(`
+          DELETE FROM discipline_interactive_ebooks
+          WHERE discipline_id = $1
+          RETURNING id
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'E-book interativo não encontrado para esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'E-book interativo removido com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover e-book interativo:', dbError);
+        return res.status(404).json({
+          success: false,
+          message: 'E-book interativo não encontrado para esta disciplina'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover e-book interativo:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover e-book interativo',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // Remover e-book de uma disciplina
+  app.delete('/api/disciplines/:id/ebook', async (req, res) => {
+    try {
+      console.log(`DELETE /api/disciplines/${req.params.id}/ebook - Removendo e-book`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Remover o e-book
+      try {
+        const result = await pool.query(`
+          DELETE FROM discipline_ebooks
+          WHERE discipline_id = $1
+          RETURNING id
+        `, [disciplineId]);
+        
+        if (result.rows.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'E-book não encontrado para esta disciplina'
+          });
+        }
+        
+        return res.json({
+          success: true,
+          message: 'E-book removido com sucesso'
+        });
+      } catch (dbError) {
+        console.error('Erro ao remover e-book do banco:', dbError);
+        return res.status(404).json({
+          success: false,
+          message: 'E-book não encontrado para esta disciplina'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao remover e-book:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao remover e-book',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  // Verificar completude da disciplina
+  app.get('/api/disciplines/:id/completeness', async (req, res) => {
+    try {
+      console.log(`GET /api/disciplines/${req.params.id}/completeness - Verificando completude da disciplina`);
+      
+      const disciplineId = parseInt(req.params.id);
+      if (isNaN(disciplineId)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'ID de disciplina inválido' 
+        });
+      }
+      
+      // Verificar se a disciplina existe
+      const discipline = await storage.getDiscipline(disciplineId);
+      if (!discipline) {
+        return res.status(404).json({
+          success: false,
+          message: 'Disciplina não encontrada'
+        });
+      }
+      
+      // Verificar vídeos
+      const videosResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_videos 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const videoCount = parseInt(videosResult.rows[0]?.count || '0');
+      
+      // Verificar e-book estático
+      const ebookResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_ebooks 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const ebookCount = parseInt(ebookResult.rows[0]?.count || '0');
+      
+      // Verificar e-book interativo
+      const interactiveEbookResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_interactive_ebooks 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const interactiveEbookCount = parseInt(interactiveEbookResult.rows[0]?.count || '0');
+      
+      // Verificar simulado
+      const simuladoResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_simulado_questoes 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const simuladoCount = parseInt(simuladoResult.rows[0]?.count || '0');
+      
+      // Verificar avaliação final
+      const avaliacaoFinalResult = await pool.query(`
+        SELECT COUNT(*) as count FROM discipline_avaliacao_final_questoes 
+        WHERE discipline_id = $1
+      `, [disciplineId]).catch(() => ({ rows: [{ count: 0 }] }));
+      
+      const avaliacaoFinalCount = parseInt(avaliacaoFinalResult.rows[0]?.count || '0');
+      
+      // Verificar requisitos mínimos:
+      // - Pelo menos 1 vídeo
+      // - Um e-book (estático ou interativo)
+      // - Pelo menos 5 questões no simulado
+      // - Exatamente 10 questões na avaliação final
+      
+      const hasVideos = videoCount > 0;
+      const hasEbook = ebookCount > 0 || interactiveEbookCount > 0;
+      const hasSimulado = simuladoCount >= 5;
+      const hasAvaliacaoFinal = avaliacaoFinalCount === 10;
+      
+      const isComplete = hasVideos && hasEbook && hasSimulado && hasAvaliacaoFinal;
+      
+      const result = {
+        isComplete,
+        components: {
+          videos: {
+            status: hasVideos,
+            count: videoCount,
+            required: 1,
+            message: hasVideos ? 'OK' : 'É necessário ao menos 1 vídeo-aula'
+          },
+          ebooks: {
+            status: hasEbook,
+            count: ebookCount + interactiveEbookCount,
+            required: 1,
+            message: hasEbook ? 'OK' : 'É necessário ao menos 1 e-book (estático ou interativo)'
+          },
+          simulado: {
+            status: hasSimulado,
+            count: simuladoCount,
+            required: 5,
+            message: hasSimulado ? 'OK' : 'O simulado deve ter no mínimo 5 questões'
+          },
+          avaliacaoFinal: {
+            status: hasAvaliacaoFinal,
+            count: avaliacaoFinalCount,
+            required: 10,
+            message: hasAvaliacaoFinal ? 'OK' : 'A avaliação final deve ter exatamente 10 questões'
+          }
+        }
+      };
+      
+      return res.json({
+        success: true,
+        data: result
+      });
+      
+    } catch (error) {
+      console.error('Erro ao verificar completude da disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao verificar completude da disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // Rota para listar todas as disciplinas (adicionado para resolver erro 404)
+  app.get('/api/disciplines', requireAuth, async (req, res) => {
+    try {
+      console.log('GET /api/disciplines - Listando todas as disciplinas');
+      // Importando disciplinas do schema compartilhado
+      const { disciplines } = await import('@shared/schema');
+      const allDisciplines = await db.select().from(disciplines);
+      return res.status(200).json(allDisciplines);
+    } catch (error) {
+      console.error('Erro ao listar disciplinas:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Erro interno do servidor ao listar disciplinas' 
+      });
+    }
+  });
+  
   app.use('/api/certification', certificationPaymentRoutes); // Rotas para pagamento de certificação
   app.use('/api/certification/requests', certificationRequestRoutes); // Rotas para solicitações de certificação
   app.use('/api/certification/stats', certificationStatsRouter); // Estatísticas de certificação
@@ -1099,6 +2756,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(contractRoutes); // Rotas para contratos educacionais
   app.use(contractApiJsonRoutes); // Novas rotas JSON para contratos educacionais
   app.use('/api/enrollment-integration', enrollmentIntegrationRoutes); // Rotas para integração de matrículas
+  
+  // Rotas para gerenciamento de disciplinas
+  app.get('/api/disciplinas', requireAuth, async (req, res) => {
+    try {
+      const { listDisciplines } = await import('./api/disciplines');
+      return await listDisciplines(req, res);
+    } catch (error) {
+      console.error('Erro ao listar disciplinas:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao listar disciplinas',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+  
+  app.post('/api/disciplinas', requireAuth, async (req, res) => {
+    try {
+      const { createDiscipline } = await import('./api/disciplines');
+      return await createDiscipline(req, res);
+    } catch (error) {
+      console.error('Erro ao criar disciplina:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erro ao criar disciplina',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
   
   // Rota para buscar avaliações do aluno
   app.get('/api-json/student/assessments', requireStudent, async (req, res) => {
@@ -1746,66 +3432,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint para obter questões detalhadas de uma avaliação
-  app.get('/api/assessments/:id/questions', requireAuth, async (req, res) => {
-    try {
-      const assessmentId = parseInt(req.params.id);
-      if (isNaN(assessmentId)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'ID de avaliação inválido' 
-        });
-      }
-
-      // Verificar se a avaliação existe
-      const assessment = await storage.getAssessment(assessmentId);
-      if (!assessment) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Avaliação não encontrada' 
-        });
-      }
-
-      // Buscar as relações entre avaliação e questões
-      const assessmentQuestionRelations = await storage.getAssessmentQuestions(assessmentId);
-      if (!assessmentQuestionRelations || assessmentQuestionRelations.length === 0) {
-        return res.json({ 
-          success: true, 
-          data: [] 
-        });
-      }
-
-      // Buscar as questões completas
-      const questionPromises = assessmentQuestionRelations.map((relation) => 
-        storage.getQuestion(relation.questionId)
-      );
-      const questionsResults = await Promise.all(questionPromises);
-      
-      // Filtrar possíveis questões nulas e associar com ordem e peso
-      const questions = questionsResults
-        .map((question, index) => {
-          if (!question) return null;
-          const relation = assessmentQuestionRelations[index];
-          return {
-            ...question,
-            order: relation.order,
-            weight: relation.weight
-          };
-        })
-        .filter((q) => q !== null);
-
-      return res.json({ 
-        success: true, 
-        data: questions 
-      });
-    } catch (error) {
-      console.error('Erro ao buscar questões da avaliação:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Erro interno ao buscar questões da avaliação'
-      });
-    }
-  });
+  // Endpoint para questões e avaliações - removido
+  // Removemos o código problemático que estava causando erro de sintaxe
   
   // Endpoint para remover uma questão específica de uma avaliação
   app.delete('/api/assessments/:id/questions/:questionId', requireAuth, async (req, res) => {

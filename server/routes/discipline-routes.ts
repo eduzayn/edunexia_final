@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { createDiscipline, updateDiscipline } from '../controllers/disciplines-controller';
+import { createDiscipline, updateDiscipline, deleteDiscipline } from '../controllers/disciplines-controller';
 import { requireAuth } from '../middleware/auth';
 import { hasPermission } from '../middleware/permissions';
 
@@ -18,6 +18,32 @@ router.put('/disciplines/:id',
   requireAuth,
   hasPermission('discipline:update'),
   updateDiscipline
+);
+
+// Rota para excluir disciplina
+router.delete('/disciplines/:id',
+  requireAuth,
+  hasPermission('discipline:delete'),
+  deleteDiscipline
+);
+
+// Também adicionar as rotas sem o prefixo 'admin' para compatibilidade
+router.post('/admin/disciplines', 
+  requireAuth,
+  hasPermission('discipline:create'),
+  createDiscipline
+);
+
+router.put('/admin/disciplines/:id', 
+  requireAuth,
+  hasPermission('discipline:update'),
+  updateDiscipline
+);
+
+router.delete('/admin/disciplines/:id',
+  requireAuth,
+  hasPermission('discipline:delete'),
+  deleteDiscipline
 );
 
 export default router;
