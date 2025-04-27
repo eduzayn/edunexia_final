@@ -20,7 +20,7 @@ import studentChargesRoutes from './routes/student-charges-routes';
 import contractRoutes from './routes/contract-routes';
 import contractApiJsonRoutes from './routes/contracts-api-json';
 import enrollmentIntegrationRoutes from './routes/enrollment-integration-routes';
-import disciplinasRoutes from './routes/disciplinas-routes';
+// Removido import de disciplinasRoutes que estava duplicado
 import asaasCustomersService from './services/asaas-customers-service';
 import { storage } from './storage';
 import activeUsers, { setActiveUser, removeActiveUser, getActiveUserByToken, generateToken } from './shared/active-users';
@@ -824,14 +824,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/admin/disciplines', (req, res) => {
-    console.log('Redirecionando /api/admin/disciplines para /api-json/admin/disciplines');
+    console.log('Acessando diretamente /api/admin/disciplines sem redirecionamento');
     // Garantir que a resposta seja JSON
     res.setHeader('Content-Type', 'application/json');
 
     try {
+      // Verificar autenticação
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+      if (!token) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Você precisa estar autenticado para acessar este recurso.' 
+        });
+      }
+
+      const user = getActiveUserByToken(token);
+
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'Sessão inválida ou expirada. Faça login novamente.' 
+        });
+      }
+
       // Consultar diretamente da base de dados sem paginação
-      storage.getDisciplines()
+      storage.getAllDisciplines()
         .then(disciplines => {
+          console.log(`Retornando ${disciplines.length} disciplinas diretamente da API`);
           return res.status(200).json(disciplines);
         })
         .catch(error => {
@@ -885,6 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validação básica
       if (!code || !name || !description || !workload) {
+        console.log('Erro de validação: campos obrigatórios não preenchidos');
         return res.status(400).json({
           success: false,
           message: 'Todos os campos obrigatórios devem ser preenchidos',
@@ -893,8 +915,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar se já existe uma disciplina com o mesmo código
+      console.log('Verificando se o código já existe:', code);
       const existingDiscipline = await storage.getDisciplineByCode(code);
       if (existingDiscipline) {
+        console.log('Código já existe:', existingDiscipline);
         return res.status(400).json({
           success: false,
           message: 'Já existe uma disciplina com este código',
@@ -903,6 +927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Criar a disciplina
+      console.log('Tentando criar a disciplina com código:', code);
       const newDiscipline = await storage.createDiscipline({
         code,
         name,
@@ -3739,8 +3764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Registre outras rotas conforme necessário
   
-  // Registrar rotas simplificadas para disciplinas - sem necessidade de autenticação para desenvolvimento
-  app.use('/api', disciplinasRoutes);
+  // Rota duplicada removida - as disciplinas agora são tratadas apenas pela interface IStorage
 
   return server;
 }

@@ -67,9 +67,11 @@ export function DisciplineList() {
     isLoading, 
     error 
   } = useQuery<Discipline[]>({
-    queryKey: ['/api/disciplinas'],
+    queryKey: ['/api/admin/disciplines'],
     queryFn: async () => {
-      const response = await apiRequest('/api/disciplinas');
+      const response = await apiRequest('/api/admin/disciplines');
+      // Log para depuração
+      console.log('Disciplinas recebidas:', response);
       return response.data || [];
     }
   });
@@ -77,7 +79,7 @@ export function DisciplineList() {
   // Delete discipline mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/disciplinas/${id}`, {
+      return apiRequest(`/api/admin/disciplines/${id}`, {
         method: 'DELETE'
       });
     },
@@ -87,7 +89,7 @@ export function DisciplineList() {
         description: "A disciplina foi excluída com sucesso.",
         variant: "default",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/disciplinas'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] });
       setDisciplineToDelete(null);
     },
     onError: (error) => {
@@ -166,7 +168,7 @@ export function DisciplineList() {
               <Button 
                 variant="outline" 
                 className="mt-4"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/disciplinas'] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] })}
               >
                 Tentar novamente
               </Button>

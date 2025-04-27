@@ -1,12 +1,12 @@
 import { useParams } from "react-router-dom";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VideoManager } from "@/components/disciplinas/VideoManager";
-import { EbookManager } from "@/components/disciplinas/EbookManager";
-import { InteractiveEbookManager } from "@/components/disciplinas/InteractiveEbookManager";
-import { SimuladoManager } from "@/components/disciplinas/SimuladoManager";
-import { AvaliacaoFinalManager } from "@/components/disciplinas/AvaliacaoFinalManager";
-import { CompletenessChecker } from "@/components/disciplinas/CompletenessChecker";
+import { VideoManager } from "@/components/disciplines/VideoManager";
+import { EbookManager } from "@/components/disciplines/EbookManager";
+import { InteractiveEbookManager } from "@/components/disciplines/InteractiveEbookManager";
+import { SimuladoManager } from "@/components/disciplines/SimuladoManager";
+import { AvaliacaoFinalManager } from "@/components/disciplines/AvaliacaoFinalManager";
+import { CompletenessChecker } from "@/components/disciplines/CompletenessChecker";
 
 export default function DisciplinaContentPage() {
   const { id } = useParams<{ id: string }>();

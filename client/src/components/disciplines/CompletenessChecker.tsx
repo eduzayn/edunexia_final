@@ -48,7 +48,7 @@ export function CompletenessChecker({ disciplineId, onStatusChange, collapsed = 
     setError(null);
 
     try {
-      const response = await fetch(`/api/disciplinas/${disciplineId}/completeness`);
+      const response = await fetch(`/api/admin/disciplines/${disciplineId}/completeness`);
       
       if (!response.ok) {
         throw new Error(`Erro ao verificar completude: ${response.status}`);

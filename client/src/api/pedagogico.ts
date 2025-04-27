@@ -22,18 +22,18 @@ const fetchApi = async (url: string, options?: RequestInit) => {
 // API para gerenciamento de vídeos
 export const videoApi = {
   getAll: async (disciplineId: string): Promise<Video[]> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/videos`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/videos`);
   },
 
   create: async (disciplineId: string, video: Omit<Video, 'id'>): Promise<Video> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/videos`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/videos`, {
       method: 'POST',
       body: JSON.stringify(video)
     });
   },
 
   delete: async (disciplineId: string, videoId: string): Promise<void> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/videos/${videoId}`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/videos/${videoId}`, {
       method: 'DELETE'
     });
   }
@@ -42,11 +42,11 @@ export const videoApi = {
 // API para gerenciamento de e-book estático
 export const ebookEstaticoApi = {
   get: async (disciplineId: string): Promise<Ebook | null> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/ebook-estatico`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/ebook-estatico`);
   },
 
   create: async (disciplineId: string, ebook: FormData): Promise<Ebook> => {
-    const response = await fetch(apiUrl(`/api/disciplinas/${disciplineId}/ebook-estatico`), {
+    const response = await fetch(apiUrl(`/api/admin/disciplines/${disciplineId}/ebook-estatico`), {
       method: 'POST',
       body: ebook,
       headers: {
@@ -65,11 +65,11 @@ export const ebookEstaticoApi = {
 // API para gerenciamento de e-book interativo
 export const ebookInterativoApi = {
   get: async (disciplineId: string): Promise<InteractiveEbook | null> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/ebook-interativo`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/ebook-interativo`);
   },
 
   create: async (disciplineId: string, ebook: { title: string, url: string }): Promise<InteractiveEbook> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/ebook-interativo`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/ebook-interativo`, {
       method: 'POST',
       body: JSON.stringify(ebook)
     });
@@ -79,7 +79,7 @@ export const ebookInterativoApi = {
 // API para gerenciamento de simulados
 export const simuladoApi = {
   get: async (disciplineId: string): Promise<Simulado> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/simulado`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/simulado`);
   },
 
   addQuestion: async (disciplineId: string, question: { 
@@ -90,7 +90,7 @@ export const simuladoApi = {
     simuladoDescription?: string,
     simuladoTimeLimit?: number
   }): Promise<Question> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/simulado`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/simulado`, {
       method: 'POST',
       body: JSON.stringify(question)
     });
@@ -101,14 +101,14 @@ export const simuladoApi = {
     alternativas: string[], 
     respostaCorreta: number 
   }): Promise<Question> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/simulado/${questionId}`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/simulado/${questionId}`, {
       method: 'PUT',
       body: JSON.stringify(question)
     });
   },
 
   deleteQuestion: async (disciplineId: string, questionId: string): Promise<void> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/simulado/${questionId}`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/simulado/${questionId}`, {
       method: 'DELETE'
     });
   }
@@ -117,7 +117,7 @@ export const simuladoApi = {
 // API para gerenciamento de avaliação final
 export const avaliacaoFinalApi = {
   get: async (disciplineId: string): Promise<AvaliacaoFinal> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/avaliacao-final`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/avaliacao-final`);
   },
 
   addQuestion: async (disciplineId: string, question: { 
@@ -132,7 +132,7 @@ export const avaliacaoFinalApi = {
     avaliacaoMaxAttempts?: number,
     avaliacaoShowExplanations?: boolean
   }): Promise<Question> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/avaliacao-final`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/avaliacao-final`, {
       method: 'POST',
       body: JSON.stringify(question)
     });
@@ -144,14 +144,14 @@ export const avaliacaoFinalApi = {
     respostaCorreta: number,
     explanation?: string
   }): Promise<Question> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/avaliacao-final/${questionId}`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/avaliacao-final/${questionId}`, {
       method: 'PUT',
       body: JSON.stringify(question)
     });
   },
 
   deleteQuestion: async (disciplineId: string, questionId: string): Promise<void> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/avaliacao-final/${questionId}`, {
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/avaliacao-final/${questionId}`, {
       method: 'DELETE'
     });
   }
@@ -163,6 +163,6 @@ export const disciplineContentApi = {
     items: { id: string; name: string; isCompleted: boolean }[];
     progress: number;
   }> => {
-    return fetchApi(`/api/disciplinas/${disciplineId}/completude`);
+    return fetchApi(`/api/admin/disciplines/${disciplineId}/completeness`);
   }
 };

@@ -44,6 +44,7 @@ export interface IStorage {
   getDiscipline(id: number): Promise<Discipline | undefined>;
   getDisciplineByCode(code: string): Promise<Discipline | undefined>;
   getDisciplines(search?: string, limit?: number, offset?: number): Promise<Discipline[]>;
+  getAllDisciplines(): Promise<Discipline[]>;
   createDiscipline(discipline: InsertDiscipline): Promise<Discipline>;
   updateDiscipline(id: number, discipline: Partial<InsertDiscipline>): Promise<Discipline | undefined>;
   deleteDiscipline(id: number): Promise<boolean>;
@@ -274,6 +275,13 @@ export class DatabaseStorage implements IStorage {
     }
 
     return await query.orderBy(asc(disciplines.name));
+  }
+  
+  async getAllDisciplines(): Promise<Discipline[]> {
+    console.log("getAllDisciplines: Buscando todas as disciplinas sem filtros ou limites");
+    const result = await db.select().from(disciplines).orderBy(asc(disciplines.name));
+    console.log(`getAllDisciplines: Encontradas ${result.length} disciplinas`);
+    return result;
   }
 
   async createDiscipline(discipline: InsertDiscipline): Promise<Discipline> {
