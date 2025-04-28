@@ -52,6 +52,18 @@ export const disciplinesService = {
     const response = await apiRequestJson<ApiResponse<any>>(`/api/admin/disciplines/${id}`);
     return response.data;
   },
+
+  // Get all disciplines
+  async getAllDisciplines() {
+    try {
+      const response = await apiRequestJson<ApiResponse<any[]>>('/api/admin/disciplines');
+      console.log("getAllDisciplines response:", response);
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching all disciplines:", error);
+      return [];
+    }
+  },
   
   // Check discipline completeness
   async checkCompleteness(id: string): Promise<CompletenessResponse | null> {
@@ -219,5 +231,18 @@ export const disciplinesService = {
       data: question
     });
     return response.data;
+  },
+  
+  // Delete discipline
+  async deleteDiscipline(id: number) {
+    try {
+      await apiRequestJson(`/api/admin/disciplines/${id}`, {
+        method: "DELETE"
+      });
+      return true;
+    } catch (error) {
+      console.error("Error deleting discipline:", error);
+      throw error;
+    }
   }
 }; 

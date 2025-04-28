@@ -853,15 +853,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       storage.getAllDisciplines()
         .then(disciplines => {
           console.log(`Retornando ${disciplines.length} disciplinas diretamente da API`);
-          return res.status(200).json(disciplines);
+          return res.status(200).json({
+            success: true,
+            message: 'Disciplinas encontradas com sucesso',
+            data: disciplines
+          });
         })
         .catch(error => {
           console.error('Erro ao buscar disciplinas:', error);
-          return res.status(500).json({ error: 'Erro ao buscar disciplinas' });
+          return res.status(500).json({ 
+            success: false,
+            message: 'Erro ao buscar disciplinas',
+            error: error instanceof Error ? error.message : 'Erro desconhecido'
+          });
         });
     } catch (error) {
       console.error('Erro ao processar requisição de disciplinas:', error);
-      return res.status(500).json({ error: 'Erro interno do servidor' });
+      return res.status(500).json({ 
+        success: false,
+        message: 'Erro interno do servidor',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
   

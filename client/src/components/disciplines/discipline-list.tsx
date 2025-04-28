@@ -49,9 +49,13 @@ export function DisciplineList() {
   } = useQuery({
     queryKey: ["/api/admin/disciplines"],
     queryFn: async () => {
+      console.log("Executando queryFn para buscar disciplinas");
       const response = await disciplinesService.getAllDisciplines();
+      console.log("Resposta da consulta de disciplinas:", response);
       return response || [];
-    }
+    },
+    // Não armazenar em cache por muito tempo para evitar stale data
+    staleTime: 1000 * 60 // 1 minuto
   });
 
   // Delete discipline mutation

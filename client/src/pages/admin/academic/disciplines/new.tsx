@@ -20,7 +20,11 @@ export default function NewDisciplinePage() {
       
       // Após criar com sucesso, invalidar a consulta para forçar a recarga da lista
       console.log("Invalidando cache após criar disciplina");
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/disciplines'] });
+      // Invalidar a consulta com a mesma queryKey usada no componente DisciplineList
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/disciplines"] });
+      
+      // Garantir que a invalidação tenha efeito antes de redirecionar
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
       console.error("Erro ao criar disciplina:", error);
       throw error;
