@@ -138,6 +138,7 @@ import UsersRedirectPage from "@/pages/admin/people/users/index";
 import StudentsRedirectPage from "@/pages/admin/people/students/index";
 import TeachersRedirectPage from "@/pages/admin/people/teachers/index";
 import StaffRedirectPage from "@/pages/admin/people/staff/index";
+import RolesRedirectPage from "@/pages/admin/people/roles/index";
 
 // English version redirections for communication module
 import InboxRedirectPage from "@/pages/admin/communication/inbox/index";
@@ -813,6 +814,10 @@ function Router() {
 
       <Route path="/admin/people/staff">
         {() => user?.portalType === "admin" ? <StaffRedirectPage /> : <Redirect to="/admin" />}
+      </Route>
+
+      <Route path="/admin/people/roles">
+        {() => user?.portalType === "admin" ? <RolesRedirectPage /> : <Redirect to="/admin" />}
       </Route>
 
       {/* Rotas do Módulo de Auditoria */}

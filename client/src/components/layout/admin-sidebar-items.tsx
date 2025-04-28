@@ -131,37 +131,37 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
     ]
   };
 
-  // Categoria: Pessoas (reorganizada sem funcionalidades administrativas)
+  // Categoria: Pessoas
   const peopleCategory: SidebarCategory = {
-    name: "Pessoas",
+    name: "People",
     icon: <UsersIcon />,
     expanded: hasCategoryActiveItem({
-      name: "Pessoas",
+      name: "People",
       icon: <UsersIcon />,
       items: [
         { 
           name: "Usuários", 
           icon: <GroupIcon />, 
           href: "/admin/people/users",
-          active: currentPath === "/admin/people/users" || Boolean(currentPath && currentPath.includes("/admin/people/users/"))
+          active: currentPath === "/admin/people/users" || Boolean(currentPath && (currentPath.includes("/admin/people/users") || currentPath.includes("/admin/pessoas/users")))
         },
         { 
           name: "Alunos", 
           icon: <UserPlusIcon />, 
           href: "/admin/people/students",
-          active: currentPath === "/admin/people/students" || Boolean(currentPath && currentPath.includes("/admin/people/students"))
+          active: currentPath === "/admin/people/students" || Boolean(currentPath && (currentPath.includes("/admin/people/students") || currentPath.includes("/admin/pessoas/students")))
         },
         { 
           name: "Professores", 
           icon: <BadgeCheckIcon />, 
           href: "/admin/people/teachers",
-          active: currentPath === "/admin/people/teachers" || Boolean(currentPath && currentPath.includes("/admin/people/teachers"))
+          active: currentPath === "/admin/people/teachers" || Boolean(currentPath && (currentPath.includes("/admin/people/teachers") || currentPath.includes("/admin/pessoas/teachers")))
         },
         { 
-          name: "Colaboradores", 
+          name: "Staff", 
           icon: <GroupIcon />, 
           href: "/admin/people/staff",
-          active: currentPath === "/admin/people/staff" || Boolean(currentPath && currentPath.includes("/admin/people/staff"))
+          active: currentPath === "/admin/people/staff" || Boolean(currentPath && (currentPath.includes("/admin/people/staff") || currentPath.includes("/admin/pessoas/staff")))
         },
       ]
     }, currentPath),
@@ -170,25 +170,25 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         name: "Usuários", 
         icon: <GroupIcon />, 
         href: "/admin/people/users",
-        active: currentPath === "/admin/people/users" || Boolean(currentPath && currentPath.includes("/admin/people/users/"))
+        active: currentPath === "/admin/people/users" || Boolean(currentPath && (currentPath.includes("/admin/people/users") || currentPath.includes("/admin/pessoas/users")))
       },
       { 
         name: "Alunos", 
         icon: <UserPlusIcon />, 
         href: "/admin/people/students",
-        active: currentPath === "/admin/people/students" || Boolean(currentPath && currentPath.includes("/admin/people/students"))
+        active: currentPath === "/admin/people/students" || Boolean(currentPath && (currentPath.includes("/admin/people/students") || currentPath.includes("/admin/pessoas/students")))
       },
       { 
         name: "Professores", 
         icon: <BadgeCheckIcon />, 
         href: "/admin/people/teachers",
-        active: currentPath === "/admin/people/teachers" || Boolean(currentPath && currentPath.includes("/admin/people/teachers"))
+        active: currentPath === "/admin/people/teachers" || Boolean(currentPath && (currentPath.includes("/admin/people/teachers") || currentPath.includes("/admin/pessoas/teachers")))
       },
       { 
-        name: "Colaboradores", 
+        name: "Staff", 
         icon: <GroupIcon />, 
         href: "/admin/people/staff",
-        active: currentPath === "/admin/people/staff" || Boolean(currentPath && currentPath.includes("/admin/people/staff"))
+        active: currentPath === "/admin/people/staff" || Boolean(currentPath && (currentPath.includes("/admin/people/staff") || currentPath.includes("/admin/pessoas/staff")))
       },
     ]
   };
@@ -396,20 +396,20 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
         { 
           name: "Permissões Contextuais (ABAC)", 
           icon: <BadgeCheckIcon />, 
-          href: "/admin/pessoas/abac-permissions",
-          active: currentPath === "/admin/pessoas/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/pessoas/abac"))
+          href: "/admin/people/abac-permissions",
+          active: currentPath === "/admin/people/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/people/abac") || currentPath && currentPath.includes("/admin/pessoas/abac"))
         },
         { 
           name: "Funções & Permissões", 
           icon: <SecurityIcon />, 
-          href: "/admin/pessoas/roles",
-          active: currentPath === "/admin/pessoas/roles" || Boolean(currentPath && currentPath.includes("/admin/pessoas/roles"))
+          href: "/admin/people/roles",
+          active: currentPath === "/admin/people/roles" || Boolean(currentPath && (currentPath.includes("/admin/people/roles") || currentPath.includes("/admin/pessoas/roles")))
         },
         { 
           name: "Usuários Admin", 
           icon: <GroupIcon />, 
-          href: "/admin/pessoas/admin-users",
-          active: currentPath === "/admin/pessoas/admin-users" || Boolean(currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+          href: "/admin/people/admin-users",
+          active: currentPath === "/admin/people/admin-users" || Boolean(currentPath && (currentPath.includes("/admin/people/admin-users") || currentPath.includes("/admin/pessoas/admin-users")))
         },
         { 
           name: "Integrações", 
@@ -429,20 +429,20 @@ export function getAdminSidebarItems(currentPath: string): SidebarItemOrCategory
       { 
         name: "Permissões Contextuais (ABAC)", 
         icon: <BadgeCheckIcon />, 
-        href: "/admin/pessoas/abac-permissions",
-        active: currentPath === "/admin/pessoas/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/pessoas/abac"))
+        href: "/admin/people/abac-permissions",
+        active: currentPath === "/admin/people/abac-permissions" || Boolean(currentPath && currentPath.includes("/admin/people/abac") || currentPath && currentPath.includes("/admin/pessoas/abac"))
       },
       { 
         name: "Funções & Permissões", 
         icon: <SecurityIcon />, 
-        href: "/admin/pessoas/roles",
-        active: currentPath === "/admin/pessoas/roles" || Boolean(currentPath && currentPath.includes("/admin/pessoas/roles"))
+        href: "/admin/people/roles",
+        active: currentPath === "/admin/people/roles" || Boolean(currentPath && (currentPath.includes("/admin/people/roles") || currentPath.includes("/admin/pessoas/roles")))
       },
       { 
         name: "Usuários Admin", 
         icon: <GroupIcon />, 
-        href: "/admin/pessoas/admin-users",
-        active: currentPath === "/admin/pessoas/admin-users" || Boolean(currentPath && currentPath.includes("/admin/pessoas/admin-users"))
+        href: "/admin/people/admin-users",
+        active: currentPath === "/admin/people/admin-users" || Boolean(currentPath && (currentPath.includes("/admin/people/admin-users") || currentPath.includes("/admin/pessoas/admin-users")))
       },
       { 
         name: "Integrações", 
