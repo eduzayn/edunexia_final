@@ -11,7 +11,7 @@ import {
   listPaymentStatusRules,
   listPeriodRules
 } from '../controllers/permissions-controller';
-import { isAuthenticated } from '../middleware/auth-middleware';
+import { isAuthenticated } from '../middleware/auth';
 
 const router = express.Router();
 

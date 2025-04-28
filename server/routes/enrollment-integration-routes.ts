@@ -1,6 +1,6 @@
 import express from 'express';
 import enrollmentIntegrationController from '../controllers/enrollment-integration-controller';
-import { isAuthenticated } from '../middleware/auth-middleware';
+import { isAuthenticated } from '../middleware/auth';
 
 const router = express.Router();
 

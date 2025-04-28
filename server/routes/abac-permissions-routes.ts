@@ -5,7 +5,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import * as permissionService from '../services/permission-service';
-import { requirePermission } from '../middlewares/permission-middleware';
+import { requirePermission } from '../middleware/permission-middleware';
 import { requireAuth } from '../middleware/auth';
 import * as auditService from '../services/audit-service';
 import { logPermissionAction } from '../services/audit-service';

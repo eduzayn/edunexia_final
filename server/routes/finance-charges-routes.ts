@@ -4,7 +4,7 @@
 
 import express from 'express';
 import { requireAuth } from '../middleware/auth';
-import { requirePermission } from '../middlewares/permission-middleware';
+import { requirePermission } from '../middleware/permission-middleware';
 import chargesController from '../controllers/charges-controller';
 
 const router = express.Router();
