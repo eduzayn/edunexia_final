@@ -1,7 +1,6 @@
 import express from 'express';
 import { CoursePaymentLinkController } from '../controllers/course-payment-link-controller';
 import { requireAdmin } from '../middleware/auth';
-import { debugAuth } from '../middleware/debug-auth';
 import axios from 'axios';
 import multer from 'multer';
 import { db } from '../db';
@@ -185,8 +184,8 @@ router.get('/courses/:courseId/payment-link', requireAdmin, CoursePaymentLinkCon
 router.post('/courses/:courseId/payment-link', requireAdmin, CoursePaymentLinkController.generatePaymentLink);
 
 // Múltiplos links de pagamento (novo)
-router.get('/courses/:courseId/payment-options', debugAuth, requireAdmin, CoursePaymentLinkController.getPaymentOptions);
-router.post('/courses/:courseId/payment-options/standard', debugAuth, requireAdmin, CoursePaymentLinkController.generateStandardPostGradPaymentLinks);
+router.get('/courses/:courseId/payment-options', requireAdmin, CoursePaymentLinkController.getPaymentOptions);
+router.post('/courses/:courseId/payment-options/standard', requireAdmin, CoursePaymentLinkController.generateStandardPostGradPaymentLinks);
 
 
 // Rotas para a nova interface de links de pagamento
