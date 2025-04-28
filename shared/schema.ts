@@ -3,65 +3,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Interface para dados de login
-export interface LoginData {
-  username: string;
-  password: string;
-  portalType?: string;
-  rememberMe?: boolean;
-}
-
-// Tabelas para módulo de avaliações e questões
-export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull(),
-  type: text("type").notNull(), // multiple_choice, true_false, essay
-  questionText: text("question_text").notNull(),
-  options: json("options").$type<string[]>(),
-  correctAnswer: text("correct_answer"),
-  explanation: text("explanation"),
-  difficulty: text("difficulty"),
-  createdById: integer("created_by_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const assessments = pgTable("assessments", {
-  id: serial("id").primaryKey(),
-  disciplineId: integer("discipline_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  type: text("type").notNull(), // simulado, avaliacao_final
-  passingScore: doublePrecision("passing_score").default(6).notNull(),
-  createdById: integer("created_by_id"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const assessmentQuestions = pgTable("assessment_questions", {
-  id: serial("id").primaryKey(),
-  assessmentId: integer("assessment_id").notNull(),
-  questionId: integer("question_id").notNull(),
-  order: integer("order").default(0),
-  weight: doublePrecision("weight").default(1),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Tipos para questões e avaliações
-export type Question = typeof questions.$inferSelect;
-export type InsertQuestion = typeof questions.$inferInsert;
-export type Assessment = typeof assessments.$inferSelect;
-export type InsertAssessment = typeof assessments.$inferInsert;
-export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
-export type InsertAssessmentQuestion = typeof assessmentQuestions.$inferInsert;
-
-// Esquemas de inserção para questões e avaliações
-export const insertQuestionSchema = createInsertSchema(questions);
-export const insertAssessmentSchema = createInsertSchema(assessments);
-export const insertAssessmentQuestionSchema = createInsertSchema(assessmentQuestions, {
-  id: z.number().optional(),
-});
-
 // Importações para exportação de tabelas de certificados
 import { 
   certificates, 
@@ -99,7 +40,9 @@ export type PortalType = typeof portalTypes[number];
 export const courseStatusEnum = pgEnum("course_status", ["draft", "published", "archived"]);
 export const evaluationMethodEnum = pgEnum("evaluation_method", ["quiz", "exam", "project", "mixed"]);
 export const courseModalityEnum = pgEnum("course_modality", ["ead", "hybrid", "presential"]);
+export const videoSourceEnum = pgEnum("video_source", ["youtube", "onedrive", "google_drive", "vimeo", "upload"]);
 export const contentCompletionStatusEnum = pgEnum("content_completion_status", ["incomplete", "complete"]);
+export const assessmentTypeEnum = pgEnum("assessment_type", ["simulado", "avaliacao_final"]);
 export const institutionStatusEnum = pgEnum("institution_status", ["active", "inactive", "pending"]);
 export const institutionPhaseEnum = pgEnum("institution_phase", ["trial", "setup", "active", "suspended", "cancelled"]);
 export const poloStatusEnum = pgEnum("polo_status", ["active", "inactive"]);
@@ -172,24 +115,24 @@ export const institutions = pgTable("institutions", {
   logo: text("logo"), // URL do logo
   primaryColor: text("primary_color").default("#4CAF50"),
   website: text("website"),
-
+  
   // Campos para gerenciamento do trial
   isOnTrial: boolean("is_on_trial").default(false),
   trialStartDate: timestamp("trial_start_date"),
   trialEndDate: timestamp("trial_end_date"),
-
+  
   // Fase da instituição (para ABAC)
   phase: institutionPhaseEnum("phase").default("trial").notNull(),
-
+  
   // Plano atual
   currentPlanId: integer("current_plan_id"),
-
+  
   // Configurações de matrícula flexível
   enrollmentAccessType: accessTypeEnum("enrollment_access_type").default("after_link_completion"),
   daysUntilBlock: integer("days_until_block").default(10), // Dias de atraso para bloqueio
   daysUntilCancellation: integer("days_until_cancellation").default(30), // Dias de atraso para cancelamento
   accessPeriodDays: integer("access_period_days"), // Período padrão de acesso em dias após a concessão
-
+  
   createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -223,10 +166,34 @@ export const disciplines = pgTable("disciplines", {
   description: text("description").notNull(),
   workload: integer("workload").notNull(), // Em horas
   syllabus: text("syllabus").notNull(), // Ementa da disciplina
-
+  
+  // Elementos de conteúdo
+  videoAula1Url: text("video_aula1_url"), // URL do vídeo 1
+  videoAula1Source: videoSourceEnum("video_aula1_source"), // Fonte do vídeo 1
+  videoAula2Url: text("video_aula2_url"), // URL do vídeo 2
+  videoAula2Source: videoSourceEnum("video_aula2_source"), // Fonte do vídeo 2
+  videoAula3Url: text("video_aula3_url"), // URL do vídeo 3
+  videoAula3Source: videoSourceEnum("video_aula3_source"), // Fonte do vídeo 3
+  videoAula4Url: text("video_aula4_url"), // URL do vídeo 4
+  videoAula4Source: videoSourceEnum("video_aula4_source"), // Fonte do vídeo 4
+  videoAula5Url: text("video_aula5_url"), // URL do vídeo 5
+  videoAula5Source: videoSourceEnum("video_aula5_source"), // Fonte do vídeo 5
+  videoAula6Url: text("video_aula6_url"), // URL do vídeo 6
+  videoAula6Source: videoSourceEnum("video_aula6_source"), // Fonte do vídeo 6
+  videoAula7Url: text("video_aula7_url"), // URL do vídeo 7
+  videoAula7Source: videoSourceEnum("video_aula7_source"), // Fonte do vídeo 7
+  videoAula8Url: text("video_aula8_url"), // URL do vídeo 8
+  videoAula8Source: videoSourceEnum("video_aula8_source"), // Fonte do vídeo 8
+  videoAula9Url: text("video_aula9_url"), // URL do vídeo 9
+  videoAula9Source: videoSourceEnum("video_aula9_source"), // Fonte do vídeo 9
+  videoAula10Url: text("video_aula10_url"), // URL do vídeo 10
+  videoAula10Source: videoSourceEnum("video_aula10_source"), // Fonte do vídeo 10
+  apostilaPdfUrl: text("apostila_pdf_url"), // URL da apostila PDF
+  ebookInterativoUrl: text("ebook_interativo_url"), // URL do e-book interativo
+  
   // Status de completude
   contentStatus: contentCompletionStatusEnum("content_status").default("incomplete").notNull(),
-
+  
   // Metadados
   createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -248,7 +215,7 @@ export const courses = pgTable("courses", {
   category: text("category"), // Categoria do curso
   modality: courseModalityEnum("modality").default("ead").notNull(), // Modalidade (EAD, híbrido, presencial)
   evaluationMethod: evaluationMethodEnum("evaluation_method").default("mixed"),
-
+  
   // Metadados
   createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -266,6 +233,42 @@ export const courseDisciplines = pgTable("course_disciplines", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Questões para simulados e avaliações
+export const questions = pgTable("questions", {
+  id: serial("id").primaryKey(),
+  disciplineId: integer("discipline_id").notNull(),
+  statement: text("statement").notNull(), // Enunciado da questão
+  options: json("options").$type<string[]>().notNull(), // Alternativas
+  correctOption: integer("correct_option").notNull(), // Índice da alternativa correta
+  explanation: text("explanation"), // Explicação para feedback
+  questionType: text("question_type").default("multiple_choice").notNull(), // Tipo de questão
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Avaliações (simulados e avaliações finais)
+export const assessments = pgTable("assessments", {
+  id: serial("id").primaryKey(),
+  disciplineId: integer("discipline_id").notNull(),
+  title: text("title").notNull(), // Título da atividade
+  description: text("description"), // Descrição da atividade
+  type: assessmentTypeEnum("type").notNull(), // Tipo: simulado ou avaliação final
+  passingScore: integer("passing_score").default(60).notNull(), // Nota mínima para aprovação (%)
+  timeLimit: integer("time_limit"), // Tempo limite em minutos (opcional)
+  createdById: integer("created_by_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Relação entre atividades avaliativas e questões
+export const assessmentQuestions = pgTable("assessment_questions", {
+  id: serial("id").primaryKey(),
+  assessmentId: integer("assessment_id").notNull(),
+  questionId: integer("question_id").notNull(),
+  order: integer("order").notNull(), // Ordem da questão na atividade
+  weight: doublePrecision("weight").default(1).notNull(), // Peso da questão na nota final
+});
 
 // Planos de assinatura
 export const subscriptionPlans = pgTable("subscription_plans", {
@@ -295,28 +298,28 @@ export const enrollments = pgTable("enrollments", {
   poloId: integer("polo_id"), // Opcional
   institutionId: integer("institution_id").notNull(),
   partnerId: integer("partner_id"), // Opcional, para comissões
-
+  
   // Dados financeiros
   amount: doublePrecision("amount").notNull(), // Valor total da matrícula
   paymentGateway: paymentGatewayEnum("payment_gateway").notNull(), // Asaas ou Lytex
   paymentExternalId: text("payment_external_id"), // ID da cobrança no gateway
   paymentUrl: text("payment_url"), // URL de pagamento
   paymentMethod: text("payment_method"), // boleto, pix, cartão, etc
-
+  
   // Datas importantes
   enrollmentDate: timestamp("enrollment_date").defaultNow().notNull(), // Data da matrícula
   startDate: timestamp("start_date"), // Data de início do curso
   expectedEndDate: timestamp("expected_end_date"), // Data prevista de conclusão
   actualEndDate: timestamp("actual_end_date"), // Data efetiva de conclusão
-
+  
   // Status e informações adicionais
   status: enrollmentStatusEnum("status").default("pending_payment").notNull(),
   observations: text("observations"),
-
+  
   // Controle de acesso ao portal
   accessGrantedAt: timestamp("access_granted_at"), // Data quando o acesso foi liberado
   accessExpiresAt: timestamp("access_expires_at"), // Data quando o acesso expira
-
+  
   createdById: integer("created_by_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -339,29 +342,29 @@ export const simplifiedEnrollments = pgTable("simplified_enrollments", {
   uuid: text("uuid").notNull().unique(), // Identificador público para links
   courseId: integer("course_id").notNull(),
   institutionId: integer("institution_id").notNull(),
-
+  
   // Dados do aluno potencial
   studentName: text("student_name").notNull(),
   studentEmail: text("student_email").notNull(),
   studentPhone: text("student_phone").notNull(),
   studentCpf: text("student_cpf"),
-
+  
   // Histórico de preços
   fullPrice: doublePrecision("full_price").notNull(),
   discountPrice: doublePrecision("discount_price"),
-
+  
   // Controle de acesso
   expiresAt: timestamp("expires_at").notNull(), // Data quando o link expira
   paymentGateway: paymentGatewayEnum("payment_gateway").notNull(),
   paymentExternalId: text("payment_external_id"), // ID no gateway externo
   paymentUrl: text("payment_url"), // URL do checkout
   status: simplifiedEnrollmentStatusEnum("status").default("pending").notNull(),
-
+  
   // Rastreamento
   utm_source: text("utm_source"),
   utm_medium: text("utm_medium"),
   utm_campaign: text("utm_campaign"),
-
+  
   // Metadados
   createdById: integer("created_by_id"),
   poloId: integer("polo_id"), // Opcional, para rastreamento de origem

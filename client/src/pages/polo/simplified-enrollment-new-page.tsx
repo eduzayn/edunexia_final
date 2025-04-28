@@ -287,19 +287,15 @@ export default function PoloSimplifiedEnrollmentNewPage() {
                           defaultValue={field.value}
                           disabled={isLoadingCourses}
                         >
-                          <SelectTrigger className="w-full text-left">
+                          <SelectTrigger>
                             <SelectValue placeholder="Selecione um curso" />
                           </SelectTrigger>
-                          <SelectContent className="max-w-[500px] w-auto">
+                          <SelectContent>
                             {Array.isArray(courses) 
                               ? courses.length === 0
                                 ? <SelectItem value="no-courses">Nenhum curso disponível</SelectItem>
                                 : courses.map((course) => (
-                                    <SelectItem 
-                                      key={course.id} 
-                                      value={course.id.toString()}
-                                      className="break-words py-3 whitespace-normal text-wrap"
-                                    >
+                                    <SelectItem key={course.id} value={course.id.toString()}>
                                       {course.name}
                                     </SelectItem>
                                   ))
@@ -307,11 +303,7 @@ export default function PoloSimplifiedEnrollmentNewPage() {
                                 ? courses.data.length === 0
                                   ? <SelectItem value="no-courses">Nenhum curso disponível</SelectItem>
                                   : courses.data.map((course) => (
-                                      <SelectItem 
-                                        key={course.id} 
-                                        value={course.id.toString()}
-                                        className="break-words py-3 whitespace-normal text-wrap"
-                                      >
+                                      <SelectItem key={course.id} value={course.id.toString()}>
                                         {course.name}
                                       </SelectItem>
                                     ))

@@ -1,21 +1,50 @@
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import { registerRoutes } from '../routes.js';
-import '../module-alias.js';
 
-// Simple serverless function wrapper for Vercel
-export default async function handler(req, res) {
-  // Create an express app
-  const app = express();
-  
-  // Configure middleware
-  app.use(express.json());
-  app.use(cors());
-  
-  // Register API routes
-  await registerRoutes(app);
-  
-  // Handle the request
-  // Trick to make Express work with serverless functions
-  app._router.handle(req, res);
-}
+// Carrega as variáveis de ambiente
+dotenv.config();
+
+// Inicializa o aplicativo Express
+const app = express();
+
+// Configuração CORS para Vercel
+app.use(cors({
+  origin: process.env.VERCEL_URL || '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Middleware para processar dados JSON
+app.use(express.json({
+  strict: true,
+  limit: '10mb'
+}));
+app.use(express.urlencoded({ extended: false }));
+
+// Limpa propriedades undefined nos objetos JSON
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    Object.keys(req.body).forEach(key => {
+      if (req.body[key] === undefined) {
+        delete req.body[key];
+      }
+    });
+  }
+  next();
+});
+
+// Registra todas as rotas da API
+registerRoutes(app);
+
+// Manipulador de erros
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
+
+// Exporta o manipulador para o uso da Vercel
+export default app; 

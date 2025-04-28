@@ -54,39 +54,14 @@ export default function PortalSelectionPage() {
     if (isLoggingOut) return; // Evitar múltiplos cliques
     
     setSelectedPortal(portalId);
-    setIsLoggingOut(true);
     
-    try {
-      // Sempre limpar o localStorage e estado de autenticação antes do redirecionamento
-      console.log("Limpando estado de autenticação...");
-      
-      // Se usuário estiver logado, fazer logout explícito pela API
-      if (user) {
-        try {
-          await logoutMutation.mutateAsync();
-          console.log("Logout da API realizado com sucesso");
-        } catch (error) {
-          console.error("Erro ao fazer logout pela API:", error);
-        }
-      }
-      
-      // Limpar token manualmente do localStorage como backup
-      localStorage.removeItem('auth_token');
-      
-      // Limpar cache de consultas para garantir um estado limpo
-      queryClient.clear();
-      
-      console.log("Estado de autenticação limpo, preparando redirecionamento...");
-      
-      // Aguardar um tempo para garantir que tudo está limpo
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Redirecionar após limpeza completa
+    // Usar navigate para transição mais suave
+    const redirectToPortal = () => {
       console.log("Redirecionando para portal:", portalId);
       
-      // Redirecionamento com base no portal selecionado
+      // Correção: redirecionar para páginas específicas de autenticação para cada portal
       if (portalId === "admin") {
-        // Redirecionar diretamente para a página de login do admin
+        // Usando window.location.href para garantir um redirecionamento completo
         window.location.href = "/admin";
       } else if (portalId === "polo") {
         window.location.href = "/polo";
@@ -94,11 +69,25 @@ export default function PortalSelectionPage() {
         // Rota padrão para student e partner
         window.location.href = `/auth?portal=${portalId}`;
       }
-    } catch (error) {
-      console.error("Erro ao processar seleção de portal:", error);
-    } finally {
-      setIsLoggingOut(false);
+    };
+    
+    // Se usuário estiver logado, fazer logout primeiro
+    if (user) {
+      try {
+        setIsLoggingOut(true);
+        await logoutMutation.mutateAsync();
+        
+        // Aguardar um pequeno tempo após o logout para garantir que tudo está limpo
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error("Erro ao fazer logout:", error);
+      } finally {
+        setIsLoggingOut(false);
+      }
     }
+    
+    // Redirecionar após limpeza completa
+    redirectToPortal();
   };
 
   const containerVariants = {

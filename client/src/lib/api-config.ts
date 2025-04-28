@@ -1,85 +1,107 @@
 /**
- * Configuração de URLs da API
- * 
- * Este arquivo centraliza a configuração de URLs para chamadas à API,
- * permitindo diferentes configurações entre desenvolvimento e produção.
+ * Configuração para as chamadas API, adaptando-se ao ambiente
+ * Este arquivo fornece funções e configurações para gerenciar endpoints da API
+ * considerando diferentes ambientes (desenvolvimento, produção na Vercel)
  */
 
-// Determinar a URL base da API com base no ambiente
+// Determina a base URL para chamadas de API com base no ambiente
 export function getApiBaseUrl(): string {
-  // Para desenvolvimento local (quando rodando em localhost)
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'http://localhost:5000';
+  // Ambiente de produção na Vercel
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    // Em produção, usamos o mesmo domínio
+    return '';
   }
   
-  // Para ambiente Replit - usar a URL pública do Replit
-  if (typeof window !== 'undefined' && window.location.hostname.includes('replit')) {
-    // No Replit, a API está disponível na mesma origem que o frontend
-    return window.location.origin;
+  // Em desenvolvimento local, apontamos para o servidor local
+  return 'http://localhost:5000';
+}
+
+// Formata um caminho de API
+export function formatApiPath(path: string): string {
+  const baseUrl = getApiBaseUrl();
+  const apiPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}/api${apiPath}`;
+}
+
+// Configuração padrão para fetch
+export const defaultFetchOptions: RequestInit = {
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+};
+
+// Função auxiliar para fazer requisições fetch com tratamento de erros
+export async function fetchApi<T = any>(
+  path: string, 
+  options: RequestInit = {}
+): Promise<T> {
+  const url = formatApiPath(path);
+  const fetchOptions = {
+    ...defaultFetchOptions,
+    ...options,
+    headers: {
+      ...defaultFetchOptions.headers,
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(url, fetchOptions);
+    
+    // Verifica se a resposta foi bem-sucedida
+    if (!response.ok) {
+      // Tenta ler detalhes do erro no corpo da resposta
+      const errorData = await response.json().catch(() => null);
+      throw new ApiError(
+        errorData?.message || 'Erro ao realizar requisição',
+        response.status,
+        errorData
+      );
+    }
+    
+    // Para respostas 204 No Content ou opções HEAD, não tentamos parsear JSON
+    if (response.status === 204 || fetchOptions.method === 'HEAD') {
+      return null as T;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    
+    // Erros de rede ou outros erros imprevistos
+    throw new ApiError(
+      (error as Error)?.message || 'Erro de rede ao conectar com a API',
+      0,
+      { originalError: error }
+    );
   }
-  
-  // Fallback para a URL de produção
-  const apiUrl = 'https://edunexa-portal.replit.app';
-  
-  console.log('Usando URL base da API:', apiUrl);
-  return apiUrl;
 }
 
-/**
- * Constrói uma URL completa para a API
- * @param path Caminho da API (ex: /login, /user)
- * @returns URL completa para a API
- */
-export function buildApiUrl(path: string): string {
-  // IMPORTANTE: Verificar se o path já contém uma URL completa
-  // Este é o principal problema que causa a duplicação de domínios
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    console.log('Detectada URL completa no path, retornando diretamente:', path);
-    return path;
+// Classe para tratar erros da API de forma estruturada
+export class ApiError extends Error {
+  statusCode: number;
+  data: any;
+  
+  constructor(message: string, statusCode: number, data: any = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.data = data;
   }
-  
-  const base = getApiBaseUrl();
-  // Garantir que a URL seja formatada corretamente com barra entre base e path
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const finalUrl = `${base}${normalizedPath}`;
-  
-  console.log(`buildApiUrl: base=${base}, path=${path}, resultado=${finalUrl}`);
-  return finalUrl;
 }
 
-/**
- * Verifica se uma resposta é do tipo JSON
- * @param response Resposta HTTP
- * @returns true se a resposta for do tipo JSON
- */
-export function verifyJsonResponse(response: Response): boolean {
-  const contentType = response.headers.get('content-type');
-  return contentType !== null && contentType.includes('application/json');
-}
-
-/**
- * URLs específicas para recursos de disciplina
- */
-export function buildDisciplineApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}`);
-}
-
-export function buildDisciplineVideosApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}/videos`);
-}
-
-export function buildDisciplineEbookApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}/ebook`);
-}
-
-export function buildDisciplineMaterialApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}/material`);
-}
-
-export function buildDisciplineQuestionsApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}/questions`);
-}
-
-export function buildDisciplineAssessmentsApiUrl(id: number): string {
-  return buildApiUrl(`/api/disciplines/${id}/assessments`);
-}
+// Verifica o status da API para confirmar conectividade
+export async function checkApiHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(formatApiPath('/healthcheck'), {
+      method: 'GET',
+      headers: defaultFetchOptions.headers,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+} 

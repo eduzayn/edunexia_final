@@ -1,15 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, log } from "./vite";
+import { setupVite, serveStatic, log } from "./vite";
 import dotenv from 'dotenv';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-// Cria equivalente a __dirname para ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Carrega as variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -85,32 +78,13 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Em desenvolvimento, configurar o vite depois das rotas da API
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // EM PRODUÇÃO: importante servir arquivos estáticos mas NÃO interceptar rotas de API
-    // Isso corrige o problema onde rotas de API retornam HTML em vez de JSON
-    // Configuramos seletivamente para servir apenas arquivos estáticos
-    // em caminhos que NÃO são rotas de API (/api ou /api-json)
-    
-    // Caminho para os arquivos estáticos e o index.html usando URL para ES modules
-    // Usando o __dirname definido no topo do arquivo
-    
-    const publicPath = path.resolve(__dirname, "public");
-    app.use(express.static(publicPath));
-    
-    // Serve index.html apenas para rotas de frontend/SPA (não para rotas de API)
-    app.use("*", (req, res, next) => {
-      const reqPath = req.originalUrl;
-      // Se for uma rota de API, pular este middleware
-      if (reqPath.startsWith('/api') || reqPath.startsWith('/api-json')) {
-        return next();
-      }
-      
-      // Para rotas de frontend, servir o index.html
-      res.sendFile(path.resolve(publicPath, "index.html"));
-    });
+    serveStatic(app);
   }
 
   // Usa a porta 5000 para o deploy no Replit

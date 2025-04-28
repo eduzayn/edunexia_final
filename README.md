@@ -38,13 +38,6 @@ O projeto encontra-se em estado estável de produção com todas as funcionalida
 - Envio automático de credenciais por email e SMS
 - Geração e assinatura de contratos educacionais
 
-## EdunexIA
-
-Plataforma de Gestão Educacional com recursos avançados de IA.
-
-### Atualização de configuração
-Correções de configuração do Vercel aplicadas.
-
 ---
 
 © EdunexIA - Todos os direitos reservados

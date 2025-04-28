@@ -52,7 +52,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 // Esquema de validação
 const formSchema = z.object({
   // Campos obrigatórios de matrícula
-  studentName: z.string().min(1, { message: 'Nome do aluno é obrigatório' }),
+  studentName: z.string().min(3, { message: 'Nome do aluno deve ter pelo menos 3 caracteres' }),
   studentEmail: z.string().email({ message: 'E-mail inválido' }),
   studentCpf: z.string()
     .min(11, { message: 'CPF deve ter 11 dígitos' })
@@ -610,8 +610,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
-                                <SelectTrigger className="whitespace-normal text-wrap min-h-[40px] h-auto">
-                                  <SelectValue placeholder="Selecione um curso" className="break-words whitespace-normal text-wrap" />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um curso" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="max-h-[400px]">
@@ -645,10 +645,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                         <SelectItem 
                                           key={course.id} 
                                           value={course.id.toString()}
-                                          className="py-3 break-words whitespace-normal text-wrap"
+                                          className="py-3"
                                         >
                                           <div className="flex flex-col">
-                                            <span className="font-medium break-words whitespace-normal text-wrap">{course.name}</span>
+                                            <span className="font-medium">{course.name}</span>
                                             <span className="text-xs text-muted-foreground mt-1">
                                               {course.code} - {course.category}
                                             </span>
@@ -680,8 +680,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
-                                <SelectTrigger className="whitespace-normal text-wrap min-h-[40px] h-auto">
-                                  <SelectValue placeholder="Selecione uma instituição" className="break-words whitespace-normal text-wrap" />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma instituição" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="max-h-[400px]">
@@ -715,10 +715,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                         <SelectItem 
                                           key={institution.id} 
                                           value={institution.id.toString()}
-                                          className="py-3 break-words whitespace-normal text-wrap"
+                                          className="py-3"
                                         >
                                           <div className="flex flex-col">
-                                            <span className="font-medium break-words whitespace-normal text-wrap">{institution.name}</span>
+                                            <span className="font-medium">{institution.name}</span>
                                             <span className="text-xs text-muted-foreground mt-1">
                                               {institution.code} - {institution.cnpj}
                                             </span>
@@ -750,8 +750,8 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                               defaultValue={field.value ? field.value.toString() : undefined}
                             >
                               <FormControl>
-                                <SelectTrigger className="whitespace-normal text-wrap min-h-[40px] h-auto">
-                                  <SelectValue placeholder="Selecione um polo (opcional)" className="break-words whitespace-normal text-wrap" />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione um polo (opcional)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -759,10 +759,10 @@ export default function NewSimplifiedEnrollmentCreatePage() {
                                   <SelectItem 
                                     key={polo.id} 
                                     value={polo.id.toString()}
-                                    className="py-3 break-words whitespace-normal text-wrap"
+                                    className="py-3"
                                   >
                                     <div className="flex flex-col">
-                                      <span className="font-medium break-words whitespace-normal text-wrap">{polo.name}</span>
+                                      <span className="font-medium">{polo.name}</span>
                                       {polo.city && polo.state && (
                                         <span className="text-xs text-muted-foreground mt-1">
                                           {polo.city} - {polo.state}

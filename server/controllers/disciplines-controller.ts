@@ -10,7 +10,7 @@ import { generateDisciplineCode, isDisciplineCodeInUse } from './discipline-code
  */
 export async function createDiscipline(req: Request, res: Response) {
   try {
-    const { code, name, description, workload, syllabus } = req.body;
+    const { name, description, workload, syllabus } = req.body;
     
     // Validações básicas
     if (!name || !description || !workload || !syllabus) {
@@ -20,15 +20,15 @@ export async function createDiscipline(req: Request, res: Response) {
       });
     }
     
-    // Gerar código automaticamente se não for fornecido
-    const disciplineCode = code || await generateDisciplineCode(name);
+    // Gerar código automaticamente
+    const code = await generateDisciplineCode(name);
     
-    console.log('Criando disciplina com código:', disciplineCode);
+    console.log('Criando disciplina com código:', code);
     
     // Inserir a disciplina no banco de dados
     const [newDiscipline] = await db.insert(disciplineTable)
       .values({
-        code: disciplineCode,
+        code,
         name,
         description,
         workload: Number(workload), // Garante que é um número
@@ -42,45 +42,6 @@ export async function createDiscipline(req: Request, res: Response) {
     return res.status(201).json(newDiscipline);
   } catch (error) {
     console.error('Erro ao criar disciplina:', error);
-    
-    // Verifica se é um erro de chave duplicada
-    if (error instanceof Error && 
-        error.message.includes('duplicate key') && 
-        error.message.includes('disciplines_code_key')) {
-      
-      // Tenta regenerar o código usando um timestamp para garantir unicidade
-      try {
-        const timestamp = new Date().getTime() % 10000; // Últimos 4 dígitos do timestamp
-        const uniqueCode = `${name.substring(0, 3).toUpperCase()}${timestamp}`;
-        
-        console.log('Tentando novamente com código usando timestamp:', uniqueCode);
-        
-        // Inserir a disciplina com o novo código gerado
-        const [newDiscipline] = await db.insert(disciplineTable)
-          .values({
-            code: uniqueCode,
-            name,
-            description,
-            workload: Number(workload),
-            syllabus,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          })
-          .returning();
-        
-        console.log('Disciplina criada com sucesso (segunda tentativa):', newDiscipline);
-        return res.status(201).json(newDiscipline);
-      } catch (secondError) {
-        console.error('Falha na segunda tentativa de criar disciplina:', secondError);
-        return res.status(500).json({
-          success: false,
-          message: 'Erro ao criar disciplina mesmo após segunda tentativa',
-          error: secondError instanceof Error ? secondError.message : 'Erro desconhecido'
-        });
-      }
-    }
-    
-    // Para outros tipos de erro
     return res.status(500).json({
       success: false,
       message: 'Erro ao criar disciplina',
@@ -167,48 +128,6 @@ export async function updateDiscipline(req: Request, res: Response) {
     return res.status(500).json({
       success: false,
       message: 'Erro ao atualizar disciplina',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
-  }
-}
-
-/**
- * Exclui uma disciplina
- */
-export async function deleteDiscipline(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    
-    // Verificar se a disciplina existe
-    const existingDiscipline = await db.select()
-      .from(disciplineTable)
-      .where(eq(disciplineTable.id, parseInt(id)))
-      .limit(1);
-    
-    if (existingDiscipline.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Disciplina não encontrada'
-      });
-    }
-    
-    // Excluir a disciplina
-    const [deletedDiscipline] = await db.delete(disciplineTable)
-      .where(eq(disciplineTable.id, parseInt(id)))
-      .returning();
-    
-    console.log('Disciplina excluída com sucesso:', deletedDiscipline);
-    
-    return res.json({
-      success: true,
-      message: 'Disciplina excluída com sucesso',
-      data: deletedDiscipline
-    });
-  } catch (error) {
-    console.error('Erro ao excluir disciplina:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erro ao excluir disciplina',
       error: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }

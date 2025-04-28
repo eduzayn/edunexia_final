@@ -165,7 +165,23 @@ export class ReplicateService {
     }
   }
 
-  // As funções de geração de vídeo educacional foram removidas como parte da limpeza de recursos de vídeo
+  /**
+   * Gera vídeos educacionais para complementar o conteúdo de e-books
+   * @param topic Tópico ou assunto do e-book
+   * @param context Contexto adicional para melhorar a relevância do vídeo
+   */
+  async generateEducationalVideo(topic: string, context: string): Promise<VideoGenerationResult> {
+    const enhancedPrompt = `Educational animation about ${topic}. ${context}. High quality animation, clear visuals, educational style, no text.`;
+    
+    return this.generateVideo({
+      prompt: enhancedPrompt,
+      negative_prompt: "low quality, blurry, distorted, text, watermarks, poor quality",
+      width: 576,
+      height: 320,
+      num_frames: 24,
+      fps: 8
+    });
+  }
 }
 
 export default new ReplicateService();

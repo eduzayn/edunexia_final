@@ -16,7 +16,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from '@/hooks/use-debounce';
 import { FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { scheduleAnimationOperation } from '@/lib/dom-error-patch';
 
 // Interface para clientes Asaas
 interface AsaasCustomer {
@@ -77,17 +76,6 @@ export function AsaasCustomerSearch({
     setInputValue(value);
   }, [value]);
   
-  // Adicionar verificação de desmontagem para prevenir erros de DOM
-  useEffect(() => {
-    let isMounted = true;
-    
-    // Retornar função de limpeza para cancelar qualquer operação pendente
-    return () => {
-      isMounted = false;
-      setOpen(false); // Fechar dialog ao desmontar
-    };
-  }, []);
-  
   // Função para selecionar um cliente
   const handleCustomerSelect = useCallback((customer: AsaasCustomer) => {
     // Preservar o nome original do cliente
@@ -95,29 +83,26 @@ export function AsaasCustomerSearch({
     
     console.log('⚠️ Cliente selecionado de lista existente:', customerName);
     
-    // Evitar manipulações diretas do DOM - apenas atualizar o estado
+    // Abordagem mais segura: vamos desacoplar completamente as operações de DOM
+    
+    // 1. Primeiro, fechamos o dialog
     setOpen(false);
     
-    // Usar requestAnimationFrame para garantir que o React completou o ciclo de renderização
-    requestAnimationFrame(() => {
-      // Verificar se o componente ainda está montado antes de continuar
-      if (!inputRef.current) return;
-      
-      // Atualizar valores de forma segura
+    // 2. Usar um timeout mais longo para garantir que o fechamento do diálogo foi concluído
+    setTimeout(() => {
+      // 3. Atualizar o valor do input após o fechamento
       setInputValue(customerName);
+      // 4. Atualizar o valor no formulário
       onChange(customerName);
       
-      // Usar requestAnimationFrame novamente para o callback do componente pai
-      requestAnimationFrame(() => {
-        // Verificar novamente se o componente ainda está montado
-        if (!inputRef.current) return;
-        
+      // 5. Usar outro timeout para notificar o componente pai
+      setTimeout(() => {
         onCustomerSelect({
           ...customer,
           name: customerName // Garantir que o nome está corretamente formatado
         });
-      });
-    });
+      }, 50); // Atraso adicional para garantir que as atualizações de estado anteriores foram processadas
+    }, 100); // Atraso maior para garantir que o diálogo foi fechado completamente
   }, [onChange, onCustomerSelect]);
   
   // Função para criar um novo cliente quando nenhum é encontrado
@@ -142,27 +127,24 @@ export function AsaasCustomerSearch({
         description: `Preencha os dados do novo cliente: ${name}`,
       });
       
-      // Evitar manipulações diretas do DOM - apenas atualizar o estado
+      // Abordagem mais segura para evitar problemas de manipulação DOM
+      
+      // 1. Primeiro, fechamos o dialog
       setOpen(false);
       
-      // Usar requestAnimationFrame para garantir que o React completou o ciclo de renderização
-      requestAnimationFrame(() => {
-        // Verificar se o componente ainda está montado antes de continuar
-        if (!inputRef.current) return;
-        
-        // Atualizar valores de forma segura
+      // 2. Usar um timeout mais longo para garantir que o fechamento do diálogo foi concluído
+      setTimeout(() => {
+        // 3. Atualizar o valor do input após o fechamento
         setInputValue(name);
+        // 4. Atualizar o valor no formulário
         onChange(name);
         
-        // Usar requestAnimationFrame novamente para o callback do componente pai
-        requestAnimationFrame(() => {
-          // Verificar novamente se o componente ainda está montado
-          if (!inputRef.current) return;
-          
+        // 5. Usar outro timeout para notificar o componente pai
+        setTimeout(() => {
           console.log('🔄 Enviando novo cliente para o componente pai:', name);
           onCustomerSelect(newCustomer); // Passar o cliente com o nome correto
-        });
-      });
+        }, 50); // Atraso adicional para garantir que as atualizações de estado anteriores foram processadas
+      }, 100); // Atraso maior para garantir que o diálogo foi fechado completamente
     }
   }, [debouncedSearch, inputValue, onChange, onCustomerSelect, toast]);
   
@@ -250,29 +232,13 @@ export function AsaasCustomerSearch({
         <p className="text-sm font-medium text-destructive mt-1">{error}</p>
       )}
       
-      <CommandDialog 
-        open={open} 
-        onOpenChange={(isOpen) => {
-          // Verificar se o componente ainda está montado
-          if (inputRef.current) {
-            setOpen(isOpen);
-          } else {
-            // Se o componente está sendo desmontado, garantir que o dialog está fechado
-            setOpen(false);
-          }
-        }}
-      >
+      <CommandDialog open={open} onOpenChange={setOpen}>
         <DialogTitle className="sr-only">Buscar clientes no Asaas</DialogTitle>
         <CommandInput
           ref={commandInputRef}
           placeholder="Buscar clientes no Asaas..."
           value={inputValue}
-          onValueChange={(val) => {
-            // Verificar se o componente ainda está montado
-            if (inputRef.current) {
-              setInputValue(val);
-            }
-          }}
+          onValueChange={setInputValue}
           onKeyDown={handleKeyDown}
         />
         <CommandList>

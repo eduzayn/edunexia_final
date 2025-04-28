@@ -3,14 +3,14 @@ import { useLocation } from "wouter";
 
 /**
  * Componente de redirecionamento para a página correta de cursos
- * Esta é uma solução temporária para redirecionar de /admin/courses para /admin/academic/courses
+ * Esta é uma solução temporária para redirecionar de /admin/courses para /admin/academico/courses
  */
 export default function CoursesRedirect() {
   const [, navigate] = useLocation();
 
   useEffect(() => {
     // Redirecionar para a localização correta da página de cursos
-    navigate("/admin/academic/courses");
+    navigate("/admin/academico/courses");
   }, [navigate]);
 
   return (

@@ -39,7 +39,7 @@ export interface IStorage {
   getUsersByPortalType(portalType: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
-
+  
   // Disciplinas
   getDiscipline(id: number): Promise<Discipline | undefined>;
   getDisciplineByCode(code: string): Promise<Discipline | undefined>;
@@ -50,7 +50,7 @@ export interface IStorage {
   updateDisciplineContent(id: number, contentData: Partial<InsertDiscipline>): Promise<Discipline | undefined>;
   getDisciplineContent(id: number): Promise<any | undefined>;
   checkDisciplineCompleteness(id: number): Promise<boolean>;
-
+  
   // Cursos
   getCourse(id: number): Promise<Course | undefined>;
   getCourseByCode(code: string): Promise<Course | undefined>;
@@ -61,33 +61,33 @@ export interface IStorage {
   updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course | undefined>;
   deleteCourse(id: number): Promise<boolean>;
   publishCourse(id: number): Promise<Course | undefined>;
-
+  
   // Disciplinas em Cursos
   getCourseDisciplines(courseId: number): Promise<CourseDiscipline[]>;
   addDisciplineToCourse(courseDiscipline: InsertCourseDiscipline): Promise<CourseDiscipline>;
   removeDisciplineFromCourse(courseId: number, disciplineId: number): Promise<boolean>;
   reorderCourseDisciplines(courseId: number, disciplineOrder: { disciplineId: number, order: number }[]): Promise<boolean>;
-
+  
   // Questões
   getQuestion(id: number): Promise<Question | undefined>;
   getQuestionsByDiscipline(disciplineId: number): Promise<Question[]>;
   createQuestion(question: InsertQuestion): Promise<Question>;
   updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question | undefined>;
   deleteQuestion(id: number): Promise<boolean>;
-
+  
   // Avaliações
   getAssessment(id: number): Promise<Assessment | undefined>;
   getAssessmentsByDiscipline(disciplineId: number, type?: string): Promise<Assessment[]>;
   createAssessment(assessment: InsertAssessment): Promise<Assessment>;
   updateAssessment(id: number, assessment: Partial<InsertAssessment>): Promise<Assessment | undefined>;
   deleteAssessment(id: number): Promise<boolean>;
-
+  
   // Questões em Avaliações
   getAssessmentQuestions(assessmentId: number): Promise<AssessmentQuestion[]>;
   addQuestionToAssessment(assessmentQuestion: InsertAssessmentQuestion): Promise<AssessmentQuestion>;
   removeQuestionFromAssessment(assessmentId: number, questionId: number): Promise<boolean>;
   reorderAssessmentQuestions(assessmentId: number, questionOrder: { questionId: number, order: number }[]): Promise<boolean>;
-
+  
   // Instituições
   getInstitution(id: number): Promise<Institution | undefined>;
   getInstitutionByCode(code: string): Promise<Institution | undefined>;
@@ -96,7 +96,7 @@ export interface IStorage {
   createInstitution(institution: InsertInstitution): Promise<Institution>;
   updateInstitution(id: number, institution: Partial<InsertInstitution>): Promise<Institution | undefined>;
   deleteInstitution(id: number): Promise<boolean>;
-
+  
   // Polos
   getPolo(id: number): Promise<Polo | undefined>;
   getPoloByCode(code: string): Promise<Polo | undefined>;
@@ -105,7 +105,7 @@ export interface IStorage {
   createPolo(polo: InsertPolo): Promise<Polo>;
   updatePolo(id: number, polo: Partial<InsertPolo>): Promise<Polo | undefined>;
   deletePolo(id: number): Promise<boolean>;
-
+  
   // Transações Financeiras
   getFinancialTransaction(id: number): Promise<FinancialTransaction | undefined>;
   getFinancialTransactions(
@@ -121,14 +121,14 @@ export interface IStorage {
   createFinancialTransaction(transaction: InsertFinancialTransaction): Promise<FinancialTransaction>;
   updateFinancialTransaction(id: number, transaction: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction | undefined>;
   deleteFinancialTransaction(id: number): Promise<boolean>;
-
+  
   // Categorias Financeiras
   getFinancialCategory(id: number): Promise<FinancialCategory | undefined>;
   getFinancialCategories(type?: string, institutionId?: number, limit?: number, offset?: number): Promise<FinancialCategory[]>;
   createFinancialCategory(category: InsertFinancialCategory): Promise<FinancialCategory>;
   updateFinancialCategory(id: number, category: Partial<InsertFinancialCategory>): Promise<FinancialCategory | undefined>;
   deleteFinancialCategory(id: number): Promise<boolean>;
-
+  
   // Matrículas
   getEnrollment(id: number): Promise<Enrollment | undefined>;
   getEnrollmentByCode(code: string): Promise<Enrollment | undefined>;
@@ -152,11 +152,11 @@ export interface IStorage {
   updateEnrollment(id: number, enrollment: Partial<InsertEnrollment>): Promise<Enrollment | undefined>;
   updateEnrollmentStatus(id: number, status: string, reason?: string, changedById?: number, metadata?: any): Promise<Enrollment | undefined>;
   deleteEnrollment(id: number): Promise<boolean>;
-
+  
   // Histórico de Status de Matrículas
   getEnrollmentStatusHistory(enrollmentId: number): Promise<EnrollmentStatusHistory[]>;
   addEnrollmentStatusHistory(historyEntry: InsertEnrollmentStatusHistory): Promise<EnrollmentStatusHistory>;
-
+  
   // Matrículas Simplificadas
   getSimplifiedEnrollment(id: number): Promise<SimplifiedEnrollment | undefined>;
   getSimplifiedEnrollments(
@@ -173,16 +173,15 @@ export interface IStorage {
   updateSimplifiedEnrollmentStatus(id: number, status: string, reason?: string, changedById?: number, metadata?: any): Promise<SimplifiedEnrollment | undefined>;
   deleteSimplifiedEnrollment(id: number): Promise<boolean>;
   convertSimplifiedToFullEnrollment(id: number): Promise<Enrollment | undefined>;
-  getSimplifiedEnrollmentByExternalReference(externalReference: string): Promise<SimplifiedEnrollment | undefined>;
-
+  
   // Log de Status de Matrículas Simplificadas
   getSimplifiedEnrollmentStatusLog(enrollmentId: number): Promise<SimplifiedEnrollmentStatusLog[]>;
   addSimplifiedEnrollmentStatusLog(logEntry: InsertSimplifiedEnrollmentStatusLog): Promise<SimplifiedEnrollmentStatusLog>;
-
+  
   // Gateway de pagamento
   createPaymentForEnrollment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}>;
   getPaymentStatus(externalId: string, gateway: string): Promise<string>;
-
+  
   // Contratos educacionais
   getContract(id: number): Promise<EducationalContract | null>;
   getContracts(filters?: { 
@@ -194,11 +193,11 @@ export interface IStorage {
   }): Promise<EducationalContract[]>;
   createContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract>;
   updateContract(id: number, data: Partial<EducationalContract>): Promise<EducationalContract | null>;
-
+  
   // Templates de contrato
   getContractTemplates(filters?: { contractType?: string, active?: boolean }): Promise<any[]>;
   getContractTemplate(id: string): Promise<any | undefined>;
-
+  
   sessionStore: SessionStore;
 }
 
@@ -223,7 +222,7 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
-
+  
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
@@ -263,7 +262,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDisciplines(search?: string, limit: number = 50, offset: number = 0): Promise<Discipline[]> {
     let query = db.select().from(disciplines).limit(limit).offset(offset);
-
+    
     if (search) {
       query = query.where(
         or(
@@ -272,7 +271,7 @@ export class DatabaseStorage implements IStorage {
         )
       );
     }
-
+    
     return await query.orderBy(asc(disciplines.name));
   }
 
@@ -305,17 +304,17 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   async updateDisciplineContent(id: number, contentData: Partial<InsertDiscipline>): Promise<Discipline | undefined> {
     return this.updateDiscipline(id, contentData);
   }
-
+  
   async getDisciplineContent(id: number): Promise<any | undefined> {
     try {
       // Verificar se a disciplina existe
       const discipline = await this.getDiscipline(id);
       if (!discipline) return undefined;
-
+      
       // Dados mockados para teste
       // Em uma implementação real, você consultaria as tabelas de conteúdo
       return {
@@ -351,6 +350,16 @@ export class DatabaseStorage implements IStorage {
             updatedAt: new Date()
           }
         ],
+        ebooks: [
+          {
+            id: 301,
+            title: "Manual completo",
+            description: "E-book completo sobre o tema da disciplina",
+            url: "https://example.com/ebook1.pdf",
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        ],
         assessments: [
           {
             id: 401,
@@ -382,11 +391,11 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
-
+  
   async checkDisciplineCompleteness(id: number): Promise<boolean> {
     const discipline = await this.getDiscipline(id);
     if (!discipline) return false;
-
+    
     // Verificar se todos os campos obrigatórios estão preenchidos
     return Boolean(
       discipline.name && 
@@ -395,21 +404,21 @@ export class DatabaseStorage implements IStorage {
       discipline.workload > 0
     );
   }
-
+  
   // ==================== Cursos ====================
   async getCourse(id: number): Promise<Course | undefined> {
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
     return course || undefined;
   }
-
+  
   async getCourseByCode(code: string): Promise<Course | undefined> {
     const [course] = await db.select().from(courses).where(eq(courses.code, code));
     return course || undefined;
   }
-
+  
   async getCourses(search?: string, status?: string, limit: number = 50, offset: number = 0): Promise<Course[]> {
     let query = db.select().from(courses).limit(limit).offset(offset);
-
+    
     if (search) {
       query = query.where(
         or(
@@ -419,22 +428,22 @@ export class DatabaseStorage implements IStorage {
         )
       );
     }
-
+    
     if (status) {
       query = query.where(eq(courses.status, status));
     }
-
+    
     return await query.orderBy(asc(courses.name));
   }
-
+  
   async getAllCourses(): Promise<Course[]> {
     return await db.select().from(courses).orderBy(asc(courses.name));
   }
-
+  
   async getPublishedCourses(): Promise<Course[]> {
     return await db.select().from(courses).where(eq(courses.status, "published")).orderBy(asc(courses.name));
   }
-
+  
   async createCourse(course: InsertCourse): Promise<Course> {
     const [newCourse] = await db
       .insert(courses)
@@ -442,7 +451,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newCourse;
   }
-
+  
   async updateCourse(id: number, course: Partial<InsertCourse>): Promise<Course | undefined> {
     const [updatedCourse] = await db
       .update(courses)
@@ -451,7 +460,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedCourse;
   }
-
+  
   async deleteCourse(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -464,7 +473,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   async publishCourse(id: number): Promise<Course | undefined> {
     const now = new Date();
     const [publishedCourse] = await db
@@ -478,7 +487,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return publishedCourse;
   }
-
+  
   // ==================== Disciplinas em Cursos ====================
   async getCourseDisciplines(courseId: number): Promise<CourseDiscipline[]> {
     return await db
@@ -487,23 +496,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(courseDisciplines.courseId, courseId))
       .orderBy(asc(courseDisciplines.order));
   }
-
+  
   async addDisciplineToCourse(courseDiscipline: InsertCourseDiscipline): Promise<CourseDiscipline> {
-    // Modificar objeto antes da inserção para remover propriedades que não existem na tabela
-    const insertData = {
-      courseId: courseDiscipline.courseId,
-      disciplineId: courseDiscipline.disciplineId,
-      order: courseDiscipline.order
-      // Não incluir isRequired se a coluna não existir na tabela
-    };
-
     const [newCourseDiscipline] = await db
       .insert(courseDisciplines)
-      .values(insertData)
+      .values(courseDiscipline)
       .returning();
     return newCourseDiscipline;
   }
-
+  
   async removeDisciplineFromCourse(courseId: number, disciplineId: number): Promise<boolean> {
     try {
       const result = await db
@@ -521,7 +522,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   async reorderCourseDisciplines(courseId: number, disciplineOrder: { disciplineId: number, order: number }[]): Promise<boolean> {
     try {
       // Implementação de reordenação em massa com transação
@@ -543,20 +544,20 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Questões ====================
   async getQuestion(id: number): Promise<Question | undefined> {
     const [question] = await db.select().from(questions).where(eq(questions.id, id));
     return question || undefined;
   }
-
+  
   async getQuestionsByDiscipline(disciplineId: number): Promise<Question[]> {
     return await db
       .select()
       .from(questions)
       .where(eq(questions.disciplineId, disciplineId));
   }
-
+  
   async createQuestion(question: InsertQuestion): Promise<Question> {
     const [newQuestion] = await db
       .insert(questions)
@@ -564,7 +565,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newQuestion;
   }
-
+  
   async updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question | undefined> {
     const [updatedQuestion] = await db
       .update(questions)
@@ -573,7 +574,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedQuestion;
   }
-
+  
   async deleteQuestion(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -586,26 +587,26 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Avaliações ====================
   async getAssessment(id: number): Promise<Assessment | undefined> {
     const [assessment] = await db.select().from(assessments).where(eq(assessments.id, id));
     return assessment || undefined;
   }
-
+  
   async getAssessmentsByDiscipline(disciplineId: number, type?: string): Promise<Assessment[]> {
     let query = db
       .select()
       .from(assessments)
       .where(eq(assessments.disciplineId, disciplineId));
-
+    
     if (type) {
       query = query.where(eq(assessments.type, type));
     }
-
+    
     return await query;
   }
-
+  
   async createAssessment(assessment: InsertAssessment): Promise<Assessment> {
     const [newAssessment] = await db
       .insert(assessments)
@@ -613,7 +614,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newAssessment;
   }
-
+  
   async updateAssessment(id: number, assessment: Partial<InsertAssessment>): Promise<Assessment | undefined> {
     const [updatedAssessment] = await db
       .update(assessments)
@@ -622,7 +623,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedAssessment;
   }
-
+  
   async deleteAssessment(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -635,7 +636,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Questões em Avaliações ====================
   async getAssessmentQuestions(assessmentId: number): Promise<AssessmentQuestion[]> {
     return await db
@@ -644,7 +645,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(assessmentQuestions.assessmentId, assessmentId))
       .orderBy(asc(assessmentQuestions.order));
   }
-
+  
   async addQuestionToAssessment(assessmentQuestion: InsertAssessmentQuestion): Promise<AssessmentQuestion> {
     const [newAssessmentQuestion] = await db
       .insert(assessmentQuestions)
@@ -652,7 +653,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newAssessmentQuestion;
   }
-
+  
   async removeQuestionFromAssessment(assessmentId: number, questionId: number): Promise<boolean> {
     try {
       const result = await db
@@ -670,7 +671,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   async reorderAssessmentQuestions(assessmentId: number, questionOrder: { questionId: number, order: number }[]): Promise<boolean> {
     try {
       // Implementação de reordenação em massa com transação
@@ -692,26 +693,26 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Instituições ====================
   async getInstitution(id: number): Promise<Institution | undefined> {
     const [institution] = await db.select().from(institutions).where(eq(institutions.id, id));
     return institution || undefined;
   }
-
+  
   async getInstitutionByCode(code: string): Promise<Institution | undefined> {
     const [institution] = await db.select().from(institutions).where(eq(institutions.code, code));
     return institution || undefined;
   }
-
+  
   async getInstitutionByCNPJ(cnpj: string): Promise<Institution | undefined> {
     const [institution] = await db.select().from(institutions).where(eq(institutions.cnpj, cnpj));
     return institution || undefined;
   }
-
+  
   async getInstitutions(search?: string, status?: string, limit: number = 50, offset: number = 0): Promise<Institution[]> {
     let query = db.select().from(institutions).limit(limit).offset(offset);
-
+    
     if (search) {
       query = query.where(
         or(
@@ -721,14 +722,14 @@ export class DatabaseStorage implements IStorage {
         )
       );
     }
-
+    
     if (status) {
       query = query.where(eq(institutions.status, status));
     }
-
+    
     return await query.orderBy(asc(institutions.name));
   }
-
+  
   async createInstitution(institution: InsertInstitution): Promise<Institution> {
     const [newInstitution] = await db
       .insert(institutions)
@@ -736,7 +737,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newInstitution;
   }
-
+  
   async updateInstitution(id: number, institution: Partial<InsertInstitution>): Promise<Institution | undefined> {
     const [updatedInstitution] = await db
       .update(institutions)
@@ -745,7 +746,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedInstitution;
   }
-
+  
   async deleteInstitution(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -758,18 +759,18 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Polos ====================
   async getPolo(id: number): Promise<Polo | undefined> {
     const [polo] = await db.select().from(polos).where(eq(polos.id, id));
     return polo || undefined;
   }
-
+  
   async getPoloByCode(code: string): Promise<Polo | undefined> {
     const [polo] = await db.select().from(polos).where(eq(polos.code, code));
     return polo || undefined;
   }
-
+  
   async getPoloByUserId(userId: number): Promise<Polo | undefined> {
     const user = await this.getUser(userId);
     if (!user || user.portalType !== "polo" || !user.poloId) {
@@ -777,10 +778,10 @@ export class DatabaseStorage implements IStorage {
     }
     return await this.getPolo(user.poloId);
   }
-
+  
   async getPolos(search?: string, status?: string, institutionId?: number, limit: number = 50, offset: number = 0): Promise<Polo[]> {
     let query = db.select().from(polos).limit(limit).offset(offset);
-
+    
     if (search) {
       query = query.where(
         or(
@@ -790,18 +791,18 @@ export class DatabaseStorage implements IStorage {
         )
       );
     }
-
+    
     if (status) {
       query = query.where(eq(polos.status, status));
     }
-
+    
     if (institutionId) {
       query = query.where(eq(polos.institutionId, institutionId));
     }
-
+    
     return await query.orderBy(asc(polos.name));
   }
-
+  
   async createPolo(polo: InsertPolo): Promise<Polo> {
     const [newPolo] = await db
       .insert(polos)
@@ -809,7 +810,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newPolo;
   }
-
+  
   async updatePolo(id: number, polo: Partial<InsertPolo>): Promise<Polo | undefined> {
     const [updatedPolo] = await db
       .update(polos)
@@ -818,7 +819,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedPolo;
   }
-
+  
   async deletePolo(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -831,13 +832,13 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Transações Financeiras ====================
   async getFinancialTransaction(id: number): Promise<FinancialTransaction | undefined> {
     const [transaction] = await db.select().from(financialTransactions).where(eq(financialTransactions.id, id));
     return transaction || undefined;
   }
-
+  
   async getFinancialTransactions(
     type?: string, 
     category?: string, 
@@ -849,34 +850,34 @@ export class DatabaseStorage implements IStorage {
     offset: number = 0
   ): Promise<FinancialTransaction[]> {
     let query = db.select().from(financialTransactions).limit(limit).offset(offset);
-
+    
     if (type) {
       query = query.where(eq(financialTransactions.type, type));
     }
-
+    
     if (category) {
       query = query.where(eq(financialTransactions.category, category));
     }
-
+    
     if (search) {
       query = query.where(like(financialTransactions.description, `%${search}%`));
     }
-
+    
     if (startDate) {
       query = query.where(gte(financialTransactions.date, startDate));
     }
-
+    
     if (endDate) {
       query = query.where(lte(financialTransactions.date, endDate));
     }
-
+    
     if (institutionId) {
       query = query.where(eq(financialTransactions.institutionId, institutionId));
     }
-
+    
     return await query.orderBy(desc(financialTransactions.date));
   }
-
+  
   async createFinancialTransaction(transaction: InsertFinancialTransaction): Promise<FinancialTransaction> {
     const [newTransaction] = await db
       .insert(financialTransactions)
@@ -884,7 +885,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newTransaction;
   }
-
+  
   async updateFinancialTransaction(id: number, transaction: Partial<InsertFinancialTransaction>): Promise<FinancialTransaction | undefined> {
     const [updatedTransaction] = await db
       .update(financialTransactions)
@@ -893,7 +894,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedTransaction;
   }
-
+  
   async deleteFinancialTransaction(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -906,27 +907,27 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Categorias Financeiras ====================
   async getFinancialCategory(id: number): Promise<FinancialCategory | undefined> {
     const [category] = await db.select().from(financialCategories).where(eq(financialCategories.id, id));
     return category || undefined;
   }
-
+  
   async getFinancialCategories(type?: string, institutionId?: number, limit: number = 50, offset: number = 0): Promise<FinancialCategory[]> {
     let query = db.select().from(financialCategories).limit(limit).offset(offset);
-
+    
     if (type) {
       query = query.where(eq(financialCategories.type, type));
     }
-
+    
     if (institutionId) {
       query = query.where(eq(financialCategories.institutionId, institutionId));
     }
-
+    
     return await query.orderBy(asc(financialCategories.name));
   }
-
+  
   async createFinancialCategory(category: InsertFinancialCategory): Promise<FinancialCategory> {
     const [newCategory] = await db
       .insert(financialCategories)
@@ -934,7 +935,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newCategory;
   }
-
+  
   async updateFinancialCategory(id: number, category: Partial<InsertFinancialCategory>): Promise<FinancialCategory | undefined> {
     const [updatedCategory] = await db
       .update(financialCategories)
@@ -943,7 +944,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedCategory;
   }
-
+  
   async deleteFinancialCategory(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -956,18 +957,18 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Matrículas ====================
   async getEnrollment(id: number): Promise<Enrollment | undefined> {
     const [enrollment] = await db.select().from(enrollments).where(eq(enrollments.id, id));
     return enrollment || undefined;
   }
-
+  
   async getEnrollmentByCode(code: string): Promise<Enrollment | undefined> {
     const [enrollment] = await db.select().from(enrollments).where(eq(enrollments.code, code));
     return enrollment || undefined;
   }
-
+  
   async getEnrollments(
     search?: string, 
     status?: string, 
@@ -983,7 +984,7 @@ export class DatabaseStorage implements IStorage {
     offset: number = 0
   ): Promise<Enrollment[]> {
     let query = db.select().from(enrollments).limit(limit).offset(offset);
-
+    
     // Filtros
     if (search) {
       query = query.where(
@@ -992,46 +993,46 @@ export class DatabaseStorage implements IStorage {
         )
       );
     }
-
+    
     if (status) {
       query = query.where(eq(enrollments.status, status));
     }
-
+    
     if (studentId) {
       query = query.where(eq(enrollments.studentId, studentId));
     }
-
+    
     if (courseId) {
       query = query.where(eq(enrollments.courseId, courseId));
     }
-
+    
     if (poloId) {
       query = query.where(eq(enrollments.poloId, poloId));
     }
-
+    
     if (institutionId) {
       query = query.where(eq(enrollments.institutionId, institutionId));
     }
-
+    
     if (partnerId) {
       query = query.where(eq(enrollments.partnerId, partnerId));
     }
-
+    
     if (startDate) {
       query = query.where(gte(enrollments.enrollmentDate, startDate));
     }
-
+    
     if (endDate) {
       query = query.where(lte(enrollments.enrollmentDate, endDate));
     }
-
+    
     if (paymentGateway) {
       query = query.where(eq(enrollments.paymentGateway, paymentGateway));
     }
-
+    
     return await query.orderBy(desc(enrollments.enrollmentDate));
   }
-
+  
   async getStudentEnrollments(studentId: number): Promise<Enrollment[]> {
     return await db
       .select()
@@ -1039,7 +1040,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(enrollments.studentId, studentId))
       .orderBy(desc(enrollments.enrollmentDate));
   }
-
+  
   async getCourseEnrollments(courseId: number): Promise<Enrollment[]> {
     return await db
       .select()
@@ -1047,7 +1048,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(enrollments.courseId, courseId))
       .orderBy(desc(enrollments.enrollmentDate));
   }
-
+  
   async createEnrollment(enrollment: InsertEnrollment): Promise<Enrollment> {
     const [newEnrollment] = await db
       .insert(enrollments)
@@ -1055,7 +1056,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newEnrollment;
   }
-
+  
   async updateEnrollment(id: number, enrollment: Partial<InsertEnrollment>): Promise<Enrollment | undefined> {
     const [updatedEnrollment] = await db
       .update(enrollments)
@@ -1064,12 +1065,12 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedEnrollment;
   }
-
+  
   async updateEnrollmentStatus(id: number, status: string, reason?: string, changedById?: number, metadata?: any): Promise<Enrollment | undefined> {
     // Pegar o status anterior
     const oldEnrollment = await this.getEnrollment(id);
     if (!oldEnrollment) return undefined;
-
+    
     // Atualizar o status, removendo campos problemáticos relacionados a chaves estrangeiras
     const [updatedEnrollment] = await db
       .update(enrollments)
@@ -1080,7 +1081,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(enrollments.id, id))
       .returning();
-
+    
     // Registrar no histórico (com try-catch para evitar que falhas aqui interrompam o processamento)
     try {
       await this.addEnrollmentStatusHistory({
@@ -1094,10 +1095,10 @@ export class DatabaseStorage implements IStorage {
     } catch (historyError) {
       console.warn('Erro ao registrar histórico de status, mas o status foi atualizado:', historyError);
     }
-
+    
     return updatedEnrollment;
   }
-
+  
   async deleteEnrollment(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -1110,7 +1111,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // ==================== Histórico de Status de Matrículas ====================
   async getEnrollmentStatusHistory(enrollmentId: number): Promise<EnrollmentStatusHistory[]> {
     return await db
@@ -1119,7 +1120,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(enrollmentStatusHistory.enrollmentId, enrollmentId))
       .orderBy(desc(enrollmentStatusHistory.changeDate));
   }
-
+  
   async addEnrollmentStatusHistory(historyEntry: InsertEnrollmentStatusHistory): Promise<EnrollmentStatusHistory> {
     const [newHistoryEntry] = await db
       .insert(enrollmentStatusHistory)
@@ -1127,13 +1128,13 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newHistoryEntry;
   }
-
+  
   // ==================== Matrículas Simplificadas ====================
   async getSimplifiedEnrollment(id: number): Promise<SimplifiedEnrollment | undefined> {
     const [enrollment] = await db.select().from(simplifiedEnrollments).where(eq(simplifiedEnrollments.id, id));
     return enrollment || undefined;
   }
-
+  
   /**
    * Busca uma matrícula simplificada pelo seu externalReference
    * Método essencial para processar notificações de pagamento do Asaas
@@ -1144,7 +1145,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(simplifiedEnrollments.externalReference, externalReference));
     return enrollment || undefined;
   }
-
+  
   async getSimplifiedEnrollments(
     search?: string,
     status?: string,
@@ -1157,9 +1158,9 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Storage: Iniciando consulta de matrículas simplificadas');
       console.log('Parâmetros da consulta:', { search, status, institutionId, courseId, poloId, limit, offset });
-
+      
       let query = db.select().from(simplifiedEnrollments).limit(limit).offset(offset);
-
+      
       // Filtros
       if (search) {
         console.log('Aplicando filtro de pesquisa:', search);
@@ -1171,38 +1172,38 @@ export class DatabaseStorage implements IStorage {
           )
         );
       }
-
+      
       if (status) {
         console.log('Aplicando filtro de status:', status);
         query = query.where(eq(simplifiedEnrollments.status, status));
       }
-
+      
       if (institutionId) {
         console.log('Aplicando filtro de instituição:', institutionId);
         query = query.where(eq(simplifiedEnrollments.institutionId, institutionId));
       }
-
+      
       if (courseId) {
         console.log('Aplicando filtro de curso:', courseId);
         query = query.where(eq(simplifiedEnrollments.courseId, courseId));
       }
-
+      
       if (poloId) {
         console.log('Aplicando filtro de polo:', poloId);
         query = query.where(eq(simplifiedEnrollments.poloId, poloId));
       }
-
+      
       console.log('Executando consulta final...');
       const result = await query.orderBy(desc(simplifiedEnrollments.createdAt));
       console.log(`Consulta bem-sucedida, retornando ${result ? result.length : 0} registros`);
-
+      
       return result;
     } catch (error) {
       console.error('ERRO na consulta de matrículas simplificadas:', error);
       throw error;
     }
   }
-
+  
   async createSimplifiedEnrollment(enrollment: InsertSimplifiedEnrollment): Promise<SimplifiedEnrollment> {
     const [newEnrollment] = await db
       .insert(simplifiedEnrollments)
@@ -1210,7 +1211,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newEnrollment;
   }
-
+  
   async updateSimplifiedEnrollment(id: number, enrollment: Partial<InsertSimplifiedEnrollment>): Promise<SimplifiedEnrollment | undefined> {
     const [updatedEnrollment] = await db
       .update(simplifiedEnrollments)
@@ -1219,19 +1220,19 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedEnrollment;
   }
-
+  
   async updateSimplifiedEnrollmentStatus(id: number, status: string, reason?: string, changedById?: number, metadata?: any): Promise<SimplifiedEnrollment | undefined> {
     // Pegar o status anterior
     const oldEnrollment = await this.getSimplifiedEnrollment(id);
     if (!oldEnrollment) return undefined;
-
+    
     // Adicionar datas específicas com base no status
     const updateData: Partial<InsertSimplifiedEnrollment> = { 
       status: status,
       updatedAt: new Date()
       // Removido updatedById para evitar erro de chave estrangeira
     };
-
+    
     // Adicionar datas específicas baseadas no status
     const now = new Date();
     if (status === 'waiting_payment') {
@@ -1243,14 +1244,14 @@ export class DatabaseStorage implements IStorage {
     } else if (status === 'cancelled') {
       updateData.cancellationExecutedAt = now;
     }
-
+    
     // Atualizar o status
     const [updatedEnrollment] = await db
       .update(simplifiedEnrollments)
       .set(updateData)
       .where(eq(simplifiedEnrollments.id, id))
       .returning();
-
+    
     // Registrar no histórico (com try-catch para evitar que falhas aqui interrompam o processamento)
     try {
       await this.addSimplifiedEnrollmentStatusLog({
@@ -1264,10 +1265,10 @@ export class DatabaseStorage implements IStorage {
     } catch (historyError) {
       console.warn('Erro ao registrar histórico de status simplificado, mas o status foi atualizado:', historyError);
     }
-
+    
     return updatedEnrollment;
   }
-
+  
   async deleteSimplifiedEnrollment(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -1280,30 +1281,30 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-
+  
   // Método para conversão de matrícula simplificada para completa
   async convertSimplifiedToFullEnrollment(id: number): Promise<Enrollment | undefined> {
     const simplified = await this.getSimplifiedEnrollment(id);
     if (!simplified) {
       return undefined;
     }
-
+    
     // Verificar se já foi convertido
     if (simplified.convertedEnrollmentId) {
       return this.getEnrollment(simplified.convertedEnrollmentId);
     }
-
+    
     // Verificar se existe um usuário com o mesmo email
     let user = await this.getUserByEmail(simplified.studentEmail);
-
+    
     // Se não existir, criar um novo usuário
     if (!user) {
       // Gerar um username único baseado no email
       const username = simplified.studentEmail.split('@')[0] + Math.floor(Math.random() * 1000);
-
+      
       // Gerar uma senha aleatória temporária (deverá ser alterada pelo usuário)
       const tempPassword = Math.random().toString(36).slice(-8);
-
+      
       user = await this.createUser({
         username: username,
         password: tempPassword, // Na prática, você deve hashear isso
@@ -1314,7 +1315,7 @@ export class DatabaseStorage implements IStorage {
         portalType: "student"
       });
     }
-
+    
     // Criar a matrícula completa
     const newEnrollment = await this.createEnrollment({
       code: `MAT${Date.now().toString().substring(0, 10)}`,
@@ -1332,7 +1333,7 @@ export class DatabaseStorage implements IStorage {
       createdById: simplified.createdById || null,
       enrollmentDate: new Date()
     });
-
+    
     // Atualizar a matrícula simplificada
     await this.updateSimplifiedEnrollment(id, {
       status: "converted",
@@ -1340,10 +1341,10 @@ export class DatabaseStorage implements IStorage {
       processedAt: new Date(),
       processedById: simplified.createdById || null
     });
-
+    
     return newEnrollment;
   }
-
+  
   // ==================== Log de Status de Matrículas Simplificadas ====================
   async getSimplifiedEnrollmentStatusLog(enrollmentId: number): Promise<SimplifiedEnrollmentStatusLog[]> {
     return await db
@@ -1352,7 +1353,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(simplifiedEnrollmentStatusLog.enrollmentId, enrollmentId))
       .orderBy(desc(simplifiedEnrollmentStatusLog.changeDate));
   }
-
+  
   async addSimplifiedEnrollmentStatusLog(logEntry: InsertSimplifiedEnrollmentStatusLog): Promise<SimplifiedEnrollmentStatusLog> {
     const [newLogEntry] = await db
       .insert(simplifiedEnrollmentStatusLog)
@@ -1360,7 +1361,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newLogEntry;
   }
-
+  
   // ==================== Gateway de Pagamento ====================
   async createPaymentForEnrollment(enrollment: Enrollment, gateway: string): Promise<{externalId: string, paymentUrl: string}> {
     // Esta é uma implementação fictícia. Na prática, você integraria com um gateway real.
@@ -1369,12 +1370,12 @@ export class DatabaseStorage implements IStorage {
       paymentUrl: `https://example.com/pay/${Math.random().toString(36).substring(2, 15)}`
     };
   }
-
+  
   async getPaymentStatus(externalId: string, gateway: string): Promise<string> {
     // Esta é uma implementação fictícia. Na prática, você consultaria o gateway.
     return "completed";
   }
-
+  
   // ==================== Contratos Educacionais ====================
   async getEducationalContract(id: string): Promise<EducationalContract | undefined> {
     const [contract] = await db
@@ -1383,7 +1384,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(educationalContracts.id, id));
     return contract || undefined;
   }
-
+  
   async getEducationalContracts(filters?: { 
     studentId?: number, 
     courseId?: number, 
@@ -1391,7 +1392,7 @@ export class DatabaseStorage implements IStorage {
     contractType?: string
   }): Promise<EducationalContract[]> {
     let query = db.select().from(educationalContracts);
-
+    
     if (filters) {
       if (filters.studentId) {
         query = query.where(eq(educationalContracts.studentId, filters.studentId));
@@ -1406,10 +1407,10 @@ export class DatabaseStorage implements IStorage {
         query = query.where(eq(educationalContracts.contractType, filters.contractType));
       }
     }
-
+    
     return await query.orderBy(desc(educationalContracts.createdAt));
   }
-
+  
   async createEducationalContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract> {
     const [newContract] = await db
       .insert(educationalContracts)
@@ -1417,7 +1418,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newContract;
   }
-
+  
   async updateEducationalContract(id: string, data: Partial<EducationalContract>): Promise<EducationalContract | undefined> {
     const [updatedContract] = await db
       .update(educationalContracts)
@@ -1426,7 +1427,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedContract;
   }
-
+  
   // ==================== Templates de Contrato ====================
   async getContractTemplates(filters?: { contractType?: string, active?: boolean }): Promise<any[]> {
     // Implementação temporária com dados mockados
@@ -1444,7 +1445,7 @@ export class DatabaseStorage implements IStorage {
       }
     ];
   }
-
+  
   async getContractTemplate(id: string): Promise<any | undefined> {
     // Implementação temporária com dados mockados
     // Em uma implementação real, você consultaria a tabela de templates de contrato
@@ -1459,7 +1460,7 @@ export class DatabaseStorage implements IStorage {
       active: true
     };
   }
-
+  
   // ==================== Contratos Educacionais ====================
   async getContract(id: number): Promise<EducationalContract | null> {
     try {
@@ -1467,14 +1468,14 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(educationalContracts)
         .where(eq(educationalContracts.id, id));
-
+      
       return contract || null;
     } catch (error) {
       console.error(`Erro ao buscar contrato com ID ${id}:`, error);
       return null;
     }
   }
-
+  
   async getContracts(filters?: { 
     studentId?: number, 
     courseId?: number,
@@ -1484,68 +1485,68 @@ export class DatabaseStorage implements IStorage {
   }): Promise<EducationalContract[]> {
     try {
       let query = db.select().from(educationalContracts);
-
+      
       if (filters) {
         // Construir filtro dinâmico
         const conditions: SQL<unknown>[] = [];
-
+        
         if (filters.studentId !== undefined) {
           conditions.push(eq(educationalContracts.studentId, filters.studentId));
         }
-
+        
         if (filters.courseId !== undefined) {
           conditions.push(eq(educationalContracts.courseId, filters.courseId));
         }
-
+        
         if (filters.enrollmentId !== undefined) {
           conditions.push(eq(educationalContracts.enrollmentId, filters.enrollmentId));
         }
-
+        
         if (filters.status !== undefined) {
           conditions.push(eq(educationalContracts.status, filters.status));
         }
-
+        
         if (filters.contractType !== undefined) {
           conditions.push(eq(educationalContracts.contractType, filters.contractType));
         }
-
+        
         // Aplicar condições se houver alguma
         if (conditions.length > 0) {
           // Combinar todas as condições com AND
           let whereClause = conditions[0];
-
+          
           for (let i = 1; i < conditions.length; i++) {
             whereClause = and(whereClause, conditions[i]);
           }
-
+          
           query = query.where(whereClause);
         }
       }
-
+      
       // Executar a consulta
       const contracts = await query.orderBy(desc(educationalContracts.createdAt));
-
+      
       return contracts;
     } catch (error) {
       console.error("Erro ao buscar contratos:", error);
       return [];
     }
   }
-
+  
   async createContract(contract: Omit<EducationalContract, 'id'>): Promise<EducationalContract> {
     try {
       const [newContract] = await db
         .insert(educationalContracts)
         .values(contract)
         .returning();
-
+      
       return newContract;
     } catch (error) {
       console.error("Erro ao criar contrato:", error);
       throw error;
     }
   }
-
+  
   async updateContract(id: number, data: Partial<EducationalContract>): Promise<EducationalContract | null> {
     try {
       const [updatedContract] = await db
@@ -1556,32 +1557,32 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(educationalContracts.id, id))
         .returning();
-
+      
       return updatedContract || null;
     } catch (error) {
       console.error(`Erro ao atualizar contrato com ID ${id}:`, error);
       return null;
     }
   }
-
+  
   // Métodos auxiliares para contratos
   async getUserById(id: number): Promise<User | undefined> {
     return this.getUser(id);
   }
-
+  
   async getCourseById(id: number): Promise<Course | undefined> {
     return this.getCourse(id);
   }
-
+  
   async getCourseTypeById(id: number): Promise<any | undefined> {
     const [courseType] = await db
       .select()
       .from(courseTypes)
       .where(eq(courseTypes.id, id));
-
+    
     return courseType || undefined;
   }
-
+  
   async getSimplifiedEnrollmentById(id: number): Promise<SimplifiedEnrollment | undefined> {
     return this.getSimplifiedEnrollment(id);
   }

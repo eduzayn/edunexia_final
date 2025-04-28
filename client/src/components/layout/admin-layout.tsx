@@ -5,7 +5,6 @@ import { Sidebar } from "./sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { PageTransition } from "@/components/ui/page-transition";
 import { useState } from "react";
-import { ExtendedUser } from "@/types/user";
 
 export interface AdminLayoutProps {
   children: ReactNode;
@@ -16,7 +15,7 @@ export interface AdminLayoutProps {
 
 export default function AdminLayout({ children, sidebarItems, title, subtitle }: AdminLayoutProps) {
   const [location] = useLocation();
-  const { user } = useAuth() as { user: ExtendedUser | null };
+  const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Verificar se o usuário tem permissão para acessar o portal admin
