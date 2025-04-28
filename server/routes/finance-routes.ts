@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import * as financeService from '../services/finance-service';
-import { requirePermission } from '../middlewares/permission-middleware';
+import { requirePermission } from '../middleware/permission-middleware';
 import { requireAuth } from '../middleware/auth';
 import chargesRoutes from './finance-charges-routes';
 import {

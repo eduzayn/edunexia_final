@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
-import { requirePermission } from '../middlewares/simple-permission';
+import { requirePermission } from '../middleware/permission-middleware';
 import * as checkoutController from '../controllers/checkout-controller';
 
 const router = Router();

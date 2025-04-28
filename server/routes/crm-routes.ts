@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { requirePermission } from '../middlewares/permission-middleware';
+import { requirePermission } from '../middleware/permission-middleware';
 import { requireAuth } from '../middleware/auth';
 import * as crmService from '../services/crm-service';
 import { Request, Response } from 'express';
